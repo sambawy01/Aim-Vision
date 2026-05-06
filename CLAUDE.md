@@ -22,6 +22,24 @@ Repo layout (monorepo for now; can split into separate GitHub repos when team sc
 
 Phase 0 status: docs + scaffolding code shipped. Real implementation begins as the team comes online — see [`docs/AIMVISION_V2_Sprint_Plan.md`](docs/AIMVISION_V2_Sprint_Plan.md).
 
+## Where the last session left off (2026-05-06)
+
+CI status across the 7 child workflows + orchestrator:
+
+| Workflow | Status | Notes |
+|---|---|---|
+| `backend-ci` | green | RLS test passes via `aimvision_app` NOBYPASSRLS role |
+| `web-ci` | green | typecheck + vitest + build all pass |
+| `ml-ci` | green | 53 unit tests, ruff/mypy clean |
+| `security` | green | trivy 0.35.0 + semgrep + cargo-audit (advisory) |
+| `aimvision-camera-core CI` | unknown — verify | tokio `test-util` feature added in 2ebf216; was running on commit 484bfee when session ended. `cargo fmt` and `cargo clippy` are intentionally `continue-on-error: true` until first Rust eng. cleans up |
+| `mobile-ci` | red | `expo` ESLint preset references `@typescript-eslint/ban-types` which v8 removed. Fix next session: pin `@typescript-eslint/parser` and `@typescript-eslint/eslint-plugin` to `^7.18.0` in `aimvision-mobile/package.json` |
+| `CI` (orchestrator) | red | bubbles up from mobile + camera-core results |
+
+**First action next session:** `gh run list --repo sambawy01/Aim-Vision --branch main --limit 8`. If camera-core is now green, push the mobile @typescript-eslint v7 pin. If both are red, drill into the camera-core test step output via `gh run view <id> --repo sambawy01/Aim-Vision --log-failed`.
+
+**Local toolchain available:** Python 3.14 (CI uses 3.12), node 22, gh, git, pre-commit (in `/tmp/precommit-venv/bin/pre-commit`). NOT available: cargo, helm, prettier, shellcheck, shfmt. Rustup install via curl was denied by the harness — verify Rust changes via CI, not locally.
+
 ## Owner
 
 - GitHub: [@sambawy01](https://github.com/sambawy01)
