@@ -25,15 +25,18 @@ The input is **multimodal**: video (Hero 13), audio (Media Mod or USB-C UVC PCM)
 ## 2. Sensor stack v1 (revised)
 
 ### Hero 13 video
+
 - **Live preview:** UDP MPEG-TS H.264, ~480p30, documented 1–2 s floor of latency (`docs/reviews/05-embedded-firmware-engineer.md`). This is the floor, not the goal. Federation tier must use **USB-C UVC tether** at 1080p with ~200–400 ms latency; the perf review correctly upgrades this from P1 to P0 for federation.
 - **Recorded:** 4K60 H.265 to SD card, GPMF metadata for camera IMU and timecode, retrieved post-session for the accuracy-bound pipeline.
 
 ### Hero 13 audio
+
 - **Default:** Media Mod cardioid electret, 48 kHz mono, AAC inside MP4. AAC adds 20–40 ms encoder latency that matters for sub-shot timing.
 - **Recommended upgrade:** **USB-C UVC raw PCM** if the Hero 13 firmware path supports a UAC audio class endpoint over the same USB-C tether used for video. This eliminates the AAC decode and gives clean 16-bit @ 48 kHz to the shot detector. Embedded review flags this as "capture raw PCM via UVC if possible" — confirming this in firmware bring-up is a Sprint 4 deliverable.
 - Foam windscreen as a hardware SKU; wind above 15 km/h dominates the Media Mod.
 
 ### Gun-stock BLE IMU — promoted to V1 P1
+
 - **Part:** **BMI270** preferred (lower power, better noise floor than MPU-6050; ~$3 in volume, ~$15 finished BOM with case + battery + nRF52). MPU-6050 is the fallback if BMI270 supply slips.
 - **Rate:** 200 Hz 6-axis (accel + gyro), tap-detect interrupt for shot timing.
 - **Form factor:** Mantis-style stock clamp; user-removable; survives 30–50 G recoil.
@@ -41,10 +44,12 @@ The input is **multimodal**: video (Hero 13), audio (Media Mod or USB-C UVC PCM)
 - **Owned by:** Embedded firmware, but ML owns the fusion model and time-alignment protocol.
 
 ### 4-mic camera-mount array (V1.5 candidate)
+
 - Resolves multi-shooter audio interference (Risk R7) via TDOA beamforming. Embedded review: "two shooters firing within 1.5 sec on adjacent stations will produce overlapping transients that a simple threshold detector will merge." Without this, the audio detector is unreliable at competitive ranges.
 - ~$30 BOM; mounts on the existing camera tripod plate.
 
 ### Phone front-cam gaze + head-pose (V1.5 candidate)
+
 - **Why it's the most coachable variable in skeet:** gaze leads head leads gun by 80–150 ms, published in shooting-sports biomechanics. Detecting head-lift before the gun has even moved is a step-change in coaching latency.
 - Models: 6DRepNet or WHENet (head-pose), L2CS-Net (gaze).
 - Costs nothing in hardware (phone is already there) but costs UX surface area, so it's V1.5 not V1.
@@ -75,6 +80,7 @@ mic PCM ─► audio shot detector (CRNN, 50ms hop / 200ms window)
 **Runtime:** ONNX Runtime Mobile with Core ML EP on iOS, NNAPI EP on Android (QNN/Hexagon EP where available, e.g., S22). All four models compiled int8 where it doesn't cost macro-F1 > 1 point on the validation set.
 
 **Backpressure (single mpsc, `try_send`, per-stage drop counters):**
+
 1. Drop pose first.
 2. Drop barrel YOLO second.
 3. Never drop audio. Never drop preview decode.
@@ -82,6 +88,7 @@ mic PCM ─► audio shot detector (CRNN, 50ms hop / 200ms window)
 **Audio chunking:** 50 ms hop, 200 ms window — perf review's recommendation. 10 ms hop is overkill (cost > latency win); 100 ms loses double-shot disambiguation.
 
 **Thermal degradation ladder (mirrors perf review):**
+
 - 42 °C → pose to 5 fps
 - 44 °C → drop barrel YOLO entirely
 - 46 °C → preview to 12 fps
@@ -96,6 +103,7 @@ Cite `docs/performance-budgets.md` for the per-stage histograms (p50/p95/p99 for
 **Replace MediaPipe BlazePose.** It's trained on yoga/fitness and degrades on lateral and oblique stances (skeet stations 1 and 7), has 33 keypoints with no hand articulation, and has no gun-relevant landmarks. MediaPipe was a starter choice; it is the wrong model for this sport.
 
 **Decision:**
+
 - **Post-session (accuracy-bound):** **RTMPose-x** (MMPose) with **MMPose Wholebody** topology — 133 keypoints including hands and face. Hand articulation is needed for trigger-finger detection; face landmarks are needed for cheek-weld and dominant-eye. ViTPose-H is a credible alternative on the same topology; we choose RTMPose-x because the inference path on A10G is faster and the ONNX export is more stable. Re-evaluate at Sprint 18 if MMPose ships an improved ViT distillation.
 - **Live (latency-bound):** **RTMPose-Lite** distilled from RTMPose-x on our own data. We do not run Wholebody at 8–12 fps on phone — we run a 17-keypoint COCO topology live and recover the hand/face keypoints in the post-session pass. The live diagnostic head only consumes signals the COCO topology supports (head/torso/arm angles); cheek-weld and trigger-finger are post-session only.
 
@@ -106,10 +114,12 @@ Cite `docs/performance-budgets.md` for the per-stage histograms (p50/p95/p99 for
 ## 5. Barrel and clay tracking
 
 **Barrel detection.**
+
 - **Live:** YOLOv8n int8 quantized at 5–8 fps. Tooling maturity > marginal accuracy of RTMDet/NAS variants. Subsampled, not every frame.
 - **Post-session:** **SAM2** mask propagation initialized from a YOLOv8x detection. Once the gun occludes the torso during mount, a bbox is the wrong primitive — a mask handles partial occlusion of barrel-by-hand and barrel-by-torso cleanly. This is the AI review's recommendation and we adopt it.
 
 **Clay tracking.**
+
 - **ByteTrack** anchored on YOLOv8 detection. ByteTrack > OC-SORT for our case because clays have low ID-switch rate (single track per shot, predictable trajectory) and ByteTrack's track-by-detection-association is simpler to debug. OC-SORT remains a fallback if Kalman fails on shot-debris occlusion.
 
 ---
@@ -158,11 +168,13 @@ shared embedding (pose + IMU + audio + VideoMAE clip features)
 Each expert produces **calibrated probabilities** for its own taxonomy branch. The branches and atoms are defined in `docs/diagnostic-taxonomy.md`. They are **multi-label**: head-lift, stopped-gun, and off-line co-occur regularly. A single multiclass head is structurally wrong here — that's an AI review correction we accept verbatim.
 
 **Calibration.**
+
 - **Per-task temperature scaling** (Guo et al. 2017) on a held-out set per expert.
 - Report **Expected Calibration Error (ECE)** and **Brier score** per class. Target ECE ≤ 0.05 per task.
 - **Conformal prediction** (Angelopoulos & Bates) yields per-shot prediction sets with 90% coverage. Prediction sets are surfaced honestly in the UI as "likely cause + alternates" rather than as a fake top-1.
 
 **Abstention.**
+
 - **Per-class thresholds.** Head-lift is easier to detect than stopped-gun — global thresholds under-fire on easy classes and over-fire on hard ones. Tuned on stratified validation.
 - UX-review constraint: "cause unclear" budget is **15% of shots maximum**. Above that the live feed reads as broken. The taxonomy spec defines a low-confidence-best-guess presentation that keeps abstention at ≤ 15% while preserving epistemic honesty (`docs/diagnostic-taxonomy.md` §Meta).
 
@@ -173,6 +185,7 @@ Each expert produces **calibrated probabilities** for its own taxonomy branch. T
 **Time alignment.** Audio shot detector and IMU tap-detect interrupt fuse to **sub-10 ms** shot timing. The IMU's onboard tap-detect pulls down a GPIO that the nRF52 timestamps against its BLE-disciplined clock, broadcast every 100 ms. Fusion logic on phone: take audio peak ± 50 ms, find nearest IMU tap, accept if within window, else treat as a missed-mic shot (camera muffled, wind) or missed-tap shot (low-recoil low-gauge round).
 
 **Kinematic features available from the IMU:**
+
 - Swing angular velocity (gyro-Z primary, gyro-Y secondary for vertical lead).
 - Swing angular acceleration (numerical derivative, low-pass filtered).
 - Mount jerk (third derivative of accel-Y; spike during mount).
@@ -180,6 +193,7 @@ Each expert produces **calibrated probabilities** for its own taxonomy branch. T
 - Barrel orientation (Madgwick or Mahony AHRS, ~2° steady-state drift over 30 s; re-anchored each shot via gravity-vector reset between shots).
 
 **Resolves directly:**
+
 - **Stopped-gun:** angular velocity drops below threshold within 100 ms before muzzle blast → kinematic ground truth. Today this is inferred from pose with high error.
 - **Head-lift vs. stopped-gun ambiguity:** if angular velocity is healthy and pose-derived head-stock angle increases pre-shot, it's head-lift, not stopped-gun. Without IMU these are confusable.
 - **Mount jerk magnitude:** quality-of-mount metric independent of pose.
@@ -191,18 +205,23 @@ Each expert produces **calibrated probabilities** for its own taxonomy branch. T
 ## 10. Training strategy
 
 ### Self-supervised pretraining
+
 **VideoMAE-v2 masked autoencoding** on all raw shooting footage we record, **including footage we don't have labels for**. Mask ratio 75%, tube masking, 16-frame clips. This is the single largest label-efficiency lever — expect **5–10× fewer labels** for a given downstream accuracy. We also pretrain on near-domain action data (HMDB-51, Kinetics-400 sports subset) for the first epoch, then domain-shift onto our own footage.
 
 ### Weak supervision
+
 **Audio shot timestamps auto-segment** ±2 s clips. Hit/miss outcome from the GoPro Hilight tag (when present) and from clay-tracker disappearance event (when not). This generates millions of weakly-labeled clips for free. Diagnostics still need expert labels, but clip boundaries do not.
 
 ### Active learning
+
 **BALD acquisition** (Bayesian Active Learning by Disagreement) over the diagnostic ensemble; **coreset selection** as a fallback that doesn't depend on ensemble disagreement quality. The active-learning queue prioritizes the highest-uncertainty shots for **Franco** and a small panel of expert coaches. UX review: "Don't burn Franco on labels." This is how we don't.
 
 ### Per-athlete LoRA personalization
+
 After ~**200 shots** per athlete we fine-tune a **LoRA adapter** on the diagnostic heads only (rank 8, alpha 16). Mitigates the Egypt-cohort domain shift the AI review flags, and creates per-athlete lock-in (the model is materially better for you the longer you use it). The base model is shared; only the adapter is athlete-private.
 
 ### Continual learning + provenance
+
 Every training sample carries `(athlete_id, session_id, source, captured_at, consent_flags)`. **Minor-data ML-training opt-out is the default** (per Compliance review). Re-training jobs filter on consent flags at the data-loader layer, not at the application layer; this is a compliance hard requirement, not a feature toggle.
 
 ---
@@ -232,6 +251,7 @@ Every training sample carries `(athlete_id, session_id, source, captured_at, con
 **Bias audits as a CI gate.** Not a quarterly review. Every model promotion runs the stratified eval; the bias audit blocks promotion if any axis fails. Owner: AI Eng + Compliance review sign-off.
 
 **Targets (restated, with denominators).**
+
 - Diagnostic top-3 macro-F1 ≥ **0.78** on the stratified test set.
 - Outcome (hit/miss) detection ≥ **95%** in good lighting, ≥ **88%** in harsh sun.
 - Calibration **ECE ≤ 0.05 per task**.
@@ -257,17 +277,17 @@ Every training sample carries `(athlete_id, session_id, source, captured_at, con
 
 From `docs/performance-budgets.md`, copied here for reference:
 
-| Stage | Budget | Reality on A10G |
-|---|---|---|
-| Video re-fetch from object storage (4 GB @ 1 Gbps) | 8 s | 10–15 s; 5 s with CloudFront edge |
-| Re-decode + frame extraction (every 6th frame, 30 min) | 12 s | 8–15 s with NVDEC |
-| Full-res pose (RTMPose-x @ ~10 fps GPU) | 25 s | 20–30 s on A10G |
-| Audio re-detection (Whisper-tiny + custom CRNN) | 5 s | 3–8 s |
-| Per-shot diagnostic ensemble (~80 shots) | 8 s | 6–12 s |
-| Pattern detection + aggregation | 3 s | 2–5 s |
-| **DeepSeek 14B Q4_K_M coaching notes (~600 output tokens)** | **18 s** | **14–22 s @ ~35 tok/s on A10G** |
-| PDF render | 3 s | 2–4 s |
-| **Total p50** | **82 s** | **65–110 s** |
+| Stage                                                       | Budget   | Reality on A10G                   |
+| ----------------------------------------------------------- | -------- | --------------------------------- |
+| Video re-fetch from object storage (4 GB @ 1 Gbps)          | 8 s      | 10–15 s; 5 s with CloudFront edge |
+| Re-decode + frame extraction (every 6th frame, 30 min)      | 12 s     | 8–15 s with NVDEC                 |
+| Full-res pose (RTMPose-x @ ~10 fps GPU)                     | 25 s     | 20–30 s on A10G                   |
+| Audio re-detection (Whisper-tiny + custom CRNN)             | 5 s      | 3–8 s                             |
+| Per-shot diagnostic ensemble (~80 shots)                    | 8 s      | 6–12 s                            |
+| Pattern detection + aggregation                             | 3 s      | 2–5 s                             |
+| **DeepSeek 14B Q4_K_M coaching notes (~600 output tokens)** | **18 s** | **14–22 s @ ~35 tok/s on A10G**   |
+| PDF render                                                  | 3 s      | 2–4 s                             |
+| **Total p50**                                               | **82 s** | **65–110 s**                      |
 
 **SLA: p50 ≤ 90 s, p95 ≤ 150 s, hard cap 180 s.** On hard-cap breach, **degraded fallback**: skip VideoMAE pass, generate a lighter coaching note from per-shot features only, mark the report as `degraded=true` in the schema. This is reported to the user honestly ("full analysis didn't finish in time; here's what we have").
 

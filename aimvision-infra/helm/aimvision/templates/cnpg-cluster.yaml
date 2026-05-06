@@ -148,25 +148,4 @@ spec:
   affinity:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-{{- if and .Values.cnpg.backup.enabled (eq .Values.cnpg.backup.target "s3") }}
----
-{{- /*
-Daily scheduled backup. The CNPG operator will run a `Backup` resource at the
-specified cron. Recovery is performed by creating a new Cluster from a Backup
-ref — see docs/operations/runbooks/postgres-restore.md.
-*/ -}}
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
-  name: {{ include "aimvision.cnpg.fullname" . }}-daily
-  labels:
-    {{- include "aimvision.labels" . | nindent 4 }}
-    app.kubernetes.io/component: database-backup
-spec:
-  # CNPG ScheduledBackup uses 6-field cron: "sec min hour day-of-month month day-of-week"
-  schedule: "0 0 3 * * *"  # 03:00:00 daily
-  backupOwnerReference: self
-  cluster:
-    name: {{ include "aimvision.cnpg.fullname" . }}
-{{- end }}
 {{- end }}

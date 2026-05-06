@@ -15,13 +15,13 @@ The Hero 13 implements the Open GoPro 2.0 specification. There are five protocol
 
 ### 1.1 BLE GATT services
 
-| UUID (16-bit prefix) | Service | What we call into |
-|---|---|---|
-| `0xFEA6` | GoPro Service container | discovery only |
-| Command (`b5f90072-…`) | settings/cmd writes | start/stop, mode, hilight, presets, **Unpair** |
-| Setting (`b5f90074-…`) | live settings push | resolution, FPS, lens, audio, AP band |
-| Query (`b5f90076-…`) | poll status registers | thermal, battery, encoding state, SD |
-| WiFi-AP (`b5f90002-…`) | SSID/PW + 2.4/5 GHz band switch | new on Hero 13 |
+| UUID (16-bit prefix)   | Service                         | What we call into                              |
+| ---------------------- | ------------------------------- | ---------------------------------------------- |
+| `0xFEA6`               | GoPro Service container         | discovery only                                 |
+| Command (`b5f90072-…`) | settings/cmd writes             | start/stop, mode, hilight, presets, **Unpair** |
+| Setting (`b5f90074-…`) | live settings push              | resolution, FPS, lens, audio, AP band          |
+| Query (`b5f90076-…`)   | poll status registers           | thermal, battery, encoding state, SD           |
+| WiFi-AP (`b5f90002-…`) | SSID/PW + 2.4/5 GHz band switch | new on Hero 13                                 |
 
 The "Unpair" command is the only reliable way to clear the camera's bonded-peer cache. We MUST issue it any time the BLE bond fails on the third reconnect attempt — see §4.
 
@@ -60,11 +60,11 @@ The single new capability we depend on is **dual-band AP control over BLE** (tog
 
 Tier-driven defaults, all overridable via settings panel for power users.
 
-| Tier | Primary | Fallback | Notes |
-|---|---|---|---|
-| **Solo** | Wi-Fi 5 GHz, **forced** via BLE band-switch on connect | Wi-Fi 2.4 GHz with persistent **"Quality Degraded"** banner in UI | Latency budget honest at 2.5 s p50 |
-| **Club** | Wi-Fi 5 GHz | Recommend operator-station USB tether to phone (Lightning-to-USB-C cam adapter) when 2.4 GHz fallback triggers; show a how-to card | Range is shorter on 5 GHz — phone within ~10 m of camera |
-| **Federation** | **USB-C UVC tethered, P0** | Wi-Fi 5 GHz only as graceful degradation; the federation tier publicly advertises <1 s feed latency and that requires wired | Wired tether implies powered USB hub at operator station — see §11 |
+| Tier           | Primary                                                | Fallback                                                                                                                           | Notes                                                              |
+| -------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Solo**       | Wi-Fi 5 GHz, **forced** via BLE band-switch on connect | Wi-Fi 2.4 GHz with persistent **"Quality Degraded"** banner in UI                                                                  | Latency budget honest at 2.5 s p50                                 |
+| **Club**       | Wi-Fi 5 GHz                                            | Recommend operator-station USB tether to phone (Lightning-to-USB-C cam adapter) when 2.4 GHz fallback triggers; show a how-to card | Range is shorter on 5 GHz — phone within ~10 m of camera           |
+| **Federation** | **USB-C UVC tethered, P0**                             | Wi-Fi 5 GHz only as graceful degradation; the federation tier publicly advertises <1 s feed latency and that requires wired        | Wired tether implies powered USB hub at operator station — see §11 |
 
 The transport is selected by `CameraTransport::negotiate(tier, capabilities)` at session start. Once negotiated, the transport is sticky for the session — silent fallback during a string would corrupt timing analytics.
 
@@ -93,24 +93,24 @@ Errored(ErrorKind)   — terminal-ish; all recovery paths route through this wit
 
 ### 3.2 Transition table (edges)
 
-| From | Trigger | To |
-|---|---|---|
-| Disconnected | `start_session()` | Discovering |
-| Discovering | adv match | BlePairing |
-| Discovering | 8 s timeout | Errored(NoCamera) |
-| BlePairing | bond OK | BleConnected |
-| BlePairing | bond rejected (3×) | Errored(BondCacheStale) — see §4 |
-| BleConnected | tier=federation | WifiActivating(skip) → USB-C path instead |
-| BleConnected | `enable_wifi()` ack | WifiActivating |
-| WifiActivating | OS-join success | WifiConnected |
-| WifiActivating | OS-join timeout 12 s | Errored(WifiJoinFailed) |
-| WifiConnected | `/state` 200 | ReadyForRecording |
-| ReadyForRecording | `record_start()` ack | Recording |
-| Recording | iOS background event | RecordingPaused (BLE keepalive only) |
-| Recording | shutdown / SD full | Errored(RecordingTerminated) |
-| Recording | `record_stop()` ack | FileTransferring |
-| FileTransferring | last file complete | Disconnecting |
-| Errored(*) | `recover()` | back to Discovering or BleConnected per kind |
+| From              | Trigger              | To                                           |
+| ----------------- | -------------------- | -------------------------------------------- |
+| Disconnected      | `start_session()`    | Discovering                                  |
+| Discovering       | adv match            | BlePairing                                   |
+| Discovering       | 8 s timeout          | Errored(NoCamera)                            |
+| BlePairing        | bond OK              | BleConnected                                 |
+| BlePairing        | bond rejected (3×)   | Errored(BondCacheStale) — see §4             |
+| BleConnected      | tier=federation      | WifiActivating(skip) → USB-C path instead    |
+| BleConnected      | `enable_wifi()` ack  | WifiActivating                               |
+| WifiActivating    | OS-join success      | WifiConnected                                |
+| WifiActivating    | OS-join timeout 12 s | Errored(WifiJoinFailed)                      |
+| WifiConnected     | `/state` 200         | ReadyForRecording                            |
+| ReadyForRecording | `record_start()` ack | Recording                                    |
+| Recording         | iOS background event | RecordingPaused (BLE keepalive only)         |
+| Recording         | shutdown / SD full   | Errored(RecordingTerminated)                 |
+| Recording         | `record_stop()` ack  | FileTransferring                             |
+| FileTransferring  | last file complete   | Disconnecting                                |
+| Errored(\*)       | `recover()`          | back to Discovering or BleConnected per kind |
 
 ### 3.3 Recovery for known failure modes
 
@@ -207,7 +207,7 @@ UDP MPEG-TS (port 8554)
 
 ### 6.2 Frame ID + capture timestamp
 
-Each H.264 access unit carries a PTS in the MPEG-TS PES header. We map PTS → camera-clock-ns using the BLE-broadcast clock anchor (§ multi-camera-sync-spec.md). The frame ID is `(camera_id, monotonic_pts_counter)` — *not* the PTS itself, because PTS wraps every ~26 hours.
+Each H.264 access unit carries a PTS in the MPEG-TS PES header. We map PTS → camera-clock-ns using the BLE-broadcast clock anchor (§ multi-camera-sync-spec.md). The frame ID is `(camera_id, monotonic_pts_counter)` — _not_ the PTS itself, because PTS wraps every ~26 hours.
 
 ### 6.3 Jitter buffer
 
@@ -499,8 +499,8 @@ cameras:
       jitter_pdf: gaussian(mean=0, stddev=0.5)
   - id: cam_b
     clock:
-      offset_ms: 12.7        # constant offset
-      drift_ppm: 8            # 8 ppm linear drift
+      offset_ms: 12.7 # constant offset
+      drift_ppm: 8 # 8 ppm linear drift
       jitter_pdf: gaussian(mean=0, stddev=0.8)
 ```
 
@@ -661,14 +661,14 @@ Trait-level support for non-GoPro cameras is mandatory from V1 even though we sh
 
 ### 16.1 Roadmap
 
-| Vendor / form factor | Tier | Status |
-|---|---|---|
-| Hero 13 (stock + Labs) | All tiers | V1 P0 |
-| Hero 11 Mini | Solo budget | V1.5 (supply fallback when Hero 13 unobtainable) |
-| Hero 12 | Solo / Club | V1 P1 (matrix entry, untested but architecturally supported) |
-| Insta360 X4 | Club (some clubs already use them) | V1.5 — different stitch semantics, requires `CameraMedia` impl that flattens to flat sensor virtual frames |
-| Phone-as-camera (PWA) | Solo ultra-budget | V2 — PWA grabs phone camera + local audio, uploads MP4 + ground-truth ts; analytics run server-side only |
-| Custom AIMVISION hardware V3 | Federation premium | V3 — IMU-on-camera, GPS-disciplined timecode, hardware genlock, USB-C HID trigger |
+| Vendor / form factor         | Tier                               | Status                                                                                                     |
+| ---------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Hero 13 (stock + Labs)       | All tiers                          | V1 P0                                                                                                      |
+| Hero 11 Mini                 | Solo budget                        | V1.5 (supply fallback when Hero 13 unobtainable)                                                           |
+| Hero 12                      | Solo / Club                        | V1 P1 (matrix entry, untested but architecturally supported)                                               |
+| Insta360 X4                  | Club (some clubs already use them) | V1.5 — different stitch semantics, requires `CameraMedia` impl that flattens to flat sensor virtual frames |
+| Phone-as-camera (PWA)        | Solo ultra-budget                  | V2 — PWA grabs phone camera + local audio, uploads MP4 + ground-truth ts; analytics run server-side only   |
+| Custom AIMVISION hardware V3 | Federation premium                 | V3 — IMU-on-camera, GPS-disciplined timecode, hardware genlock, USB-C HID trigger                          |
 
 ### 16.2 What this buys us
 

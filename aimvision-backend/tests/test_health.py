@@ -18,7 +18,9 @@ async def test_version_payload(client: AsyncClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert set(body.keys()) == {"version", "git_sha", "env"}
-    assert body["env"] == "test"
+    # The conftest sets AIMVISION_ENV=test; CI may set AIMVISION_ENV=ci
+    # — both are non-prod and acceptable here.
+    assert body["env"] in {"test", "ci"}
 
 
 async def test_openapi_doc(client: AsyncClient) -> None:

@@ -6,27 +6,28 @@
 
 **1. JSI/Fabric is mandatory for the frame path; the old bridge is disqualifying.** The async JSON bridge will collapse under 24fps of 1080p frame metadata plus pose keypoints. Specify Hermes + the New Architecture (RN 0.76+) from Sprint 3, not retrofitted later. The hot path: Rust core delivers decoded frames to a C++ TurboModule (HostObject) that exposes a `JSI::ArrayBuffer` view over native memory; pose keypoints flow through a SharedValue (Reanimated 3) to a Skia canvas on the UI thread. **Reference architecture: react-native-vision-camera v4** — frame processors run on a dedicated worklet runtime, pixel buffers are exposed as JSI HostObjects, and Skia overlays composite via `@shopify/react-native-skia`. Adopt that pattern wholesale; do not invent a new one. Fabric is required for the synchronous layout commits that keep overlay aligned to video.
 
-**2. UniFFI is the right call, but pin the toolchain and accept its limits.** UniFFI (Mozilla, used in production by Firefox sync, Matrix Rust SDK, Bitwarden, Signal-rs ports) handles structs, enums, async, traits, and callbacks; what it does *not* do well is zero-copy buffer sharing or callback-heavy hot loops. Use UniFFI for the control plane (pairing, settings, session lifecycle, error taxonomy) and hand-write a thin C ABI (`#[no_mangle] extern "C"`) for the frame data path consumed by Swift via a bridging header and Kotlin via JNI directly. Pin `uniffi-rs` to a specific minor version — the proc-macro UDL changed twice in 2024–2025 and will break iOS/Android bindings simultaneously if you float it. Battle-tested crates: `matrix-rust-sdk`, `bitwarden-sdk`, `glean-core`, `nimbus-fml`. Avoid `uniffi-bindgen-cpp` (immature).
+**2. UniFFI is the right call, but pin the toolchain and accept its limits.** UniFFI (Mozilla, used in production by Firefox sync, Matrix Rust SDK, Bitwarden, Signal-rs ports) handles structs, enums, async, traits, and callbacks; what it does _not_ do well is zero-copy buffer sharing or callback-heavy hot loops. Use UniFFI for the control plane (pairing, settings, session lifecycle, error taxonomy) and hand-write a thin C ABI (`#[no_mangle] extern "C"`) for the frame data path consumed by Swift via a bridging header and Kotlin via JNI directly. Pin `uniffi-rs` to a specific minor version — the proc-macro UDL changed twice in 2024–2025 and will break iOS/Android bindings simultaneously if you float it. Battle-tested crates: `matrix-rust-sdk`, `bitwarden-sdk`, `glean-core`, `nimbus-fml`. Avoid `uniffi-bindgen-cpp` (immature).
 
 **3. Threading model — three queues, no `runOnJS` in the hot path.**
-- *Camera I/O thread:* dedicated tokio runtime in Rust (single-threaded, pinned), owning BLE + Wi-Fi sockets. Do not let Swift/Kotlin touch the GoPro socket.
-- *Decode thread:* hardware decoder callback (VideoToolbox `VTDecompressionSession` on iOS, `MediaCodec` async mode on Android) writes into a ring buffer of `CVPixelBuffer` / `AHardwareBuffer`.
-- *ML thread:* Core ML / NNAPI inference on a separate dispatch queue, reads pixel buffer by handle (no copy), writes pose tensor to a lock-free SPSC channel.
-- *UI thread (RN UI / Skia):* reads latest pose tensor via JSI SharedValue and composites. Use a triple buffer; never block.
+
+- _Camera I/O thread:_ dedicated tokio runtime in Rust (single-threaded, pinned), owning BLE + Wi-Fi sockets. Do not let Swift/Kotlin touch the GoPro socket.
+- _Decode thread:_ hardware decoder callback (VideoToolbox `VTDecompressionSession` on iOS, `MediaCodec` async mode on Android) writes into a ring buffer of `CVPixelBuffer` / `AHardwareBuffer`.
+- _ML thread:_ Core ML / NNAPI inference on a separate dispatch queue, reads pixel buffer by handle (no copy), writes pose tensor to a lock-free SPSC channel.
+- _UI thread (RN UI / Skia):_ reads latest pose tensor via JSI SharedValue and composites. Use a triple buffer; never block.
 
 **4. Zero-copy across FFI.** Frames must never round-trip through JS heap. iOS: pass `IOSurface` IDs (uint32) across the FFI; Swift wraps as `CVPixelBuffer` and feeds the Skia `SkImage::MakeFromTexture`. Android: pass `AHardwareBuffer` via `HardwareBuffer` (API 26+) → `SurfaceTexture` → Skia GL backend. Rust core gets only an opaque handle + width/height/format; it never touches pixels for live preview (decode lives natively for hardware-accel access). ML inference reads the same buffer via `MLMultiArray`/`TensorImage` zero-copy adaptors.
 
 ## Live preview latency budget (1-3s target, 24fps = 41ms/frame)
 
-| Stage | Budget | Notes |
-|---|---|---|
-| Hero 13 encode + Wi-Fi RTSP/UDP | 400-900ms | Dominant; GoPro preview stream is ~0.5–1s baked-in. Use the low-latency preview endpoint (port 8554), not the recorded MP4 chunks |
-| Jitter buffer | 100ms | Tunable; trade against stutter |
-| H.264 hardware decode | 8-15ms | VideoToolbox / MediaCodec async; **never software** |
-| Pose inference (MediaPipe BlazePose Lite) | 15-25ms | Core ML on ANE / NNAPI on Hexagon |
-| Skia overlay composite | 4-8ms | GPU; 60fps headroom |
-| RN/Fabric commit | 4-10ms | Worklet, no bridge hop |
-| **End-to-end** | **~1.0-1.5s** | Within target; Wi-Fi is the variance source |
+| Stage                                     | Budget        | Notes                                                                                                                             |
+| ----------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Hero 13 encode + Wi-Fi RTSP/UDP           | 400-900ms     | Dominant; GoPro preview stream is ~0.5–1s baked-in. Use the low-latency preview endpoint (port 8554), not the recorded MP4 chunks |
+| Jitter buffer                             | 100ms         | Tunable; trade against stutter                                                                                                    |
+| H.264 hardware decode                     | 8-15ms        | VideoToolbox / MediaCodec async; **never software**                                                                               |
+| Pose inference (MediaPipe BlazePose Lite) | 15-25ms       | Core ML on ANE / NNAPI on Hexagon                                                                                                 |
+| Skia overlay composite                    | 4-8ms         | GPU; 60fps headroom                                                                                                               |
+| RN/Fabric commit                          | 4-10ms        | Worklet, no bridge hop                                                                                                            |
+| **End-to-end**                            | **~1.0-1.5s** | Within target; Wi-Fi is the variance source                                                                                       |
 
 Backpressure: drop pose frames, never video frames. If ML queue depth >2, skip inference for that frame and reuse the previous keypoints with a `staleness` flag — the eye won't see 12fps overlays on 24fps video.
 

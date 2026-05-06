@@ -74,7 +74,7 @@ case "$PROFILE" in
       --set installCRDs=true \
       --wait --timeout=5m
     ;;
-  onprem|dev)
+  onprem | dev)
     log "Installing sealed-secrets ${SEALED_SECRETS_VERSION}"
     helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets \
       --namespace kube-system \

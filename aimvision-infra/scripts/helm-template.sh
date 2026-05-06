@@ -21,8 +21,8 @@ render() {
     -f "helm/aimvision/values.yaml" \
     -f "helm/aimvision/values-${profile}.yaml" \
     --namespace aimvision \
-    > "${out}"
-  echo "    bytes=$(wc -c < "${out}") resources=$(grep -c '^kind:' "${out}" || true)"
+    >"${out}"
+  echo "    bytes=$(wc -c <"${out}") resources=$(grep -c '^kind:' "${out}" || true)"
 }
 
 render cloud

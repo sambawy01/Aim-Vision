@@ -12,7 +12,7 @@
 
 The V1 plan defers observability infrastructure (Sentry, OTel, RUM, APM) to Sprint 22 — three sprints after the Egypt validation sprint. This is backwards. **Egypt validation is unobservable without telemetry.** When the federation tester says "the feed felt slow on Saturday morning," the plan as written gives the team nothing to look at — no traces, no histograms, no crash reports, no battery curves. They have to fly back to Cairo to repro.
 
-Sentry, OTel, Firebase Performance, and Statsig feature flags are **infrastructure, not polish**. They land in Sprint 3-4 alongside the foundational mobile architecture. The Sprint 22 entry in the V1 plan is replaced by "harden dashboards and runbooks" — the *plumbing* exists from Sprint 3.
+Sentry, OTel, Firebase Performance, and Statsig feature flags are **infrastructure, not polish**. They land in Sprint 3-4 alongside the foundational mobile architecture. The Sprint 22 entry in the V1 plan is replaced by "harden dashboards and runbooks" — the _plumbing_ exists from Sprint 3.
 
 This is a direct echo of `04-mobile-app-builder.md` ("Sentry/Crashlytics from Sprint 3, not Sprint 22") and `10-performance-benchmarker.md` ("OpenTelemetry from Sprint 6, not 22 ... Battery + thermal telemetry from Sprint 7").
 
@@ -201,7 +201,7 @@ Dashboards in Section 12 query this table. The Sprint 19 Egypt validation report
 
 ### 7.4 Build the dataset for Sprint 19 now
 
-By Sprint 19, the team has 16 sprints of internal-dogfood battery/thermal data across iPhone 12/13/15/Pixel 6a/8/Galaxy A54/S22/S24. Sprint 19 *analyzes* this data. The Sprint 19 deliverable is a written report comparing internal-dogfood baselines to Egypt session telemetry, surfacing the gap. That is a 1-week task instead of a 4-week task, because the data already exists.
+By Sprint 19, the team has 16 sprints of internal-dogfood battery/thermal data across iPhone 12/13/15/Pixel 6a/8/Galaxy A54/S22/S24. Sprint 19 _analyzes_ this data. The Sprint 19 deliverable is a written report comparing internal-dogfood baselines to Egypt session telemetry, surfacing the gap. That is a 1-week task instead of a 4-week task, because the data already exists.
 
 ---
 
@@ -261,7 +261,7 @@ Burn rate is computed continuously by a Grafana Mimir recording rule.
 
 ### 9.4 Auto-remediation hooks
 
-For some P1 alerts, automated remediation runs *before* the page:
+For some P1 alerts, automated remediation runs _before_ the page:
 
 - Ollama queue > 30 → autoscale spin up an extra A10G worker (the page only fires if the queue stays high after autoscale completes)
 - Backend pod CPU > 90% → HPA already scales; the alert tracks if scale-up succeeded
@@ -417,25 +417,25 @@ Each runbook has a fixed structure: symptom, blast radius, immediate mitigation,
 
 Per `04-mobile-app-builder.md` and `10-performance-benchmarker.md`, the V1 plan's Sprint 22 "instrumentation" line is replaced with the following sequencing:
 
-| What | V1 plan placement | Corrected placement |
-|---|---|---|
-| Sentry (RN, native, Rust, FastAPI) | Sprint 22 | **Sprint 3** |
-| OpenTelemetry SDK + OTLP exporter | Sprint 22 | **Sprint 3** |
-| Statsig (or PostHog / Unleash) feature flags | Sprint 22 | **Sprint 3** |
-| EAS Update (OTA) | "later" | **Sprint 4** |
-| Firebase Performance Monitoring + Sentry Performance | Sprint 22 | **Sprint 5** |
-| Histogram metric instrumentation (Section 4) | Sprint 22 | **Sprint 5** |
-| Battery + thermal telemetry | Sprint 19 | **Sprint 4** |
-| In-app debug overlay | not planned | **Sprint 7** |
-| Synthetic load rig | not planned | **Sprint 8** |
-| PrivacyInfo.xcprivacy manifest | "later" | **Sprint 4** |
-| PagerDuty rotation | not planned | **Sprint 10** |
-| Dashboards (Section 12) | not planned | **Sprint 6** |
-| Runbook stubs | not planned | **Sprint 6** |
-| Tenant-isolation audit dashboard | not planned | **Sprint 11** |
-| Sprint 22 deliverable | "instrument the app" | **"harden dashboards, refine alert thresholds against real data, write incident-response retro"** |
+| What                                                 | V1 plan placement    | Corrected placement                                                                               |
+| ---------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------- |
+| Sentry (RN, native, Rust, FastAPI)                   | Sprint 22            | **Sprint 3**                                                                                      |
+| OpenTelemetry SDK + OTLP exporter                    | Sprint 22            | **Sprint 3**                                                                                      |
+| Statsig (or PostHog / Unleash) feature flags         | Sprint 22            | **Sprint 3**                                                                                      |
+| EAS Update (OTA)                                     | "later"              | **Sprint 4**                                                                                      |
+| Firebase Performance Monitoring + Sentry Performance | Sprint 22            | **Sprint 5**                                                                                      |
+| Histogram metric instrumentation (Section 4)         | Sprint 22            | **Sprint 5**                                                                                      |
+| Battery + thermal telemetry                          | Sprint 19            | **Sprint 4**                                                                                      |
+| In-app debug overlay                                 | not planned          | **Sprint 7**                                                                                      |
+| Synthetic load rig                                   | not planned          | **Sprint 8**                                                                                      |
+| PrivacyInfo.xcprivacy manifest                       | "later"              | **Sprint 4**                                                                                      |
+| PagerDuty rotation                                   | not planned          | **Sprint 10**                                                                                     |
+| Dashboards (Section 12)                              | not planned          | **Sprint 6**                                                                                      |
+| Runbook stubs                                        | not planned          | **Sprint 6**                                                                                      |
+| Tenant-isolation audit dashboard                     | not planned          | **Sprint 11**                                                                                     |
+| Sprint 22 deliverable                                | "instrument the app" | **"harden dashboards, refine alert thresholds against real data, write incident-response retro"** |
 
-The Sprint 22 work in V1 was misframed. The right Sprint 22 deliverable is *iteration on observability*, not the *introduction of observability*. By Sprint 22, every code path is traced, every screen is RUM'd, every alert has a runbook. Sprint 22 polishes that into a SOC2-grade observability posture.
+The Sprint 22 work in V1 was misframed. The right Sprint 22 deliverable is _iteration on observability_, not the _introduction of observability_. By Sprint 22, every code path is traced, every screen is RUM'd, every alert has a runbook. Sprint 22 polishes that into a SOC2-grade observability posture.
 
 ---
 

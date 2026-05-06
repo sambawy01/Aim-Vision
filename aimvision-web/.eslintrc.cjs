@@ -20,9 +20,19 @@ module.exports = {
     'plugin:react-hooks/recommended',
   ],
   plugins: ['@typescript-eslint', 'react', 'react-hooks', 'jsx-a11y'],
-  ignorePatterns: ['dist', 'node_modules', 'coverage', '.eslintrc.cjs', '*.config.js', '*.config.ts'],
+  ignorePatterns: [
+    'dist',
+    'node_modules',
+    'coverage',
+    '.eslintrc.cjs',
+    '*.config.js',
+    '*.config.ts',
+  ],
   rules: {
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+    ],
     '@typescript-eslint/consistent-type-imports': ['warn', { prefer: 'type-imports' }],
     'react/prop-types': 'off',
   },

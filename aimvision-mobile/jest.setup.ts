@@ -2,9 +2,7 @@
 import '@testing-library/react-native';
 
 jest.mock('expo-localization', () => ({
-  getLocales: jest.fn(() => [
-    { languageCode: 'en', regionCode: 'US', textDirection: 'ltr' },
-  ]),
+  getLocales: jest.fn(() => [{ languageCode: 'en', regionCode: 'US', textDirection: 'ltr' }]),
   locale: 'en-US',
 }));
 
@@ -54,9 +52,7 @@ jest.mock('statsig-react-native-expo', () => ({
   StatsigProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-jest.mock('react-native-reanimated', () =>
-  require('react-native-reanimated/mock'),
-);
+jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 
 jest.mock('react-native-gesture-handler', () => {
   const View = require('react-native').View;

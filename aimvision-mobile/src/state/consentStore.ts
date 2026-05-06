@@ -8,11 +8,7 @@ export const CONSENT_CATEGORIES = [
   'ML_training',
 ] as const;
 
-export const CONSENT_PURPOSES = [
-  'coaching',
-  'marketing',
-  'validity_study',
-] as const;
+export const CONSENT_PURPOSES = ['coaching', 'marketing', 'validity_study'] as const;
 
 export type ConsentCategory = (typeof CONSENT_CATEGORIES)[number];
 export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number];

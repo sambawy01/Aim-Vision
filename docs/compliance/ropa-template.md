@@ -15,28 +15,29 @@ Each processing activity is documented in its own row across the columns specifi
 
 **Column legend**
 
-| Column | Description |
-|---|---|
-| ID | Stable identifier (e.g., RP-001) |
-| Activity | Short name |
-| Purpose | What this processing achieves |
-| Lawful basis (Art. 6) | One or more of (a)–(f) |
-| Special-category basis (Art. 9 / PDPL sensitive) | If applicable |
-| Data categories | The personal data processed |
-| Subject categories | Who the data is about |
-| Recipients | Internal roles + external processors / controllers receiving data |
-| Cross-border transfers + safeguard | Destination + SCCs / adequacy / permit |
-| Retention | Time bounds + trigger |
-| Security measures | Pointers to controls |
-| Risk level | L / M / H / Critical (post-mitigation) |
-| Owner | Accountable role |
-| Review date | Last reviewed |
+| Column                                           | Description                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------------- |
+| ID                                               | Stable identifier (e.g., RP-001)                                  |
+| Activity                                         | Short name                                                        |
+| Purpose                                          | What this processing achieves                                     |
+| Lawful basis (Art. 6)                            | One or more of (a)–(f)                                            |
+| Special-category basis (Art. 9 / PDPL sensitive) | If applicable                                                     |
+| Data categories                                  | The personal data processed                                       |
+| Subject categories                               | Who the data is about                                             |
+| Recipients                                       | Internal roles + external processors / controllers receiving data |
+| Cross-border transfers + safeguard               | Destination + SCCs / adequacy / permit                            |
+| Retention                                        | Time bounds + trigger                                             |
+| Security measures                                | Pointers to controls                                              |
+| Risk level                                       | L / M / H / Critical (post-mitigation)                            |
+| Owner                                            | Accountable role                                                  |
+| Review date                                      | Last reviewed                                                     |
 
 ---
 
 ## Processing activity rows
 
 ### RP-001 — Account creation
+
 - **Purpose:** create authenticated AIMVISION account; bind to subscription tier.
 - **Art. 6:** 6(1)(b) contract.
 - **Art. 9:** N/A.
@@ -51,6 +52,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 1.
 
 ### RP-002 — Authentication
+
 - **Purpose:** log in returning users; issue session credentials.
 - **Art. 6:** 6(1)(b).
 - **Art. 9:** N/A.
@@ -65,6 +67,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 1.
 
 ### RP-003 — Session capture (live coaching feed)
+
 - **Purpose:** capture athlete shooting session video and pose for live feedback during the session.
 - **Art. 6:** 6(1)(b) contract.
 - **Art. 9:** 9(2)(a) explicit consent (biometric).
@@ -79,6 +82,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 3.
 
 ### RP-004 — Live ML inference
+
 - **Purpose:** real-time pose-quality scoring during a session.
 - **Art. 6:** 6(1)(b).
 - **Art. 9:** 9(2)(a).
@@ -93,6 +97,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 4.
 
 ### RP-005 — Post-session pipeline
+
 - **Purpose:** generate per-shot review with overlays and metrics.
 - **Art. 6:** 6(1)(b).
 - **Art. 9:** 9(2)(a).
@@ -107,6 +112,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 5.
 
 ### RP-006 — Longitudinal analytics
+
 - **Purpose:** trend detection and progress reports per athlete over weeks/months.
 - **Art. 6:** 6(1)(b).
 - **Art. 9:** 9(2)(a).
@@ -121,6 +127,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 6.
 
 ### RP-007 — LLM coaching note generation
+
 - **Purpose:** generate human-readable coaching notes from session metrics.
 - **Art. 6:** 6(1)(b).
 - **Art. 9:** 9(2)(a) (derives from biometric data).
@@ -135,6 +142,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 7.
 
 ### RP-008 — ML training (adult-consented data only)
+
 - **Purpose:** train and improve pose detector and classifiers.
 - **Art. 6:** 6(1)(a) consent.
 - **Art. 9:** 9(2)(a) explicit consent.
@@ -149,6 +157,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 8.
 
 ### RP-009 — Marketing case study
+
 - **Purpose:** feature an athlete or federation in marketing materials.
 - **Art. 6:** 6(1)(a) consent + publicity-rights release.
 - **Art. 9:** 9(2)(a) explicit consent (where biometric / health features included).
@@ -163,6 +172,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 22.
 
 ### RP-010 — QR check-in attribution
+
 - **Purpose:** link a Solo athlete's identity to a Club session for personal-report derivation.
 - **Art. 6:** 6(1)(b).
 - **Art. 9:** 9(2)(a) (because pose-attribution touches biometric).
@@ -177,6 +187,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 16.
 
 ### RP-011 — Audit logging
+
 - **Purpose:** record security and consent events for accountability and breach detection.
 - **Art. 6:** 6(1)(c) legal obligation + 6(1)(f) legitimate interest.
 - **Art. 9:** N/A (audit log itself does not contain Art. 9 payloads, only references).
@@ -191,6 +202,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 8 (audit logging live).
 
 ### RP-012 — Payment processing
+
 - **Purpose:** collect and reconcile subscription payments.
 - **Art. 6:** 6(1)(b) + 6(1)(c) for tax records.
 - **Art. 9:** N/A.
@@ -205,6 +217,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 4.
 
 ### RP-013 — Customer support
+
 - **Purpose:** respond to user-initiated support requests.
 - **Art. 6:** 6(1)(b) + 6(1)(f).
 - **Art. 9:** 9(2)(a) where ticket discloses biometric/health context.
@@ -219,6 +232,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 8.
 
 ### RP-014 — Error telemetry
+
 - **Purpose:** detect and diagnose application errors.
 - **Art. 6:** 6(1)(f).
 - **Art. 9:** N/A (athlete identifiers stripped before send).
@@ -233,6 +247,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 2.
 
 ### RP-015 — Performance telemetry
+
 - **Purpose:** monitor latency, error rates, capacity.
 - **Art. 6:** 6(1)(f).
 - **Art. 9:** N/A.
@@ -247,6 +262,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 2.
 
 ### RP-016 — Federation cohort analytics
+
 - **Purpose:** federation-level performance and program-improvement analytics.
 - **Art. 6:** 6(1)(b) joint-controller contract + 6(1)(f) where research framing applies.
 - **Art. 9:** 9(2)(a) consent + 9(2)(j) research where ethics framework applies.
@@ -261,6 +277,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 12.
 
 ### RP-017 — Validity-study data sharing
+
 - **Purpose:** support academic / clinical validity studies of AIMVISION measurements.
 - **Art. 6:** 6(1)(a) consent + collaborator's research basis.
 - **Art. 9:** 9(2)(j) research with appropriate safeguards `[CONFIRM WITH COUNSEL]` + 9(2)(a) consent.
@@ -275,6 +292,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 18.
 
 ### RP-018 — DSAR fulfillment
+
 - **Purpose:** respond to subject access, rectification, portability, objection requests.
 - **Art. 6:** 6(1)(c) legal obligation.
 - **Art. 9:** as applicable to data being disclosed.
@@ -289,6 +307,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 17.
 
 ### RP-019 — Erasure pipeline
+
 - **Purpose:** fulfill right-to-erasure across all systems including training datasets and model weights to the extent technically feasible.
 - **Art. 6:** 6(1)(c).
 - **Art. 9:** as applicable.
@@ -303,6 +322,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 17.
 
 ### RP-020 — Wearable data ingest (HealthKit / Health Connect / Whoop / Garmin)
+
 - **Purpose:** ingest opt-in wearable health data for richer coaching insights.
 - **Art. 6:** 6(1)(a) consent.
 - **Art. 9:** 9(2)(a) explicit consent (health data).
@@ -317,6 +337,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 10.
 
 ### RP-021 — Voice notes and transcripts
+
 - **Purpose:** allow athletes/coaches to record voice notes attached to sessions; transcribe for searchability and LLM input.
 - **Art. 6:** 6(1)(b).
 - **Art. 9:** 9(2)(a) (voice as biometric; transcript may include health).
@@ -331,6 +352,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 9.
 
 ### RP-022 — Coach annotations
+
 - **Purpose:** coaches add structured + free-text annotations on sessions.
 - **Art. 6:** 6(1)(b) (coach-as-data-subject for the annotation authorship; athlete-as-subject for content).
 - **Art. 9:** as applicable to content.
@@ -345,6 +367,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 7.
 
 ### RP-023 — Athlete consent records
+
 - **Purpose:** record granular consent grants and revocations per data category × purpose × version.
 - **Art. 6:** 6(1)(c) legal obligation.
 - **Art. 9:** stores metadata about Art. 9 consent; not Art. 9 itself.
@@ -359,6 +382,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 3.
 
 ### RP-024 — Device IDs, IP addresses, geolocation, app telemetry
+
 - **Purpose:** support session, attribution, security telemetry.
 - **Art. 6:** 6(1)(b) for session; 6(1)(f) for security; 6(1)(a) for precise geolocation (off by default for minors).
 - **Art. 9:** N/A.
@@ -373,6 +397,7 @@ Each processing activity is documented in its own row across the columns specifi
 - **Review date:** Sprint 2.
 
 ### RP-025 — Marketing publicity-rights release records
+
 - **Purpose:** track who has signed a publicity-rights release and the scope.
 - **Art. 6:** 6(1)(c) recordkeeping.
 - **Art. 9:** stores metadata about release scope.
@@ -390,12 +415,12 @@ Each processing activity is documented in its own row across the columns specifi
 
 ## Annual sign-off
 
-| Role | Name | Date | Signature |
-|---|---|---|---|
-| DPO | | | |
-| CTO | | | |
-| Compliance Lead | | | |
+| Role            | Name | Date | Signature |
+| --------------- | ---- | ---- | --------- |
+| DPO             |      |      |           |
+| CTO             |      |      |           |
+| Compliance Lead |      |      |           |
 
 ## Changelog
-- v0.1 (Sprint 0): pre-fill of all 25 anticipated processing activities for counsel review.
 
+- v0.1 (Sprint 0): pre-fill of all 25 anticipated processing activities for counsel review.

@@ -78,12 +78,15 @@ jobs:
     defaults:
       run:
         working-directory: aimvision-camera-core
-    continue-on-error: true # advisory-only until we wire it into a release gate
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked --version "^0.20"
+        # ^0.21 supports CVSS 4.0 advisory parsing (older versions panic on
+        # advisories like libcrux-poly1305 RUSTSEC-2026-0073).
+        run: cargo install cargo-audit --locked --version "^0.21"
       - name: Audit
+        # Advisory-only — informational, never blocks merge.
+        continue-on-error: true
         run: cargo audit --deny warnings

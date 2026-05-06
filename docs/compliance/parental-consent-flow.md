@@ -29,6 +29,7 @@ A weak consent flow is the single most likely source of regulator action. **A ch
 Implementation: Sprint 3, before first minor capture.
 
 **Date of Birth, not age, is collected.** DOB allows AIMVISION to:
+
 - Branch flow correctly per current jurisdiction's age threshold.
 - Schedule auto-prompt when the minor reaches majority.
 - Detect age-misrepresentation downstream (e.g., HealthKit metadata mismatch).
@@ -65,6 +66,7 @@ else:
 Country-of-residence determines exact thresholds (e.g., Germany requires consent at 16 under Art. 8; Spain at 14; UK at 13; Egypt's PDPL provides for guardian consent across all minors `[CONFIRM WITH COUNSEL]`).
 
 ### 2.2 Tamper-resistance
+
 - DOB cannot be self-edited after account creation; change requires support ticket + identity verification.
 - "Forgot to add my child? Use the Parent flow" link from anywhere in the app.
 - Misrepresentation telemetry: if HealthKit DOB or wearable account differs from stored DOB by more than ~12 months, account is flagged for review.
@@ -76,12 +78,14 @@ Country-of-residence determines exact thresholds (e.g., Germany requires consent
 The four supported methods, ranked by friction × strength. All are auditable; single-checkbox is **rejected**.
 
 ### 3.1 Gold standard — signed paper consent + photo of guardian government ID + manual review
+
 - **Method:** parent downloads a PDF, prints, signs, photographs along with their government ID, uploads via secure link emailed to a verified parent email. AIMVISION compliance reviewer manually checks ID-name matches signed-name and that ID is not visibly fraudulent. ID image is **not retained** beyond verification — verification result + redacted ID hash stored only.
 - **Strength:** highest; satisfies COPPA §312.5(b)(2)(i) "signed consent form by mail or fax" extension and Egypt PDPL guardian-consent expectations.
 - **Friction:** highest. Used for federation programs and for any under-13 user.
 - **Retention of ID image:** purged within 7 days after review; only the verification flag and a hash are retained `[CONFIRM WITH COUNSEL]`.
 
 ### 3.2 Credit-card transaction (>$0.50, immediately refunded)
+
 - **Method:** parent enters their own credit-card details for a small charge (>$0.50) which is refunded immediately. The card-holder identity must match parent name; payment processor confirms transaction. COPPA §312.5(b)(2)(ii) explicitly permits this.
 - **Strength:** strong; widely recognized COPPA-compliant.
 - **Friction:** low; familiar payment flow.
@@ -89,18 +93,21 @@ The four supported methods, ranked by friction × strength. All are auditable; s
 - **Use:** standard for under-13 US users where the gold-standard flow is too slow.
 
 ### 3.3 Signed PDF + email-with-ID match
+
 - **Method:** parent receives PDF, signs digitally (e.g., DocuSign-style), returns from a verified email; parent email had been previously verified via double opt-in.
 - **Strength:** medium-strong; aligns with COPPA §312.5(b)(2)(iii) "use of digital signature" channel.
 - **Friction:** medium.
 - **Use:** default for 13–17 users globally; not preferred for under-13 unless paired with credit-card or ID step.
 
 ### 3.4 Video verification call
+
 - **Method:** parent joins a scheduled video call with AIMVISION compliance staff, presents government ID on camera, audibly confirms consent and minor identity.
 - **Strength:** very strong.
 - **Friction:** highest scheduling friction.
 - **Use:** federation programs and high-risk cases (e.g., where flagged DOB or unusual metadata).
 
 ### 3.5 Rejected: single-checkbox / "I am the parent" attestation
+
 Insufficient under all four legal frameworks. Never deployed alone.
 
 ---
@@ -110,11 +117,13 @@ Insufficient under all four legal frameworks. Never deployed alone.
 A separate **Parent account** is created. The minor's account is **linked to** the parent and supervised.
 
 ### 4.1 Schema (logical)
+
 - `parent_account` — Parent's identity, verified email, payment method (if applicable).
 - `child_account` — Minor's identity (name + DOB), `parent_id` FK, `consent_state` JSON.
 - `consent_grant` — append-only record of every grant/revoke per (data_category × purpose × version).
 
 ### 4.2 Parent rights and controls
+
 - **Read access** to all child reports (sessions, longitudinal trends, LLM coaching notes).
 - **Write access** to consent toggles per category and per purpose (see §4.3).
 - **Deletion control** — parent can request erasure on behalf of child at any time; pipeline per `right-to-erasure-architecture.md`.
@@ -125,20 +134,22 @@ A separate **Parent account** is created. The minor's account is **linked to** t
 
 Consent is **never bundled.** Each cell is independently grantable / revocable.
 
-| Data category | Coaching (in-app) | Marketing | ML training | Validity study |
-|---|---|---|---|---|
-| Video | Off / On | Off (default) | Off (default) | Off (default) |
-| Audio | Off / On | Off (default) | Off (default) | Off (default) |
-| Pose keypoints | Off / On | Off (default) | Off (default) | Off (default) |
-| Voice notes | Off / On | Off (default) | Off (default) | Off (default) |
-| Performance metrics | Off / On | Off (default) | Off (default) | Off (default) |
-| Wearable / HealthKit | Off (default) | Off (default) | Off (default) | Off (default) |
-| LLM coaching notes (the LLM sees pseudonymized inputs) | Off / On | Off (default) | Off (default) | Off (default) |
+| Data category                                          | Coaching (in-app) | Marketing     | ML training   | Validity study |
+| ------------------------------------------------------ | ----------------- | ------------- | ------------- | -------------- |
+| Video                                                  | Off / On          | Off (default) | Off (default) | Off (default)  |
+| Audio                                                  | Off / On          | Off (default) | Off (default) | Off (default)  |
+| Pose keypoints                                         | Off / On          | Off (default) | Off (default) | Off (default)  |
+| Voice notes                                            | Off / On          | Off (default) | Off (default) | Off (default)  |
+| Performance metrics                                    | Off / On          | Off (default) | Off (default) | Off (default)  |
+| Wearable / HealthKit                                   | Off (default)     | Off (default) | Off (default) | Off (default)  |
+| LLM coaching notes (the LLM sees pseudonymized inputs) | Off / On          | Off (default) | Off (default) | Off (default)  |
 
 Defaults for minors: high-privacy. Coaching and post-session analysis only after explicit grant per category. Marketing, ML training, and validity-study toggles **default off and cannot be enabled without separate flow** (re-consent with explicit acknowledgement screens).
 
 ### 4.4 Federation overlay
+
 For minors enrolled in a federation program (e.g., Egypt junior team), an additional federation-acknowledgement layer applies:
+
 - Federation must be a **named recipient** in the consent record.
 - Federation cannot expand scope; only AIMVISION (with parent re-consent) can.
 - Federation export of cohort data requires k-anonymity threshold.
@@ -185,6 +196,7 @@ When the minor turns 18 (or earlier majority age in jurisdiction `[CONFIRM WITH 
 5. The retention schedule documents this 90-day window explicitly.
 
 Additional triggers analogous to the majority transition:
+
 - Athlete leaves federation junior program (transition mode, prompt for new consent context).
 - Account inactivity > 24 months (re-consent or auto-purge).
 
@@ -193,6 +205,7 @@ Additional triggers analogous to the majority transition:
 ## 8. Marketing exclusion
 
 **Minors never appear in marketing assets** (case study, screenshots, promo videos, sales decks, web assets) without:
+
 1. A separate, jurisdiction-valid **publicity-rights release** signed by the guardian (and where applicable, by the federation and the minor for ascertainment purposes).
 2. A documented determination that the use is appropriate and would not harm the minor's interests.
 3. Default visual treatment: **blur or exclude.** Even with release, AIMVISION's preferred posture is to blur faces and remove identifying detail.
@@ -206,6 +219,7 @@ The default for the Sprint 22 Egypt case study is **adults-only**; minors blurre
 ## 9. UI flows (wireframe-level)
 
 ### 9.1 Parent-onboarding screen
+
 - Headline: "You're setting up an AIMVISION account for a young athlete."
 - Step 1 — verify your identity: email + (one of §3 methods).
 - Step 2 — add child: name + DOB + relationship.
@@ -215,6 +229,7 @@ The default for the Sprint 22 Egypt case study is **adults-only**; minors blurre
 - Step 6 — confirmation. Email receipt to parent. Audit log entry.
 
 ### 9.2 Child-onboarding screen (parent-supervised)
+
 - Age-appropriate language; no marketing nudges; no engagement-loop dark patterns.
 - Headline: "Welcome to AIMVISION! Your parent set up your account."
 - Step 1 — confirm name and DOB with parent present.
@@ -223,6 +238,7 @@ The default for the Sprint 22 Egypt case study is **adults-only**; minors blurre
 - Step 4 — child confirms participation (assent — distinct from legal consent which the parent gave). Audit log records assent.
 
 ### 9.3 Consent-grant screen
+
 - Per-category checkboxes (not a single mega-toggle).
 - Each checkbox is paired with: (a) plain description of what is processed; (b) named recipients; (c) retention; (d) link to fuller text.
 - Defaults match current state (off for marketing/ML/validity for minors; on for in-app coaching only after explicit grant).
@@ -230,6 +246,7 @@ The default for the Sprint 22 Egypt case study is **adults-only**; minors blurre
 - Parent receives email confirmation summarizing changes.
 
 ### 9.4 Consent-revoke screen
+
 - Reachable from at most two taps from the home screen.
 - Per-category and per-purpose toggles mirror the grant screen.
 - Revocation effect: immediate stop of new processing in that scope; downstream effects (e.g., LLM-coaching prompts no longer built from voice notes) are explained.
@@ -238,6 +255,7 @@ The default for the Sprint 22 Egypt case study is **adults-only**; minors blurre
 - Revocation produces an audit-log entry and triggers downstream pipelines (exclusion list, marketing-asset takedown if applicable).
 
 ### 9.5 Deletion-confirmation screen
+
 - Plain summary of what will happen: "All your sessions, videos, audio, pose data, and coaching notes will be deleted from AIMVISION within 30 days. Some records (audit logs, billing, consent records) will be kept for legal reasons for up to 7 years and then deleted. Your data may already have been used to train improvements to AIMVISION; we cannot remove your data from models that are already trained, but we will not use your data in any future training and we will retire affected models over time."
 - Cooldown / undo within 7 days (per GDPR practical-rights guidance for accidental deletion `[CONFIRM WITH COUNSEL]`).
 - Final confirmation requires re-authentication.
@@ -278,5 +296,5 @@ Audit log is append-only and integrity-protected; hash chain plus periodic ancho
 ---
 
 ## Changelog
-- v0.1 (Sprint 0): initial draft.
 
+- v0.1 (Sprint 0): initial draft.

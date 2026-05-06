@@ -45,12 +45,12 @@ aimvision-infra/
 The chart **does not** vendor the operators it depends on. Install once per
 cluster:
 
-| Operator           | Purpose                                       | Cloud | On-prem |
-| ------------------ | --------------------------------------------- | :---: | :-----: |
-| CloudNativePG      | Postgres lifecycle (HA, backups, failover)    |  yes  |   yes   |
-| cert-manager       | TLS issuance for ingresses                    |  yes  |   yes   |
-| sealed-secrets     | Air-gappable secret encryption (on-prem)      |       |   yes   |
-| External Secrets   | Pulls from AWS/GCP Secret Manager (cloud)     |  yes  |         |
+| Operator         | Purpose                                    | Cloud | On-prem |
+| ---------------- | ------------------------------------------ | :---: | :-----: |
+| CloudNativePG    | Postgres lifecycle (HA, backups, failover) |  yes  |   yes   |
+| cert-manager     | TLS issuance for ingresses                 |  yes  |   yes   |
+| sealed-secrets   | Air-gappable secret encryption (on-prem)   |       |   yes   |
+| External Secrets | Pulls from AWS/GCP Secret Manager (cloud)  |  yes  |         |
 
 ```sh
 ./scripts/install-prereqs.sh cloud      # or `onprem`, or `dev`
@@ -95,6 +95,7 @@ helm upgrade --install aim-cloud helm/aimvision \
 ```
 
 What it gives you:
+
 - 3-replica backend with HPA (3–20)
 - 4-replica Arq workers
 - 3-instance CloudNativePG cluster, gp3 SSD, S3 backups (30-day retention)
@@ -114,6 +115,7 @@ helm upgrade --install aim-onprem helm/aimvision \
 ```
 
 What it gives you:
+
 - 2-replica backend, no HPA
 - 2-replica Arq workers
 - 1-instance CNPG, `local-path` storage, pgBackRest local backup
@@ -153,16 +155,16 @@ helm test -n aimvision aim-cloud
 
 ## Where things live
 
-| Concern                       | File                                                                |
-| ----------------------------- | ------------------------------------------------------------------- |
-| Which images / replicas       | `helm/aimvision/values*.yaml`                                       |
-| What the backend Deployment looks like | `helm/aimvision/templates/backend-deployment.yaml`         |
-| The Postgres Cluster CR       | `helm/aimvision/templates/cnpg-cluster.yaml`                        |
-| Default-deny network policies | `helm/aimvision/templates/networkpolicy.yaml`                       |
-| TLS / cert-manager wiring     | `helm/aimvision/templates/backend-ingress.yaml`, web-ingress.yaml   |
-| Secret provider (sealed/ESO)  | `helm/aimvision/templates/secrets-external.yaml`                    |
-| Prometheus scrape             | `helm/aimvision/templates/servicemonitor.yaml`                      |
-| Health-check                  | `helm/aimvision/tests/test-connection.yaml`                         |
+| Concern                                | File                                                              |
+| -------------------------------------- | ----------------------------------------------------------------- |
+| Which images / replicas                | `helm/aimvision/values*.yaml`                                     |
+| What the backend Deployment looks like | `helm/aimvision/templates/backend-deployment.yaml`                |
+| The Postgres Cluster CR                | `helm/aimvision/templates/cnpg-cluster.yaml`                      |
+| Default-deny network policies          | `helm/aimvision/templates/networkpolicy.yaml`                     |
+| TLS / cert-manager wiring              | `helm/aimvision/templates/backend-ingress.yaml`, web-ingress.yaml |
+| Secret provider (sealed/ESO)           | `helm/aimvision/templates/secrets-external.yaml`                  |
+| Prometheus scrape                      | `helm/aimvision/templates/servicemonitor.yaml`                    |
+| Health-check                           | `helm/aimvision/tests/test-connection.yaml`                       |
 
 ## References
 

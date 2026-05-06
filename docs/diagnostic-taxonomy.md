@@ -26,8 +26,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 ## Head/Eye branch
 
 ### `head_lift`
+
 - **Working canonical:** `head_lift`
-- **Aliases for card-sort:** *peeking*, *looking up*, *coming off the gun*, *eye-up*
+- **Aliases for card-sort:** _peeking_, _looking up_, _coming off the gun_, _eye-up_
 - **Definition:** Eye leaves the bead/rib pre-trigger; the head rotates upward or off the stock during the final 100–300 ms before muzzle blast.
 - **Observable signals:**
   - Pose (face landmarks): rising vertical angle of nose/chin relative to torso in the 300 ms before shot.
@@ -42,8 +43,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 - **Athlete-mode tone:** "You peeked at three shots. Stay on the gun until the clay breaks."
 
 ### `head_off_stock`
+
 - **Working canonical:** `head_off_stock`
-- **Aliases:** *cheek not on stock*, *broken cheek-weld*, *floating head*
+- **Aliases:** _cheek not on stock_, _broken cheek-weld_, _floating head_
 - **Definition:** Cheek-weld is broken or never established; the head is not in contact with the stock at trigger pull.
 - **Observable signals:**
   - Pose Wholebody (post-session): cheek landmark distance from stock landmark > threshold.
@@ -55,8 +57,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 - **Athlete-mode tone:** "Press your cheek to the stock before you swing."
 
 ### `eye_dominance_failure`
+
 - **Working canonical:** `eye_dominance_failure`
-- **Aliases:** *cross-firing*, *wrong eye*, *eye switch*
+- **Aliases:** _cross-firing_, _wrong eye_, _eye switch_
 - **Definition:** Athlete sights with non-dominant eye; common in cross-dominant shooters under fatigue.
 - **Observable signals:**
   - Pose Wholebody face landmarks (post-session only): eye-aim vector inconsistent with stated dominance profile.
@@ -72,8 +75,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 ## Mount/Stance branch
 
 ### `low_mount_break`
+
 - **Working canonical:** `low_mount_break`
-- **Aliases:** *shooting from low mount*, *gun not up*, *incomplete mount at break*
+- **Aliases:** _shooting from low mount_, _gun not up_, _incomplete mount at break_
 - **Definition:** Gun mount is incomplete (stock not fully into shoulder pocket, cheek not on stock) at the moment the shot breaks. Distinct from `head_off_stock` — this is about the whole gun, not just the head.
 - **Observable signals:**
   - Pose: shoulder-to-stock distance still decreasing at trigger time.
@@ -86,8 +90,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 - **Athlete-mode tone:** "Get the gun up earlier. Mount before you call."
 
 ### `foot_position`
+
 - **Working canonical:** `foot_position`
-- **Aliases:** *stance*, *feet wrong*, *crossover*, *closed/open stance*
+- **Aliases:** _stance_, _feet wrong_, _crossover_, _closed/open stance_
 - **Definition:** Foot placement inappropriate for station — typically too closed (limits swing past 90°) or too open (compromises stability).
 - **Observable signals:**
   - Pose (full-body, both live and post-session): foot landmarks relative to torso direction and station orientation.
@@ -99,8 +104,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 - **Athlete-mode tone:** "Open your front foot a touch on the high stations."
 
 ### `body_alignment_off`
+
 - **Working canonical:** `body_alignment_off`
-- **Aliases:** *poor address*, *wrong gun-up direction*, *over-rotated address*
+- **Aliases:** _poor address_, _wrong gun-up direction_, _over-rotated address_
 - **Definition:** Initial body alignment (hip and shoulder line) does not bisect the expected break point; athlete will run out of swing before reaching the bird.
 - **Observable signals:**
   - Pose hip-line and shoulder-line vectors at gun-up time.
@@ -115,9 +121,10 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 
 ## Swing/Lead branch
 
-### `stopped_gun` *(canonical TBD — see card-sort)*
+### `stopped_gun` _(canonical TBD — see card-sort)_
+
 - **Working canonical:** `stopped_gun`
-- **Aliases:** *swing arrest*, *deceleration*, *checked swing*, *gun stopped*, *measuring*, *aiming the swing*
+- **Aliases:** _swing arrest_, _deceleration_, _checked swing_, _gun stopped_, _measuring_, _aiming the swing_
 - **Card-sort note:** Highest-priority disambiguation in the Sprint 9 panel. UX review explicitly calls this one out: "four communities use four words for the same diagnostic." We will pick the canonical that scores highest cross-cohort recognition — likely `stopped_gun` (US/UK) or `swing_arrest` (technical/coaching literature).
 - **Definition:** Swing angular velocity drops below a threshold within the final 100 ms before shot; gun is decelerating or stationary at break.
 - **Observable signals:**
@@ -131,8 +138,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 - **Athlete-mode tone:** "Keep swinging through the clay. Don't aim — swing."
 
 ### `under_lead`
+
 - **Working canonical:** `under_lead`
-- **Aliases:** *behind the bird*, *short lead*, *trailing*
+- **Aliases:** _behind the bird_, _short lead_, _trailing_
 - **Definition:** Barrel is behind the clay's leading edge at trigger time, by more than the discipline-appropriate lead margin.
 - **Observable signals:**
   - Barrel tracker + clay tracker; pixel-space lead distance.
@@ -144,8 +152,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 - **Athlete-mode tone:** "More lead on the crossers."
 
 ### `over_lead`
+
 - **Working canonical:** `over_lead`
-- **Aliases:** *too much lead*, *swinging too fast*, *leading the bird off*
+- **Aliases:** _too much lead_, _swinging too fast_, _leading the bird off_
 - **Definition:** Barrel is ahead of the clay by more than the discipline-appropriate margin.
 - **Observable signals:** mirrored from `under_lead`.
 - **Model branch:** Swing/Lead expert.
@@ -155,8 +164,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 - **Athlete-mode tone:** "Less lead on the outgoers."
 
 ### `off_line`
+
 - **Working canonical:** `off_line`
-- **Aliases:** *off the line*, *high/low*, *under/over the bird*, *not on plane*
+- **Aliases:** _off the line_, _high/low_, _under/over the bird_, _not on plane_
 - **Definition:** Barrel is on a different line than the clay's trajectory — typically high or low rather than ahead or behind.
 - **Observable signals:**
   - Barrel + clay trackers, perpendicular distance to clay path.
@@ -172,8 +182,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 ## Follow-through branch
 
 ### `short_follow_through`
+
 - **Working canonical:** `short_follow_through`
-- **Aliases:** *no follow-through*, *short swing*, *cut-off*
+- **Aliases:** _no follow-through_, _short swing_, _cut-off_
 - **Definition:** Gun stops or decelerates significantly within 200 ms after shot. Different from `stopped_gun`: this is post-shot.
 - **Observable signals:**
   - **IMU gyro-Z post-shot trace** (primary). Gun velocity should sustain through follow-through, then decay smoothly.
@@ -185,8 +196,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 - **Athlete-mode tone:** "Keep swinging after the shot."
 
 ### `dropped_gun_post_shot`
+
 - **Working canonical:** `dropped_gun_post_shot`
-- **Aliases:** *dropping the gun*, *coming off the gun early*, *unmounting*
+- **Aliases:** _dropping the gun_, _coming off the gun early_, _unmounting_
 - **Definition:** Gun comes out of the shoulder pocket within 500 ms after shot. Indicates the athlete is mentally finishing before the gun does.
 - **Observable signals:**
   - IMU accel-X reversal post-shot.
@@ -202,8 +214,9 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 ## Meta layer
 
 ### `cause_unclear`
+
 - **Working canonical:** `cause_unclear`
-- **Aliases:** *low confidence*, *we don't know*, *not enough signal*
+- **Aliases:** _low confidence_, _we don't know_, _not enough signal_
 - **Definition:** All branch expert maximum probabilities are below their abstention thresholds; no single fault attribution is defensible.
 - **Observable signals:** N/A (it's a confidence state, not an observable).
 - **Model branch:** Meta.
@@ -212,18 +225,20 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 - **Athlete-mode tone:** "We're not sure on a few shots; check the replay."
 
 ### `multi_factor`
+
 - **Working canonical:** `multi_factor`
-- **Aliases:** *multiple causes*, *compound fault*
+- **Aliases:** _multiple causes_, _compound fault_
 - **Definition:** Two or more branch experts each report an above-threshold atom for the same shot.
 - **Observable signals:** orchestration over branches.
 - **Model branch:** Meta.
-- **Surfacing rule:** ranked by causal prior (DAG: stance → mount → swing → break → outcome). Earlier-in-chain faults are surfaced as the *primary* cause; later faults as secondary. E.g., `body_alignment_off` + `stopped_gun` → primary is alignment; "you're stopping the gun because you ran out of swing."
+- **Surfacing rule:** ranked by causal prior (DAG: stance → mount → swing → break → outcome). Earlier-in-chain faults are surfaced as the _primary_ cause; later faults as secondary. E.g., `body_alignment_off` + `stopped_gun` → primary is alignment; "you're stopping the gun because you ran out of swing."
 - **Coach-mode tone:** "Three things on shot 12: address, then mount, then stopped gun. Address fixes the chain."
 - **Athlete-mode tone:** "Fix your set-up first; the rest will follow."
 
 ### `in_session_pattern_flag`
+
 - **Working canonical:** `in_session_pattern_flag`
-- **Aliases:** *pattern detected*, *streak*, *trend*
+- **Aliases:** _pattern detected_, _streak_, _trend_
 - **Definition:** Three-or-more consecutive shots with the same primary atom, OR station performance dropping > 20% from the athlete's baseline.
 - **Observable signals:** rolling-window over predictions.
 - **Model branch:** Meta.
@@ -244,6 +259,7 @@ Atoms within a branch are not mutually exclusive. Across branches they co-occur 
 **Versioning.** This file is `taxonomy_version`. Every prediction stored with `(taxonomy_version, model_version)`. Migrations on lock are scripted, idempotent, and tested.
 
 **Open issues for Sprint 9 lock-in.**
+
 - Canonical for `stopped_gun` vs `swing_arrest` (highest-priority card-sort question).
 - Whether `eye_dominance_failure` ships in V1 athlete-mode or stays coach-mode-only until V1.5 gaze.
 - Whether `multi_factor` is a label or only a presentation rule.

@@ -63,7 +63,12 @@ The structured output is **non-negotiable**. Free-form coaching notes from a 14B
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["category", "confidence", "evidence_shot_ids", "coaching_action"],
+        "required": [
+          "category",
+          "confidence",
+          "evidence_shot_ids",
+          "coaching_action"
+        ],
         "properties": {
           "category": {
             "type": "string",
@@ -155,7 +160,11 @@ The structured output is **non-negotiable**. Free-form coaching notes from a 14B
               "additionalProperties": false,
               "properties": {
                 "current": { "type": "number", "minimum": 0, "maximum": 1 },
-                "delta_vs_baseline": { "type": "number", "minimum": -1, "maximum": 1 }
+                "delta_vs_baseline": {
+                  "type": "number",
+                  "minimum": -1,
+                  "maximum": 1
+                }
               }
             },
             "head_lift_rate": {
@@ -164,7 +173,11 @@ The structured output is **non-negotiable**. Free-form coaching notes from a 14B
               "additionalProperties": false,
               "properties": {
                 "current": { "type": "number", "minimum": 0, "maximum": 1 },
-                "delta_vs_baseline": { "type": "number", "minimum": -1, "maximum": 1 }
+                "delta_vs_baseline": {
+                  "type": "number",
+                  "minimum": -1,
+                  "maximum": 1
+                }
               }
             },
             "stopped_gun_rate": {
@@ -173,7 +186,11 @@ The structured output is **non-negotiable**. Free-form coaching notes from a 14B
               "additionalProperties": false,
               "properties": {
                 "current": { "type": "number", "minimum": 0, "maximum": 1 },
-                "delta_vs_baseline": { "type": "number", "minimum": -1, "maximum": 1 }
+                "delta_vs_baseline": {
+                  "type": "number",
+                  "minimum": -1,
+                  "maximum": 1
+                }
               }
             },
             "mount_jerk_p50": {
@@ -338,6 +355,7 @@ Fictional athlete pseudonym; no real PII.
 ## Verifier pass
 
 The verifier is a second LLM call that receives:
+
 1. The structured note above.
 2. The underlying feature vector for the cited `evidence_shot_ids` (per-shot expert probabilities, IMU traces, pose-derived angles).
 3. The session's shot ledger (list of valid `shot_id`s).

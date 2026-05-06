@@ -30,6 +30,8 @@ async def test_rls_isolates_two_tenants() -> None:
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
 
     # Fresh schema + RLS via the migration script equivalent.
+    # Important: Postgres superusers bypass RLS even with FORCE; we must
+    # create a NOBYPASSRLS role and SET ROLE to it for the policy to apply.
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -43,18 +45,31 @@ async def test_rls_isolates_two_tenants() -> None:
                 "WITH CHECK (tenant_id = current_setting('app.current_principal', true));"
             )
         )
+        # NOBYPASSRLS role used by the application at runtime.
+        await conn.execute(
+            text(
+                "DO $$ BEGIN "
+                "IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='aimvision_app') THEN "
+                "CREATE ROLE aimvision_app NOBYPASSRLS NOSUPERUSER; "
+                "END IF; END $$;"
+            )
+        )
+        await conn.execute(text("GRANT ALL ON TABLE orgs TO aimvision_app;"))
 
-    # Insert as tenant A and tenant B respectively.
+    # Insert as tenant A and tenant B respectively (under aimvision_app role).
     async with sessionmaker() as session:
         async with session.begin():
+            await session.execute(text("SET LOCAL ROLE aimvision_app"))
             await session.execute(text("SELECT set_config('app.current_principal', 'org:a', true)"))
             session.add(Org(kind=OrgKind.club, name="Club A", tenant_id="org:a"))
         async with session.begin():
+            await session.execute(text("SET LOCAL ROLE aimvision_app"))
             await session.execute(text("SELECT set_config('app.current_principal', 'org:b', true)"))
             session.add(Org(kind=OrgKind.club, name="Club B", tenant_id="org:b"))
 
     # Reading as principal A must see only A.
     async with sessionmaker() as session, session.begin():
+        await session.execute(text("SET LOCAL ROLE aimvision_app"))
         await session.execute(text("SELECT set_config('app.current_principal', 'org:a', true)"))
         result = await session.execute(select(Org))
         rows = result.scalars().all()
@@ -63,6 +78,7 @@ async def test_rls_isolates_two_tenants() -> None:
 
     # Reading as principal B must see only B.
     async with sessionmaker() as session, session.begin():
+        await session.execute(text("SET LOCAL ROLE aimvision_app"))
         await session.execute(text("SELECT set_config('app.current_principal', 'org:b', true)"))
         result = await session.execute(select(Org))
         rows = result.scalars().all()

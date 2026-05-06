@@ -13,10 +13,10 @@ The original plan defers audit logging to Sprint 17. That is a regulatory failur
 
 - **Minor athletes.** Egypt junior team, EU youth squads. Any processing of minor data must be retroactively explicable. Sprint 1 builds the auth flow; if a coach edits a minor's record on Sprint 5, we must be able to reconstruct who did what. Without an audit log, that incident — or a later regulator inquiry about it — is unreviewable.
 - **Article 9 biometric data.** Pose keypoints are special-category data. GDPR Art. 30 requires Records of Processing Activities; audit logging is the operational substrate for that record.
-- **Cross-tier flows.** The QR check-in flow (`docs/security/qr-checkin-token-spec.md`) and the cross-tenant attribution worker (`docs/security/multi-tenant-isolation.md` §5) emit security-critical events that *must* be reviewable with cryptographic integrity. Bolting this on at Sprint 17 means Sprints 3–16 of those flows produce an unauditable past.
-- **SOC 2 Type II window.** Type II requires a 6-month observation window of *operating* controls. If audit doesn't exist for the first 16 sprints, SOC 2 Type II by Sprint 24 is mathematically impossible.
+- **Cross-tier flows.** The QR check-in flow (`docs/security/qr-checkin-token-spec.md`) and the cross-tenant attribution worker (`docs/security/multi-tenant-isolation.md` §5) emit security-critical events that _must_ be reviewable with cryptographic integrity. Bolting this on at Sprint 17 means Sprints 3–16 of those flows produce an unauditable past.
+- **SOC 2 Type II window.** Type II requires a 6-month observation window of _operating_ controls. If audit doesn't exist for the first 16 sprints, SOC 2 Type II by Sprint 24 is mathematically impossible.
 - **PDPL Art. 19 (Egypt).** Requires controllers to maintain processing records. Same shape as GDPR Art. 30. Same Sprint-1 implication.
-- **Federation procurement.** Federations will ask for an audit-event sample as part of vendor due diligence. We need to be able to produce one *before* Sprint 22 (public launch).
+- **Federation procurement.** Federations will ask for an audit-event sample as part of vendor due diligence. We need to be able to produce one _before_ Sprint 22 (public launch).
 
 The cost of building audit at Sprint 1 is small: ~3 engineering days for the schema, writer, and basic verifier; ~2 days per sprint thereafter to instrument new event types. The cost of bolting it on at Sprint 17 is rebuilding 16 sprints of behavior to emit retroactively meaningful events — and the regulatory exposure for the gap.
 
@@ -28,87 +28,87 @@ The following ~30 events must be emitted from the indicated sprint:
 
 ### 2.1 Authentication and session
 
-| Event                                       | First emitted | Notes                                                                   |
-| ------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
-| 1. `auth.login_succeeded`                   | Sprint 1      | Includes method (password / passkey / OAuth)                            |
-| 2. `auth.login_failed`                      | Sprint 1      | Reason: bad_password, locked, mfa_required, etc.                       |
-| 3. `auth.mfa_challenged`                    | Sprint 1      | Method: totp, push, webauthn                                            |
-| 4. `auth.mfa_failed`                        | Sprint 1      |                                                                         |
-| 5. `auth.mfa_changed`                       | Sprint 1      | Adding/removing MFA methods                                             |
-| 6. `auth.password_changed`                  | Sprint 1      | Self-service or admin reset                                             |
-| 7. `auth.session_token_issued`              | Sprint 1      | Token type, scope, exp                                                   |
-| 8. `auth.session_token_revoked`             | Sprint 1      | Cause: user_logout, admin_force, suspected_compromise                    |
-| 9. `auth.refresh_token_reuse_detected`      | Sprint 1      | Token-reuse → user-wide session lockout                                  |
+| Event                                  | First emitted | Notes                                                 |
+| -------------------------------------- | ------------- | ----------------------------------------------------- |
+| 1. `auth.login_succeeded`              | Sprint 1      | Includes method (password / passkey / OAuth)          |
+| 2. `auth.login_failed`                 | Sprint 1      | Reason: bad_password, locked, mfa_required, etc.      |
+| 3. `auth.mfa_challenged`               | Sprint 1      | Method: totp, push, webauthn                          |
+| 4. `auth.mfa_failed`                   | Sprint 1      |                                                       |
+| 5. `auth.mfa_changed`                  | Sprint 1      | Adding/removing MFA methods                           |
+| 6. `auth.password_changed`             | Sprint 1      | Self-service or admin reset                           |
+| 7. `auth.session_token_issued`         | Sprint 1      | Token type, scope, exp                                |
+| 8. `auth.session_token_revoked`        | Sprint 1      | Cause: user_logout, admin_force, suspected_compromise |
+| 9. `auth.refresh_token_reuse_detected` | Sprint 1      | Token-reuse → user-wide session lockout               |
 
 ### 2.2 Authorization and scope
 
-| Event                                       | First emitted | Notes                                                                   |
-| ------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
-| 10. `authz.tenant_scope_changed`            | Sprint 4      | User switches into a different tenant scope                             |
-| 11. `authz.role_changed`                    | Sprint 4      | E.g. coach added to club; athlete added to federation                   |
-| 12. `authz.access_denied`                   | Sprint 4      | Includes resource, attempted action, reason                              |
-| 13. `authz.annotation_scope_changed`        | Sprint 8      | Per `docs/security/multi-tenant-isolation.md` §7                         |
+| Event                                | First emitted | Notes                                                 |
+| ------------------------------------ | ------------- | ----------------------------------------------------- |
+| 10. `authz.tenant_scope_changed`     | Sprint 4      | User switches into a different tenant scope           |
+| 11. `authz.role_changed`             | Sprint 4      | E.g. coach added to club; athlete added to federation |
+| 12. `authz.access_denied`            | Sprint 4      | Includes resource, attempted action, reason           |
+| 13. `authz.annotation_scope_changed` | Sprint 8      | Per `docs/security/multi-tenant-isolation.md` §7      |
 
 ### 2.3 QR check-in
 
-| Event                                       | First emitted | Notes                                                                   |
-| ------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
-| 14. `checkin.token_issued`                  | Sprint 16     | Per QR spec §11                                                         |
-| 15. `checkin.token_redeemed`                | Sprint 16     |                                                                         |
-| 16. `checkin.token_revoked`                 | Sprint 16     | Cause: athlete_initiated, club_initiated, system                        |
-| 17. `checkin.second_redemption_attempt`     | Sprint 16     | Alert-grade                                                              |
-| 18. `checkin.club_allowlist_mismatch`       | Sprint 16     | Alert-grade                                                              |
-| 19. `checkin.capability_misused`            | Sprint 16     | Capability presented at non-attribution endpoint; alert-grade            |
+| Event                                   | First emitted | Notes                                                         |
+| --------------------------------------- | ------------- | ------------------------------------------------------------- |
+| 14. `checkin.token_issued`              | Sprint 16     | Per QR spec §11                                               |
+| 15. `checkin.token_redeemed`            | Sprint 16     |                                                               |
+| 16. `checkin.token_revoked`             | Sprint 16     | Cause: athlete_initiated, club_initiated, system              |
+| 17. `checkin.second_redemption_attempt` | Sprint 16     | Alert-grade                                                   |
+| 18. `checkin.club_allowlist_mismatch`   | Sprint 16     | Alert-grade                                                   |
+| 19. `checkin.capability_misused`        | Sprint 16     | Capability presented at non-attribution endpoint; alert-grade |
 
 ### 2.4 Cross-tenant access
 
-| Event                                       | First emitted | Notes                                                                   |
-| ------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
-| 20. `tenant_isolation.cross_tenant_access`  | Sprint 4      | Privileged role read across tenants (DSAR, attribution, cohort)         |
-| 21. `tenant_isolation.disagreement`         | Sprint 4      | App-layer and RLS disagreed; alert-grade page on-call                   |
-| 22. `attribution.derived`                   | Sprint 16     | Per multi-tenant spec §5.4                                              |
+| Event                                      | First emitted | Notes                                                           |
+| ------------------------------------------ | ------------- | --------------------------------------------------------------- |
+| 20. `tenant_isolation.cross_tenant_access` | Sprint 4      | Privileged role read across tenants (DSAR, attribution, cohort) |
+| 21. `tenant_isolation.disagreement`        | Sprint 4      | App-layer and RLS disagreed; alert-grade page on-call           |
+| 22. `attribution.derived`                  | Sprint 16     | Per multi-tenant spec §5.4                                      |
 
 ### 2.5 Consent and erasure
 
-| Event                                       | First emitted | Notes                                                                   |
-| ------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
-| 23. `consent.granted`                       | Sprint 1      | Purpose, version, granular categories                                   |
-| 24. `consent.revoked`                       | Sprint 1      | Purpose, propagation status                                              |
-| 25. `consent.parental_verified`             | Sprint 3      | Method, verifier identity                                                |
-| 26. `data.export_requested`                 | Sprint 8      | DSAR initiation                                                          |
-| 27. `data.export_delivered`                 | Sprint 8      | Includes integrity hash                                                  |
-| 28. `data.erasure_requested`                | Sprint 8      | DSAR / Art. 17                                                           |
-| 29. `data.erasure_completed`                | Sprint 8      | Per-store completion (DB, S3, training datasets, model weights)          |
+| Event                           | First emitted | Notes                                                           |
+| ------------------------------- | ------------- | --------------------------------------------------------------- |
+| 23. `consent.granted`           | Sprint 1      | Purpose, version, granular categories                           |
+| 24. `consent.revoked`           | Sprint 1      | Purpose, propagation status                                     |
+| 25. `consent.parental_verified` | Sprint 3      | Method, verifier identity                                       |
+| 26. `data.export_requested`     | Sprint 8      | DSAR initiation                                                 |
+| 27. `data.export_delivered`     | Sprint 8      | Includes integrity hash                                         |
+| 28. `data.erasure_requested`    | Sprint 8      | DSAR / Art. 17                                                  |
+| 29. `data.erasure_completed`    | Sprint 8      | Per-store completion (DB, S3, training datasets, model weights) |
 
 ### 2.6 Admin and break-glass
 
-| Event                                       | First emitted | Notes                                                                   |
-| ------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
-| 30. `admin.action`                          | Sprint 1      | Generic admin action with action-specific extra                          |
-| 31. `admin.viewer_access`                   | Sprint 1      | Admin viewed PII data; the viewer itself is audited                      |
-| 32. `breakglass.requested`                  | Sprint 6      |                                                                         |
-| 33. `breakglass.approved`                   | Sprint 6      |                                                                         |
-| 34. `breakglass.action`                     | Sprint 6      | Each action under break-glass role                                       |
-| 35. `breakglass.expired`                    | Sprint 6      |                                                                         |
+| Event                      | First emitted | Notes                                               |
+| -------------------------- | ------------- | --------------------------------------------------- |
+| 30. `admin.action`         | Sprint 1      | Generic admin action with action-specific extra     |
+| 31. `admin.viewer_access`  | Sprint 1      | Admin viewed PII data; the viewer itself is audited |
+| 32. `breakglass.requested` | Sprint 6      |                                                     |
+| 33. `breakglass.approved`  | Sprint 6      |                                                     |
+| 34. `breakglass.action`    | Sprint 6      | Each action under break-glass role                  |
+| 35. `breakglass.expired`   | Sprint 6      |                                                     |
 
 ### 2.7 ML and LLM
 
-| Event                                       | First emitted | Notes                                                                   |
-| ------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
-| 36. `model.promoted`                        | Sprint 7      | New model version pushed to production; includes hash                    |
-| 37. `model.rolled_back`                     | Sprint 7      |                                                                         |
-| 38. `llm.prompt_response`                   | Sprint 9      | Redacted prompt + response; per §6                                       |
-| 39. `llm.output_violation`                  | Sprint 9      | Validator flagged tool-call attempt or PII leak                          |
+| Event                      | First emitted | Notes                                                 |
+| -------------------------- | ------------- | ----------------------------------------------------- |
+| 36. `model.promoted`       | Sprint 7      | New model version pushed to production; includes hash |
+| 37. `model.rolled_back`    | Sprint 7      |                                                       |
+| 38. `llm.prompt_response`  | Sprint 9      | Redacted prompt + response; per §6                    |
+| 39. `llm.output_violation` | Sprint 9      | Validator flagged tool-call attempt or PII leak       |
 
 ### 2.8 Federation cohort
 
-| Event                                       | First emitted | Notes                                                                   |
-| ------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
-| 40. `federation.cohort_metric_requested`    | Sprint 18     | Federation operator queries cohort                                       |
-| 41. `federation.cohort_metric_denied`       | Sprint 18     | Insufficient consent / opt-in                                            |
-| 42. `federation.config_pushed`              | Sprint 18     | Cloud → federation config update                                         |
-| 43. `federation.config_applied`             | Sprint 18     | Federation accepted update                                                |
-| 44. `federation.config_rejected`            | Sprint 18     | Federation refused update                                                 |
+| Event                                    | First emitted | Notes                              |
+| ---------------------------------------- | ------------- | ---------------------------------- |
+| 40. `federation.cohort_metric_requested` | Sprint 18     | Federation operator queries cohort |
+| 41. `federation.cohort_metric_denied`    | Sprint 18     | Insufficient consent / opt-in      |
+| 42. `federation.config_pushed`           | Sprint 18     | Cloud → federation config update   |
+| 43. `federation.config_applied`          | Sprint 18     | Federation accepted update         |
+| 44. `federation.config_rejected`         | Sprint 18     | Federation refused update          |
 
 This list is the **floor**. New event types are added by amendment to this spec; they require a CI-verified test that the event fires.
 
@@ -149,7 +149,7 @@ Field semantics:
 - `event_type` — dotted namespace; matches §2 list.
 - `actor_principal` — the entity that performed the action; may be `system:<service>` for non-user actors.
 - `actor_role` — the role under which the action was performed; relevant for break-glass and privileged roles.
-- `tenant_id` — the tenant the event is *about*. The same event may be replicated into multiple tenants if it concerns more than one (e.g. cross-tenant attribution writes a record in both Club and Solo audit chains).
+- `tenant_id` — the tenant the event is _about_. The same event may be replicated into multiple tenants if it concerns more than one (e.g. cross-tenant attribution writes a record in both Club and Solo audit chains).
 - `target_resource` — typed string identifying the resource class (e.g. `checkin_token`, `session`, `annotation`).
 - `target_id` — the specific resource ID.
 - `action` — the verb (`create`, `read`, `update`, `delete`, `redeem`, `revoke`, `grant`, `derive`, etc.).
@@ -159,7 +159,7 @@ Field semantics:
 - `user_agent_hash` — BLAKE2b(UA). Useful for clustering bots without storing UA.
 - `extra` — typed per-event-type bag; schema validated per event type.
 - `timestamp_ns` — UTC nanoseconds since epoch from a monotonic source on the writer.
-- `prev_event_hash` — hash of the immediately previous event in the *same tenant's chain*.
+- `prev_event_hash` — hash of the immediately previous event in the _same tenant's chain_.
 - `event_hash` — `BLAKE2b(canonical_serialization_of_all_other_fields)`. The chaining hash.
 
 The chain is keyed by `tenant_id`. Each tenant has an independent linear chain. A genesis event per tenant initializes the chain.
@@ -212,7 +212,7 @@ grant insert on audit_events to audit_writer_role;
 grant select on audit_events to audit_reader_role;
 ```
 
-The application's normal `app_role` does *not* have any privileges on `audit_events`. Writes go via a small audit-writer service that:
+The application's normal `app_role` does _not_ have any privileges on `audit_events`. Writes go via a small audit-writer service that:
 
 - Authenticates with its own credentials.
 - Computes `prev_event_hash` and `event_hash`.
@@ -289,7 +289,7 @@ The audit log itself must not become a PII leak vector.
 
 ### 6.2 Direct identifiers in `target_id` and `extra`
 
-- `athlete_id` is *never* stored raw in the audit log for events that pertain to athletes. Use `athlete_id_hash` (BLAKE2b with a per-tenant key from KMS), and a separate `athlete_id_pseudonym_map` table accessible only to the DSAR exporter and DPO viewer.
+- `athlete_id` is _never_ stored raw in the audit log for events that pertain to athletes. Use `athlete_id_hash` (BLAKE2b with a per-tenant key from KMS), and a separate `athlete_id_pseudonym_map` table accessible only to the DSAR exporter and DPO viewer.
 - For non-athlete actors (coaches, admins), the principal ID is stored directly because they are not the protected class.
 
 ### 6.3 Free-text fields
@@ -307,7 +307,7 @@ The `llm.prompt_response` event is the most PII-sensitive. Pipeline:
 1. Athlete identifiers in the prompt are already replaced with stable pseudonyms before the LLM ever sees them (per Threat Model §4.4).
 2. Before the prompt is written to the audit log, an additional NER + denylist pass runs to catch anything that slipped through.
 3. The response goes through the same pipeline.
-4. The audit event records the *redacted* prompt + response, plus an `original_hash` so we can verify in the future that a redaction was applied to a specific original (without storing the original).
+4. The audit event records the _redacted_ prompt + response, plus an `original_hash` so we can verify in the future that a redaction was applied to a specific original (without storing the original).
 5. Prompts and responses are stored only when sampling / debugging requires it, with a 90-day default retention shorter than other audit events. This is configurable per tenant.
 
 ### 6.5 Re-identifiability review
@@ -363,19 +363,19 @@ These tests run in CI and locally via `make audit-tests`.
 
 Aligning with the resequencing in `docs/reviews/07-compliance-auditor.md`:
 
-| Sprint | Audit deliverable                                                                                  |
-| ------ | -------------------------------------------------------------------------------------------------- |
-| 1      | Audit DB + writer service + events 1–9, 23–24, 30–31. Hash chain operational.                       |
-| 2      | Threat model ratified; audit event coverage manifest in CI.                                         |
-| 3      | Events 25 (parental consent verification) added.                                                    |
-| 4      | Events 10–12, 20–21 (tenant isolation) added; disagreement alert wired.                              |
-| 6      | Events 32–35 (break-glass) added; SOC 2 controls implementation begins.                              |
-| 7      | Events 36–37 (model promotion) added.                                                               |
-| 8      | Events 13, 26–29 (annotation scopes, DSAR) added; pull-from-original-Sprint-17.                     |
-| 9      | Events 38–39 (LLM) added with redaction pipeline.                                                   |
-| 16     | Events 14–19, 22 (QR check-in, attribution) added.                                                   |
-| 18     | Events 40–44 (federation) added; SOC 2 Type I audit.                                                |
-| 24     | SOC 2 Type II observation window closes; audit chain end-to-end demo for federation procurement.    |
+| Sprint | Audit deliverable                                                                                |
+| ------ | ------------------------------------------------------------------------------------------------ |
+| 1      | Audit DB + writer service + events 1–9, 23–24, 30–31. Hash chain operational.                    |
+| 2      | Threat model ratified; audit event coverage manifest in CI.                                      |
+| 3      | Events 25 (parental consent verification) added.                                                 |
+| 4      | Events 10–12, 20–21 (tenant isolation) added; disagreement alert wired.                          |
+| 6      | Events 32–35 (break-glass) added; SOC 2 controls implementation begins.                          |
+| 7      | Events 36–37 (model promotion) added.                                                            |
+| 8      | Events 13, 26–29 (annotation scopes, DSAR) added; pull-from-original-Sprint-17.                  |
+| 9      | Events 38–39 (LLM) added with redaction pipeline.                                                |
+| 16     | Events 14–19, 22 (QR check-in, attribution) added.                                               |
+| 18     | Events 40–44 (federation) added; SOC 2 Type I audit.                                             |
+| 24     | SOC 2 Type II observation window closes; audit chain end-to-end demo for federation procurement. |
 
 ---
 

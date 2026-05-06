@@ -13,10 +13,7 @@ import { AccessibleText } from '../../components/a11y/AccessibleText';
 import { AccessibleTouchable } from '../../components/a11y/AccessibleTouchable';
 import { RangeButton } from '../../components/RangeMode/RangeButton';
 import { colors, spacing } from '../../theme/tokens';
-import {
-  submitParentalConsent,
-  type ParentalConsentRequest,
-} from '../../services/auth';
+import { submitParentalConsent, type ParentalConsentRequest } from '../../services/auth';
 import { emitAuditEvent } from '../../services/audit';
 import type { AuthStackParamList } from '../../navigation/types';
 
@@ -66,9 +63,7 @@ export function ParentalConsentScreen(): React.ReactElement {
   if (submitted) {
     return (
       <View style={styles.container}>
-        <AccessibleText variant="display">
-          {t('parentalConsent.submittedTitle')}
-        </AccessibleText>
+        <AccessibleText variant="display">{t('parentalConsent.submittedTitle')}</AccessibleText>
         <AccessibleText variant="body" color="textSecondary" style={styles.subtitle}>
           {t('parentalConsent.submittedBody')}
         </AccessibleText>
@@ -120,9 +115,7 @@ export function ParentalConsentScreen(): React.ReactElement {
               ]}
             >
               <View style={styles.methodTextWrap}>
-                <AccessibleText variant="body">
-                  {t(`parentalConsent.method.${m}`)}
-                </AccessibleText>
+                <AccessibleText variant="body">{t(`parentalConsent.method.${m}`)}</AccessibleText>
               </View>
             </AccessibleTouchable>
           );

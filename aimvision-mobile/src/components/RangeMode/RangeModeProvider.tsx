@@ -22,11 +22,7 @@ interface RangeModeContextValue {
 
 const RangeModeContext = createContext<RangeModeContextValue | null>(null);
 
-export function RangeModeProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}): React.ReactElement {
+export function RangeModeProvider({ children }: { children: React.ReactNode }): React.ReactElement {
   const [override, setOverride] = useState<boolean | null>(null);
   const [lux, setLux] = useState<number>(0);
 

@@ -31,7 +31,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 ' +
     'disabled:opacity-50 disabled:cursor-not-allowed';
   return (
-    <button ref={ref} type={type} className={`${base} ${VARIANT_CLASSES[variant]} ${className}`} {...rest}>
+    <button
+      ref={ref}
+      type={type}
+      className={`${base} ${VARIANT_CLASSES[variant]} ${className}`}
+      {...rest}
+    >
       {children}
     </button>
   );

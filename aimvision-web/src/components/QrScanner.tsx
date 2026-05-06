@@ -32,8 +32,7 @@ export function QrScanner({ onSubmit, isSubmitting = false }: QrScannerProps) {
   const [displayCode, setDisplayCode] = useState('');
   const [sessionId, setSessionId] = useState('');
 
-  const valid =
-    qrPayload.startsWith('av1:') && /^\d{6}$/.test(displayCode) && sessionId.length > 0;
+  const valid = qrPayload.startsWith('av1:') && /^\d{6}$/.test(displayCode) && sessionId.length > 0;
 
   return (
     <form

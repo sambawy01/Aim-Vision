@@ -143,7 +143,7 @@ The deployment monorepo. **One Helm chart** that deploys the entire stack — AP
 3. Native decoder (VideoToolbox / MediaCodec) writes to an `IOSurface`/`AHardwareBuffer` ring buffer.
 4. On-device audio shot detector (CRNN, ~30 ms p95 on iPhone 13) runs continuously on the audio path.
 5. On-device pose (BlazePose Lite or distilled RTMPose-tiny, NPU) runs subsampled at 8–12 fps; YOLOv8n-int8 barrel detection at 5–8 fps.
-6. Each *shot event* is appended to the local WatermelonDB log as an immutable fact: `(session_id, monotonic_seq, device_clock, server_clock, payload)`. **Shot events are append-only and never edited** (ADR-0006). The live feed UI renders by reading the event stream.
+6. Each _shot event_ is appended to the local WatermelonDB log as an immutable fact: `(session_id, monotonic_seq, device_clock, server_clock, payload)`. **Shot events are append-only and never edited** (ADR-0006). The live feed UI renders by reading the event stream.
 7. WebSocket pushes events to the backend in near real time; the backend stores them in the canonical event store.
 
 ### 4.2 Post-session pipeline (≤90s p50, ≤150s p95)
@@ -210,6 +210,7 @@ The complete catalog with vendor names, cost-tier guesses, and rationale is in *
 ## 9. References
 
 **Reviews (the input critique that this architecture answers):**
+
 - [01 — AI Engineer](reviews/01-ai-engineer.md) — ML stack: RTMPose-x, VideoMAE-v2, multi-label hierarchical head, calibration, conformal prediction.
 - [02 — Trend Researcher](reviews/02-trend-researcher.md) — competitive frame, federation flywheel as moat, GTM gaps.
 - [03 — Software Architect](reviews/03-software-architect.md) — UniFFI tradeoffs, FastAPI choice, CloudNativePG, event sourcing, Temporal.
@@ -222,6 +223,7 @@ The complete catalog with vendor names, cost-tier guesses, and rationale is in *
 - [10 — Performance Benchmarker](reviews/10-performance-benchmarker.md) — latency budgets, GPU sizing, instrumentation.
 
 **Architecture Decision Records:**
+
 - [ADR-0001 — Backend on Python + FastAPI](adr/0001-backend-python-fastapi.md)
 - [ADR-0002 — Mobile on RN New Architecture (Hermes/Fabric/JSI)](adr/0002-mobile-rn-new-architecture.md)
 - [ADR-0003 — Rust camera-core trait split (UniFFI control / extern "C" media)](adr/0003-rust-camera-core-split.md)
@@ -232,6 +234,7 @@ The complete catalog with vendor names, cost-tier guesses, and rationale is in *
 - [ADR-0008 — Build vs buy](adr/0008-build-vs-buy.md)
 
 **Companion docs (predicted filenames; owned by other reviewers):**
+
 - `docs/security/multi-tenant-isolation.md`
 - `docs/security/threat-model.md`
 - `docs/security/audit-logging.md`

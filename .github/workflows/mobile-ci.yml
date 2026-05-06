@@ -32,11 +32,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-          cache-dependency-path: aimvision-mobile/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        # No frozen lockfile until pnpm-lock.yaml is committed (Sprint 4
+        # pinning task). Until then, accept resolver drift in CI.
+        run: pnpm install --no-frozen-lockfile
 
       - name: Typecheck
         run: pnpm typecheck

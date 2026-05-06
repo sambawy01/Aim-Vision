@@ -27,22 +27,22 @@ The V1 plan states "1-3s feed latency" as a single number. That is not a SLA —
 
 ### 2.1 Wi-Fi path (default mobile, Hero 13 5GHz AP)
 
-| Metric | Target |
-|---|---|
-| Shot-to-feed-entry p50 | **≤ 2.5s** |
-| Shot-to-feed-entry p95 | **≤ 4s** |
-| Hard cap | **6s** — beyond this, surface a degraded UI banner: "Live feed delayed — recording continues" |
-| Glass-to-glass preview p50 | ≤ 1.1s |
-| Glass-to-glass preview p95 | ≤ 1.8s |
+| Metric                     | Target                                                                                        |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| Shot-to-feed-entry p50     | **≤ 2.5s**                                                                                    |
+| Shot-to-feed-entry p95     | **≤ 4s**                                                                                      |
+| Hard cap                   | **6s** — beyond this, surface a degraded UI banner: "Live feed delayed — recording continues" |
+| Glass-to-glass preview p50 | ≤ 1.1s                                                                                        |
+| Glass-to-glass preview p95 | ≤ 1.8s                                                                                        |
 
 ### 2.2 USB-C tethered (federation tier, Hero 13 UVC mode)
 
-| Metric | Target |
-|---|---|
-| Shot-to-feed-entry p50 | **≤ 1.2s** |
-| Shot-to-feed-entry p95 | **≤ 2.0s** |
-| Glass-to-glass preview p50 | ≤ 350ms |
-| Glass-to-glass preview p95 | ≤ 600ms |
+| Metric                     | Target     |
+| -------------------------- | ---------- |
+| Shot-to-feed-entry p50     | **≤ 1.2s** |
+| Shot-to-feed-entry p95     | **≤ 2.0s** |
+| Glass-to-glass preview p50 | ≤ 350ms    |
+| Glass-to-glass preview p95 | ≤ 600ms    |
 
 USB-C UVC tethering moves from V1 plan's Sprint 7 [P1] to **Sprint 7 [P0] for the federation tier**. It is the only credible path to sub-1.5s p50 (see `05-embedded-firmware-engineer.md` Section "Open GoPro Reality Check").
 
@@ -65,20 +65,20 @@ The V1 plan's "1-3s on Wi-Fi" is unachievable at p95 given documented GoPro Hero
 
 End-to-end stage budgets, p50, both network paths. Numbers extend the table in `10-performance-benchmarker.md` Section "Live Latency Budget Table" with a USB-C column.
 
-| Stage | Wi-Fi p50 | USB-C UVC p50 | Notes |
-|---|---|---|---|
-| Hero 13 sensor → encoder | 80 ms | 80 ms | H.264 hardware encoder, identical both paths |
-| Hero 13 emit (Wi-Fi UDP / UVC USB) | 320-520 ms | 30-60 ms | The dominant variance source on Wi-Fi |
-| Radio / cable transit + jitter buffer | 150-300 ms | 5-15 ms | Wi-Fi 5GHz outdoor; UVC isochronous |
-| H.264 hardware decode (VT/MediaCodec) | 30-50 ms | 30-50 ms | One-frame queue typical |
-| Frame copy → Rust core → tensor prep | 20-40 ms | 20-40 ms | UniFFI/JNI marshal + color convert |
-| Audio shot detection (50ms hop, 200ms window) | 30-50 ms | 30-50 ms | Independent path; gates "Shot detected" feed entry |
-| Pose inference (RTMPose-Lite, NPU) | 30-50 ms | 30-50 ms | Subsampled to 8-12 fps; replaces MediaPipe per AI review |
-| YOLOv8n int8 (barrel) | 40-80 ms | 40-80 ms | Subsampled to 5-8 fps |
-| Diagnostic MLP (post-shot, 30 features) | 30-50 ms | 30-50 ms | Fires only on shot event |
-| Aggregation → JSI HostObject → Skia render | 80-150 ms | 80-150 ms | RN bridge eliminated via TurboModule + JSI |
-| **Shot-to-feed-entry total p50** | **~1.6-2.4 s** | **~0.55-1.1 s** | Audio path dominates user perception |
-| **Glass-to-glass preview p50** | **~700-1100 ms** | **~250-400 ms** | Independent of shot pipeline |
+| Stage                                         | Wi-Fi p50        | USB-C UVC p50   | Notes                                                    |
+| --------------------------------------------- | ---------------- | --------------- | -------------------------------------------------------- |
+| Hero 13 sensor → encoder                      | 80 ms            | 80 ms           | H.264 hardware encoder, identical both paths             |
+| Hero 13 emit (Wi-Fi UDP / UVC USB)            | 320-520 ms       | 30-60 ms        | The dominant variance source on Wi-Fi                    |
+| Radio / cable transit + jitter buffer         | 150-300 ms       | 5-15 ms         | Wi-Fi 5GHz outdoor; UVC isochronous                      |
+| H.264 hardware decode (VT/MediaCodec)         | 30-50 ms         | 30-50 ms        | One-frame queue typical                                  |
+| Frame copy → Rust core → tensor prep          | 20-40 ms         | 20-40 ms        | UniFFI/JNI marshal + color convert                       |
+| Audio shot detection (50ms hop, 200ms window) | 30-50 ms         | 30-50 ms        | Independent path; gates "Shot detected" feed entry       |
+| Pose inference (RTMPose-Lite, NPU)            | 30-50 ms         | 30-50 ms        | Subsampled to 8-12 fps; replaces MediaPipe per AI review |
+| YOLOv8n int8 (barrel)                         | 40-80 ms         | 40-80 ms        | Subsampled to 5-8 fps                                    |
+| Diagnostic MLP (post-shot, 30 features)       | 30-50 ms         | 30-50 ms        | Fires only on shot event                                 |
+| Aggregation → JSI HostObject → Skia render    | 80-150 ms        | 80-150 ms       | RN bridge eliminated via TurboModule + JSI               |
+| **Shot-to-feed-entry total p50**              | **~1.6-2.4 s**   | **~0.55-1.1 s** | Audio path dominates user perception                     |
+| **Glass-to-glass preview p50**                | **~700-1100 ms** | **~250-400 ms** | Independent of shot pipeline                             |
 
 **Source of truth:** RTMPose-Lite replaces MediaPipe BlazePose Lite on the recommendation of the AI review. Latency is comparable; accuracy on partial occlusion (athlete behind shotgun) is materially better.
 
@@ -88,13 +88,13 @@ End-to-end stage budgets, p50, both network paths. Numbers extend the table in `
 
 Target latency p95 per stage, per supported device. Cells marked "—" indicate the device is below the V1 supported floor (see Section 14). Sprint 9 [P0] adds quantized "lite" variants for older devices.
 
-| Model | iPhone 13 | iPhone 15 Pro | Pixel 6a | Pixel 8 | Galaxy A54 | Galaxy S22 | Galaxy S24 |
-|---|---|---|---|---|---|---|---|
-| Audio shot detector (CRNN, 50ms hop) | 25 ms | 18 ms | 45 ms | 30 ms | 50 ms | 30 ms | 22 ms |
-| RTMPose-Lite (10 fps subsampled) | 22 ms | 14 ms | 60 ms | 38 ms | 70 ms | 35 ms | 28 ms |
-| YOLOv8n int8 (barrel, 6 fps) | 38 ms | 26 ms | 95 ms | 55 ms | 105 ms | 50 ms | 40 ms |
-| Diagnostic MLP (per-shot only) | 18 ms | 12 ms | 25 ms | 18 ms | 28 ms | 18 ms | 15 ms |
-| IMU fusion (Hero 13 GPMF, 100Hz) | 8 ms | 6 ms | 12 ms | 9 ms | 14 ms | 9 ms | 7 ms |
+| Model                                | iPhone 13 | iPhone 15 Pro | Pixel 6a | Pixel 8 | Galaxy A54 | Galaxy S22 | Galaxy S24 |
+| ------------------------------------ | --------- | ------------- | -------- | ------- | ---------- | ---------- | ---------- |
+| Audio shot detector (CRNN, 50ms hop) | 25 ms     | 18 ms         | 45 ms    | 30 ms   | 50 ms      | 30 ms      | 22 ms      |
+| RTMPose-Lite (10 fps subsampled)     | 22 ms     | 14 ms         | 60 ms    | 38 ms   | 70 ms      | 35 ms      | 28 ms      |
+| YOLOv8n int8 (barrel, 6 fps)         | 38 ms     | 26 ms         | 95 ms    | 55 ms   | 105 ms     | 50 ms      | 40 ms      |
+| Diagnostic MLP (per-shot only)       | 18 ms     | 12 ms         | 25 ms    | 18 ms   | 28 ms      | 18 ms      | 15 ms      |
+| IMU fusion (Hero 13 GPMF, 100Hz)     | 8 ms      | 6 ms          | 12 ms    | 9 ms    | 14 ms      | 9 ms       | 7 ms       |
 
 **Acceleration backend per device:**
 
@@ -147,14 +147,14 @@ These metrics are wired into the live debug overlay (see `observability-plan.md`
 
 ### 6.1 Targets
 
-| Device | Live session battery drain (preview + pose overlay, 50% screen brightness) |
-|---|---|
-| iPhone 13 | **< 18% / hour** |
-| iPhone 15 Pro | < 14% / hour |
-| Pixel 6a | **< 22% / hour** |
-| Pixel 8 | < 18% / hour |
-| Galaxy A54 | < 24% / hour |
-| Galaxy S22 / S24 | < 18% / hour |
+| Device           | Live session battery drain (preview + pose overlay, 50% screen brightness) |
+| ---------------- | -------------------------------------------------------------------------- |
+| iPhone 13        | **< 18% / hour**                                                           |
+| iPhone 15 Pro    | < 14% / hour                                                               |
+| Pixel 6a         | **< 22% / hour**                                                           |
+| Pixel 8          | < 18% / hour                                                               |
+| Galaxy A54       | < 24% / hour                                                               |
+| Galaxy S22 / S24 | < 18% / hour                                                               |
 
 A 90-minute session must not drain more than ~30% on the median supported device.
 
@@ -172,7 +172,7 @@ These are **architectural prerequisites** — not optimizations to chase later:
 
 ### 6.3 Measurement
 
-Battery is sampled every 10 seconds via `UIDevice.batteryLevel` (iOS) and `BatteryManager` (Android), shipped to the backend via OTel (see `observability-plan.md` Section 7). The dataset built from Sprint 4 onward is the dataset Sprint 19 *analyzes* — not the dataset it starts collecting.
+Battery is sampled every 10 seconds via `UIDevice.batteryLevel` (iOS) and `BatteryManager` (Android), shipped to the backend via OTel (see `observability-plan.md` Section 7). The dataset built from Sprint 4 onward is the dataset Sprint 19 _analyzes_ — not the dataset it starts collecting.
 
 ---
 
@@ -188,12 +188,12 @@ Test rig: Sprint 8 synthetic load rig (phone-on-tripod replaying fixture session
 
 Sampled via `ProcessInfo.thermalState` (iOS) and `PowerManager.currentThermalStatus` (Android) every 10 seconds:
 
-| Trigger | Phone package temp | Action |
-|---|---|---|
-| `.fair` → `.serious` | 42°C | Drop pose inference to 5 fps |
-| `.serious` sustained 30s | 44°C | Drop YOLO barrel entirely; keep audio + pose @ 5 fps |
-| `.serious` → `.critical` | 46°C | Drop preview to 12 fps; keep audio + recording link |
-| `.critical` sustained 30s | 48°C | Audio-only mode; surface "thermal protection active" banner; recording continues; coaching feed degrades to "Shot N detected" entries only |
+| Trigger                   | Phone package temp | Action                                                                                                                                     |
+| ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.fair` → `.serious`      | 42°C               | Drop pose inference to 5 fps                                                                                                               |
+| `.serious` sustained 30s  | 44°C               | Drop YOLO barrel entirely; keep audio + pose @ 5 fps                                                                                       |
+| `.serious` → `.critical`  | 46°C               | Drop preview to 12 fps; keep audio + recording link                                                                                        |
+| `.critical` sustained 30s | 48°C               | Audio-only mode; surface "thermal protection active" banner; recording continues; coaching feed degrades to "Shot N detected" entries only |
 
 The banner is **non-dismissible** until thermal state recovers to `.fair`. The session continues recording — we never lose footage to thermal.
 
@@ -223,17 +223,17 @@ These targets assume a 30-minute session, ~80 shots, and an A10G or L4 GPU worke
 
 Per-stage budgets, p50, on T4 vs A10G vs L4 vs H100.
 
-| Stage | Budget | T4 reality | A10G reality | L4 reality | H100 reality |
-|---|---|---|---|---|---|
-| Video re-fetch from object storage (4 GB) | 8 s | 10-15 s | 5-8 s w/ CloudFront | 5-8 s | 4-7 s |
-| Re-decode + frame extraction (every 6th frame, 30min) | 12 s | 18-25 s | 8-15 s w/ NVDEC | 8-14 s | 5-10 s |
-| Full-res pose (HRNet-W32 @ ~10 fps GPU) | 25 s | 50-80 s | 20-30 s | 22-32 s | 8-14 s |
-| Audio re-detection (Whisper-tiny + custom CRNN) | 5 s | 6-10 s | 3-8 s | 3-8 s | 2-5 s |
-| Per-shot diagnostic ensemble (~80 shots) | 8 s | 10-15 s | 6-12 s | 6-12 s | 3-6 s |
-| Pattern detection + aggregation (CPU) | 3 s | 2-5 s | 2-5 s | 2-5 s | 2-5 s |
-| LLM coaching notes (DeepSeek 14B Q4_K_M, ~600 tokens) | 18 s | n/a | 14-22 s @ ~35 tok/s | 12-20 s | 4-8 s |
-| PDF render | 3 s | 2-4 s | 2-4 s | 2-4 s | 2-4 s |
-| **Total p50** | **82 s** | **100-160 s** | **65-110 s** | **62-105 s** | **30-60 s** |
+| Stage                                                 | Budget   | T4 reality    | A10G reality        | L4 reality   | H100 reality |
+| ----------------------------------------------------- | -------- | ------------- | ------------------- | ------------ | ------------ |
+| Video re-fetch from object storage (4 GB)             | 8 s      | 10-15 s       | 5-8 s w/ CloudFront | 5-8 s        | 4-7 s        |
+| Re-decode + frame extraction (every 6th frame, 30min) | 12 s     | 18-25 s       | 8-15 s w/ NVDEC     | 8-14 s       | 5-10 s       |
+| Full-res pose (HRNet-W32 @ ~10 fps GPU)               | 25 s     | 50-80 s       | 20-30 s             | 22-32 s      | 8-14 s       |
+| Audio re-detection (Whisper-tiny + custom CRNN)       | 5 s      | 6-10 s        | 3-8 s               | 3-8 s        | 2-5 s        |
+| Per-shot diagnostic ensemble (~80 shots)              | 8 s      | 10-15 s       | 6-12 s              | 6-12 s       | 3-6 s        |
+| Pattern detection + aggregation (CPU)                 | 3 s      | 2-5 s         | 2-5 s               | 2-5 s        | 2-5 s        |
+| LLM coaching notes (DeepSeek 14B Q4_K_M, ~600 tokens) | 18 s     | n/a           | 14-22 s @ ~35 tok/s | 12-20 s      | 4-8 s        |
+| PDF render                                            | 3 s      | 2-4 s         | 2-4 s               | 2-4 s        | 2-4 s        |
+| **Total p50**                                         | **82 s** | **100-160 s** | **65-110 s**        | **62-105 s** | **30-60 s**  |
 
 **Verdict:** 90s p50 holds on A10G or L4 with the 14B LLM. T4 is **not viable** as a primary worker — it can serve as a degraded-mode fallback only.
 
@@ -248,14 +248,14 @@ Per-stage budgets, p50, on T4 vs A10G vs L4 vs H100.
 
 ## 9. Backend SLAs
 
-| Endpoint class | p50 | p95 | p99 |
-|---|---|---|---|
-| API reads (sessions, shots, athletes, leaderboards) | 40 ms | 120 ms | **≤ 200 ms** |
-| API writes (annotation, settings, comment) | 80 ms | 250 ms | **≤ 500 ms** |
-| Authenticated session bootstrap (login → first feed event) | 600 ms | 1.4 s | 2.0 s |
-| LLM coaching-note endpoint (synchronous slow path) | 12 s | **≤ 25 s** | 35 s |
-| Webhook delivery (federation tier) | 800 ms | **≤ 5 s** | 8 s |
-| Mobile sync (offline replay on reconnect) | 2 s | 8 s | 15 s |
+| Endpoint class                                             | p50    | p95        | p99          |
+| ---------------------------------------------------------- | ------ | ---------- | ------------ |
+| API reads (sessions, shots, athletes, leaderboards)        | 40 ms  | 120 ms     | **≤ 200 ms** |
+| API writes (annotation, settings, comment)                 | 80 ms  | 250 ms     | **≤ 500 ms** |
+| Authenticated session bootstrap (login → first feed event) | 600 ms | 1.4 s      | 2.0 s        |
+| LLM coaching-note endpoint (synchronous slow path)         | 12 s   | **≤ 25 s** | 35 s         |
+| Webhook delivery (federation tier)                         | 800 ms | **≤ 5 s**  | 8 s          |
+| Mobile sync (offline replay on reconnect)                  | 2 s    | 8 s        | 15 s         |
 
 **Why p99 not p95 for read/write:** at 1k DAU producing ~200 shots/session × ~100 concurrent live sessions on a Saturday morning, p99 is hit by a real user every few seconds. p95 is too lax.
 
@@ -282,7 +282,7 @@ Per-stage budgets, p50, on T4 vs A10G vs L4 vs H100.
 
 ### 11.1 The S3 egress cliff
 
-S3 egress is the cost cliff for video-heavy workloads. At 1k DAU × 1 session/week × 1.5 GB/session × $0.09/GB egress = $585/month if every session is fetched once. At 10k DAU it's $5,850/month — and that's *if* sessions are fetched once.
+S3 egress is the cost cliff for video-heavy workloads. At 1k DAU × 1 session/week × 1.5 GB/session × $0.09/GB egress = $585/month if every session is fetched once. At 10k DAU it's $5,850/month — and that's _if_ sessions are fetched once.
 
 ### 11.2 Required architecture
 
@@ -343,7 +343,7 @@ The rig asserts:
 
 ### 13.2 Merge gate
 
-A regression on any of these assertions blocks merge. The CI job also publishes a histogram delta to the PR comment so the reviewer sees "this PR moved p95 pose latency from 38ms to 51ms" *before* approving.
+A regression on any of these assertions blocks merge. The CI job also publishes a histogram delta to the PR comment so the reviewer sees "this PR moved p95 pose latency from 38ms to 51ms" _before_ approving.
 
 ### 13.3 Backend perf gate
 
@@ -360,9 +360,9 @@ The following devices and configurations are **out of scope** for V1 and ship as
 - **Below Galaxy A54 (Exynos 1380):** A53 and earlier are below the supported floor.
 - **iPad / tablets:** v1 is phone-only. Tablet support adds layout work and a different camera-mounting story; defer to v1.5.
 - **Wear OS / Apple Watch companion:** "Tap to mark a hilight" use case; defer to v2.
-- **Multi-camera live preview:** v1 supports multi-camera *recording* (Sprint 17) and multi-camera *post-session* analysis. Multi-camera *live* preview (3-up grid) is v1.5.
+- **Multi-camera live preview:** v1 supports multi-camera _recording_ (Sprint 17) and multi-camera _post-session_ analysis. Multi-camera _live_ preview (3-up grid) is v1.5.
 - **4K live preview:** 2.7K30 only for live. 4K is recorded to SD card and analyzed post-session.
-- **Live LLM coaching notes:** Coaching notes are *post-session only* in v1. "Live coach voice" (sub-second LLM hint per shot) is v2 — depends on a custom small model, not DeepSeek 14B.
+- **Live LLM coaching notes:** Coaching notes are _post-session only_ in v1. "Live coach voice" (sub-second LLM hint per shot) is v2 — depends on a custom small model, not DeepSeek 14B.
 
 The Sprint 9 [P0] lite-variant work (per `04-mobile-app-builder.md` Sprint resequencing) ships INT8-quantized RTMPose and YOLO variants for the floor devices. Until then, the supported device list is enforced by a hard check on app launch.
 
@@ -370,28 +370,28 @@ The Sprint 9 [P0] lite-variant work (per `04-mobile-app-builder.md` Sprint reseq
 
 ## Appendix A: Source SLAs in one place
 
-| SLA | Target |
-|---|---|
-| Shot-to-feed-entry, Wi-Fi p50 | 2.5s |
-| Shot-to-feed-entry, Wi-Fi p95 | 4s |
-| Shot-to-feed-entry, USB-C p50 | 1.2s |
-| Shot-to-feed-entry, USB-C p95 | 2.0s |
-| "Shot detected" (audio path) p95 | 800 ms |
-| Visual diagnostic back-fill p95 | 2 s |
-| Glass-to-glass preview, Wi-Fi p95 | 1.8s |
-| Glass-to-glass preview, USB-C p95 | 600 ms |
-| Battery drain iPhone 13 / Pixel 6a | < 18% / < 22% per hour |
-| Phone thermal package temp | < 42°C at 35°C ambient |
-| Post-session pipeline p50 / p95 / cap | 90s / 150s / 180s |
-| API read p99 | 200 ms |
-| API write p99 | 500 ms |
-| LLM endpoint p95 | 25 s |
-| Webhook delivery p95 | 5 s |
-| Wi-Fi reconnect window | ≤ 5 s |
-| Cost per session | ≤ $0.10 |
-| Live feed availability | ≥ 99.5% during sessions |
-| Post-session pipeline success rate | ≥ 99% (excluding user-cancelled) |
-| Backend API availability | ≥ 99.9% |
+| SLA                                   | Target                           |
+| ------------------------------------- | -------------------------------- |
+| Shot-to-feed-entry, Wi-Fi p50         | 2.5s                             |
+| Shot-to-feed-entry, Wi-Fi p95         | 4s                               |
+| Shot-to-feed-entry, USB-C p50         | 1.2s                             |
+| Shot-to-feed-entry, USB-C p95         | 2.0s                             |
+| "Shot detected" (audio path) p95      | 800 ms                           |
+| Visual diagnostic back-fill p95       | 2 s                              |
+| Glass-to-glass preview, Wi-Fi p95     | 1.8s                             |
+| Glass-to-glass preview, USB-C p95     | 600 ms                           |
+| Battery drain iPhone 13 / Pixel 6a    | < 18% / < 22% per hour           |
+| Phone thermal package temp            | < 42°C at 35°C ambient           |
+| Post-session pipeline p50 / p95 / cap | 90s / 150s / 180s                |
+| API read p99                          | 200 ms                           |
+| API write p99                         | 500 ms                           |
+| LLM endpoint p95                      | 25 s                             |
+| Webhook delivery p95                  | 5 s                              |
+| Wi-Fi reconnect window                | ≤ 5 s                            |
+| Cost per session                      | ≤ $0.10                          |
+| Live feed availability                | ≥ 99.5% during sessions          |
+| Post-session pipeline success rate    | ≥ 99% (excluding user-cancelled) |
+| Backend API availability              | ≥ 99.9%                          |
 
 ---
 

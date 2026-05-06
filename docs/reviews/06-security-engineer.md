@@ -13,6 +13,7 @@
 ## QR Check-In Token Design (Specific Recommendation)
 
 Use a **signed opaque token plus server-side single-use ledger**, not a self-contained JWT. Concretely:
+
 - **Format:** PASETO v4.local (XChaCha20 + BLAKE2b) issued by backend with key in KMS. Avoid JWT to eliminate `alg=none` and key-confusion classes.
 - **Token body (encrypted claims):** `athlete_id`, `purpose="club_session_attribution_only"`, `iat`, `exp` (90 seconds), `jti` (random 128-bit), `nonce`. No refresh capability, no other scopes.
 - **QR payload:** the token plus a 6-digit visible code the athlete reads aloud (channel-binding fallback if QR is photographed).

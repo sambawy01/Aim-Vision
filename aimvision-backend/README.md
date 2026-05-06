@@ -30,15 +30,15 @@ AIMVISION_TEST_POSTGRES_URL=postgresql+asyncpg://aimvision:aimvision@localhost:5
 
 ## Endpoints
 
-| Path             | Purpose                                         |
-| ---------------- | ----------------------------------------------- |
-| `GET /health`    | Liveness                                        |
-| `GET /version`   | Build identity (version + git SHA + env)        |
-| `GET /openapi.json` | OpenAPI 3 schema (drives frontend codegen)   |
-| `POST /auth/signup` | Create account + user + solo tenant          |
-| `POST /auth/login`  | Issue stub JWT (Sprint 1; PASETO at Sprint 4) |
-| `POST /consent/grant` / `POST /consent/revoke` | GDPR Art. 7/9 |
-| `GET /sessions` / `GET /sessions/{id}`         | Tenant-scoped reads          |
+| Path                                           | Purpose                                       |
+| ---------------------------------------------- | --------------------------------------------- |
+| `GET /health`                                  | Liveness                                      |
+| `GET /version`                                 | Build identity (version + git SHA + env)      |
+| `GET /openapi.json`                            | OpenAPI 3 schema (drives frontend codegen)    |
+| `POST /auth/signup`                            | Create account + user + solo tenant           |
+| `POST /auth/login`                             | Issue stub JWT (Sprint 1; PASETO at Sprint 4) |
+| `POST /consent/grant` / `POST /consent/revoke` | GDPR Art. 7/9                                 |
+| `GET /sessions` / `GET /sessions/{id}`         | Tenant-scoped reads                           |
 
 ## Layout
 

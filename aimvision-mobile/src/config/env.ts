@@ -12,12 +12,14 @@ export interface AppEnv {
 }
 
 interface ExtraConfig {
-  env?: Partial<AppEnv & {
-    API_BASE_URL: string;
-    SENTRY_DSN: string;
-    STATSIG_CLIENT_KEY: string;
-    OTEL_ENDPOINT: string;
-  }>;
+  env?: Partial<
+    AppEnv & {
+      API_BASE_URL: string;
+      SENTRY_DSN: string;
+      STATSIG_CLIENT_KEY: string;
+      OTEL_ENDPOINT: string;
+    }
+  >;
   locale?: {
     supportsRTL: boolean;
     defaultLocale: string;

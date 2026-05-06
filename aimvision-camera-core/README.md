@@ -13,11 +13,11 @@ See:
 
 ## Crates
 
-| Crate | Purpose |
-|---|---|
-| `aimvision-camera-traits` | Pure interface crate. No implementations. The trait split per ADR-0003: `CameraControl`, `CameraTransport`, `CameraMedia`, `TimeSource`. |
+| Crate                     | Purpose                                                                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aimvision-camera-traits` | Pure interface crate. No implementations. The trait split per ADR-0003: `CameraControl`, `CameraTransport`, `CameraMedia`, `TimeSource`.             |
 | `aimvision-camera-mock`   | Fixture-driven mock implementation. Parses YAML fault scripts and replays them deterministically. Powers CI before real hardware lands in Sprint 17. |
-| `aimvision-camera-state`  | Connection state machine + single-in-flight command queue with 2 s watchdog and jittered exponential backoff. |
+| `aimvision-camera-state`  | Connection state machine + single-in-flight command queue with 2 s watchdog and jittered exponential backoff.                                        |
 
 ## Quickstart
 

@@ -46,7 +46,7 @@ The architecture is a two-layer hybrid: coarse alignment from `!MSYNC`, fine ali
 - Mechanism: master camera (or a phone running the operator app) broadcasts a clock reference over BLE; slave cameras tag every frame's GPMF timecode against that reference.
 - Measured alignment: **~5–15 ms between two Hero 13s at 1 m distance, 2.4 GHz clean RF.**
 - Available only on Labs firmware (see `docs/camera-integration-spec.md` §10).
-- Our use: the BLE-broadcast clock is the *anchor frame*. We log every camera's MSYNC offset at session start and every 60 s thereafter.
+- Our use: the BLE-broadcast clock is the _anchor frame_. We log every camera's MSYNC offset at session start and every 60 s thereafter.
 
 ### 3.2 Fine: audio cross-correlation on muzzle blast
 
@@ -55,7 +55,7 @@ A 12-gauge muzzle event is a sharp, broadband impulse — rise time ~0.3 ms, pea
 - Pipeline: per-camera audio stream → 48 kHz mono PCM → bandpass 200 Hz–8 kHz → cross-correlate windowed segments around each detected shot.
 - Output: per-camera, per-shot offset in samples (resolution: 1/48 kHz = **20.83 µs**, well under the sub-ms target).
 - "Free" cost — the shot detector already runs on the audio path for shot detection; the xcorr computation is incremental.
-- Required: the muzzle blast must reach all cameras. At a 5 m baseline between cameras, propagation delay is 5/343 ≈ 14.6 ms — this is the *signal* we measure, not error. We back out the geometry from the calibrated camera positions (§4).
+- Required: the muzzle blast must reach all cameras. At a 5 m baseline between cameras, propagation delay is 5/343 ≈ 14.6 ms — this is the _signal_ we measure, not error. We back out the geometry from the calibrated camera positions (§4).
 
 ### 3.3 Drift compensation
 
@@ -265,12 +265,12 @@ cameras:
       jitter_pdf: gaussian(mean_ms=0, stddev_ms=0.5)
   - id: cam_b
     clock:
-      offset_ms: 12.7              # constant offset
-      drift_ppm: 8                  # 8 ppm linear drift = ~29 ms / hr
+      offset_ms: 12.7 # constant offset
+      drift_ppm: 8 # 8 ppm linear drift = ~29 ms / hr
       jitter_pdf: gaussian(mean_ms=0, stddev_ms=0.8)
 
 shots:
-  - t: 5.0                          # ground-truth absolute time
+  - t: 5.0 # ground-truth absolute time
     audio_amplitude: 0.92
     transient_rise_ms: 0.4
   - t: 12.3
@@ -296,7 +296,7 @@ The CI sync test suite asserts:
 
 ### 8.3 Why this exists before hardware
 
-Real federation hardware lands in Sprint 17 (firmware review timeline). Without the synthetic test rig, sync code lands in Sprint 17 *and* gets validated in Sprint 17 — a 2-week sprint becomes 8 weeks. With the synthetic rig from Sprint 8, sync code lands and is validated in CI by Sprint 12; Sprint 17 is hardware-validation only, fits in 2 weeks.
+Real federation hardware lands in Sprint 17 (firmware review timeline). Without the synthetic test rig, sync code lands in Sprint 17 _and_ gets validated in Sprint 17 — a 2-week sprint becomes 8 weeks. With the synthetic rig from Sprint 8, sync code lands and is validated in CI by Sprint 12; Sprint 17 is hardware-validation only, fits in 2 weeks.
 
 ### 8.4 Real-hardware bring-up
 

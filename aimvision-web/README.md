@@ -36,12 +36,12 @@ pnpm preview      # serve the built bundle
 
 All Vite envs are prefixed `VITE_AV_`:
 
-| var                       | default                     | meaning                          |
-| ------------------------- | --------------------------- | -------------------------------- |
-| `VITE_AV_API_BASE_URL`    | `http://localhost:8000`     | FastAPI gateway origin           |
-| `VITE_AV_SENTRY_DSN`      | _(unset)_                   | optional Sentry browser DSN      |
-| `VITE_AV_APP_ENV`         | `development`               | `development \| staging \| production \| test` |
-| `VITE_AV_BUILD_VERSION`   | `0.0.0-dev`                 | release tag for Sentry           |
+| var                     | default                 | meaning                                        |
+| ----------------------- | ----------------------- | ---------------------------------------------- |
+| `VITE_AV_API_BASE_URL`  | `http://localhost:8000` | FastAPI gateway origin                         |
+| `VITE_AV_SENTRY_DSN`    | _(unset)_               | optional Sentry browser DSN                    |
+| `VITE_AV_APP_ENV`       | `development`           | `development \| staging \| production \| test` |
+| `VITE_AV_BUILD_VERSION` | `0.0.0-dev`             | release tag for Sentry                         |
 
 ## Project layout
 

@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  type PressableProps,
-  type ViewStyle,
-} from 'react-native';
+import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
 import { tapTargets } from '../../theme/tokens';
 
 export interface AccessibleTouchableProps extends PressableProps {

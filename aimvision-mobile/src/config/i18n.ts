@@ -17,9 +17,7 @@ export type SupportedLocale = (typeof SUPPORTED)[number];
 function detectLocale(): SupportedLocale {
   const locales = Localization.getLocales();
   const first = locales?.[0]?.languageCode ?? 'en';
-  return (SUPPORTED as readonly string[]).includes(first)
-    ? (first as SupportedLocale)
-    : 'en';
+  return (SUPPORTED as readonly string[]).includes(first) ? (first as SupportedLocale) : 'en';
 }
 
 let didReloadForRTL = false;

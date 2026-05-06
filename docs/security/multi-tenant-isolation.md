@@ -11,11 +11,11 @@
 
 AIMVISION has **three concurrent tenant types**:
 
-| Tenant type     | `tenant_id` form         | Owner                       | Examples                                                            |
-| --------------- | ------------------------ | --------------------------- | ------------------------------------------------------------------- |
-| Solo user       | `solo:{user_id}`         | The user themselves         | `solo:u_01HX2ZP4N0V8C7W3J6K9MQ5RTY`                                 |
-| Club organization | `org:{org_id}`         | The club's admin team       | `org:c_01HV9R3E0M`                                                  |
-| Federation      | `fed:{fed_id}`           | The federation's IT + DPO   | `fed:f_01HEGY1234` (e.g. Egypt national federation)                 |
+| Tenant type       | `tenant_id` form | Owner                     | Examples                                            |
+| ----------------- | ---------------- | ------------------------- | --------------------------------------------------- |
+| Solo user         | `solo:{user_id}` | The user themselves       | `solo:u_01HX2ZP4N0V8C7W3J6K9MQ5RTY`                 |
+| Club organization | `org:{org_id}`   | The club's admin team     | `org:c_01HV9R3E0M`                                  |
+| Federation        | `fed:{fed_id}`   | The federation's IT + DPO | `fed:f_01HEGY1234` (e.g. Egypt national federation) |
 
 A natural person can be **simultaneously**:
 
@@ -23,13 +23,13 @@ A natural person can be **simultaneously**:
 - a member of one or more Clubs (`org:c_01...`, `org:c_02...`),
 - a tracked athlete in a Federation (`fed:f_01...`).
 
-Their data is **partitioned per tenancy**. Solo videos belong to the Solo tenant. Sessions captured by a club belong to the Club tenant. Federation cohort statistics belong to the Federation tenant. Cross-tier *derived* data flows (e.g. attribution copies) happen only through the explicit, audited mechanisms in §5.
+Their data is **partitioned per tenancy**. Solo videos belong to the Solo tenant. Sessions captured by a club belong to the Club tenant. Federation cohort statistics belong to the Federation tenant. Cross-tier _derived_ data flows (e.g. attribution copies) happen only through the explicit, audited mechanisms in §5.
 
-The same row never exists in two tenants. If the same data is logically meaningful in two tenancies, it is *re-derived* in each, with provenance recorded.
+The same row never exists in two tenants. If the same data is logically meaningful in two tenancies, it is _re-derived_ in each, with provenance recorded.
 
 ### 1.1 Principal model
 
-A request principal is the *(user, tenant, role)* triple active for that request. The principal is derived from:
+A request principal is the _(user, tenant, role)_ triple active for that request. The principal is derived from:
 
 - **The session token** (PASETO v4.public; `sub` = user_id).
 - **The tenant scope chosen at request time** — frontends pass `X-Tenant-Scope: solo:u_01...` (default = the user's primary Solo tenancy). Coaches pick `org:c_01...` to enter their club workspace. Federation operators pick `fed:f_01...`.
@@ -64,8 +64,8 @@ create policy sessions_tenant_isolation on sessions
 
 Notes:
 
-- `force row level security` ensures the policy applies even to the table owner. The application role we use is *not* the table owner anyway, but `force` removes a footgun.
-- `current_setting('app.current_principal', true)` — `true` makes it return NULL if unset, so unset principal = empty result, not error. We *want* unset principal to fail closed at the app layer (§3); RLS just makes the DB return zero rows as defense-in-depth.
+- `force row level security` ensures the policy applies even to the table owner. The application role we use is _not_ the table owner anyway, but `force` removes a footgun.
+- `current_setting('app.current_principal', true)` — `true` makes it return NULL if unset, so unset principal = empty result, not error. We _want_ unset principal to fail closed at the app layer (§3); RLS just makes the DB return zero rows as defense-in-depth.
 - The policy is `using` only (read-side). For writes, separate `with check` is added: `with check (tenant_id = current_setting('app.current_principal', true))`. A row inserted under tenant A cannot then be flipped to tenant B.
 
 ### 2.2 Per-request principal binding
@@ -80,6 +80,7 @@ Every request handler runs through middleware that:
    ```
 
    The `true` makes this transaction-scoped — it is reset when the transaction ends (or when the connection is released to the pool, given we wrap each request in a transaction). This eliminates the leak class where a previous request's principal lingers.
+
 3. Begins the transaction. All work happens inside.
 4. On commit/rollback, `set_config(... true)` clears.
 
@@ -137,7 +138,7 @@ All data access goes through `TenantScopedRepository`. Raw SQL is forbidden in b
 
 ### 3.2 Disagreement test
 
-A CI test harness loads a test row in tenant A, then issues a query under tenant B's principal that *should* fail at both layers. The test asserts that:
+A CI test harness loads a test row in tenant A, then issues a query under tenant B's principal that _should_ fail at both layers. The test asserts that:
 
 1. The app-layer wrapper raises `NoPrincipalError` or filters out the row.
 2. As a separate test, with the app-layer filter forcibly bypassed (white-box), RLS still returns zero rows.
@@ -146,7 +147,7 @@ If either layer disagrees with the other, CI fails. Both layers must report "ten
 
 ### 3.3 Audit on disagreement
 
-In production, if a query *would have been* filtered by the app layer but the database somehow returned a row from another tenant (signaled by a `tenant_id` mismatch in the result row), the application:
+In production, if a query _would have been_ filtered by the app layer but the database somehow returned a row from another tenant (signaled by a `tenant_id` mismatch in the result row), the application:
 
 1. Drops the result.
 2. Emits a high-severity audit event `tenant_isolation.disagreement` with sufficient context for forensics.
@@ -164,7 +165,7 @@ Federations operate their own stack. The cloud control plane provides updates an
 
 Each federation gets:
 
-- **Its own Postgres database.** Not a separate schema in a shared DB; a separate database (or separate server) entirely. `tenant_id` columns are still present so the same RLS policies apply within the federation, but the database is *not* shared with cloud or other federations.
+- **Its own Postgres database.** Not a separate schema in a shared DB; a separate database (or separate server) entirely. `tenant_id` columns are still present so the same RLS policies apply within the federation, but the database is _not_ shared with cloud or other federations.
 - **Its own KMS root key.** BYOK option: the federation may bring an HSM and the cloud control plane provisions keys backed by it.
 - **Its own Ollama instance.** Prompts and responses never leave the federation's network boundary. Cloud Ollama serves Solo and Club only.
 - **Its own object storage bucket.** S3 in their region or MinIO on-prem. Signing keys for object URLs are local to the federation.
@@ -181,8 +182,8 @@ Cloud SRE may need to assist with an incident in federation tenant. The flow:
 
 1. Cloud SRE creates a break-glass request: target federation, scope (e.g. "read sessions table for one athlete"), justification, ticket reference.
 2. Federation DPO and cloud DPO both approve (two-person rule, can be reduced to one for federations that explicitly delegate).
-3. Approval mints a *time-bounded, scope-bounded* role assumption. The role can only access what was approved.
-4. Every action under the break-glass role is audit-logged into the *federation's* SIEM. Cloud also logs that break-glass was used, but does not see the per-action details by default — federation can choose to forward.
+3. Approval mints a _time-bounded, scope-bounded_ role assumption. The role can only access what was approved.
+4. Every action under the break-glass role is audit-logged into the _federation's_ SIEM. Cloud also logs that break-glass was used, but does not see the per-action details by default — federation can choose to forward.
 5. On expiry, the role assumption is revoked.
 
 ### 4.4 No shared signing keys
@@ -201,7 +202,7 @@ The club's session-writer:
 
 1. Authenticates as a club coach or club ingest service.
 2. Writes the full session record into the **Club tenant only** (`tenant_id = org:{club_id}`).
-3. As frames are processed, attribution markers are written for each frame range whose pose/identity matches an attributed athlete. The `attributed_athlete_id` in the marker is *only* populated if a valid attribution capability (per `docs/security/qr-checkin-token-spec.md` §8) was presented for that athlete and that session.
+3. As frames are processed, attribution markers are written for each frame range whose pose/identity matches an attributed athlete. The `attributed_athlete_id` in the marker is _only_ populated if a valid attribution capability (per `docs/security/qr-checkin-token-spec.md` §8) was presented for that athlete and that session.
 4. Frames without a matched athlete are written with `attributed_athlete_id = NULL`.
 
 The club tenant now holds the full session, with per-frame attribution metadata.
@@ -268,30 +269,30 @@ If the lower-percentile confidence (e.g. p10) is below threshold (say 0.70), the
 
 ### 5.6 Pipeline invariants
 
-| Invariant                                                                                              | How enforced                                                                                  |
-| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Only attributed frames flow to Solo tenant.                                                            | Worker SELECT predicate; CI test verifies non-attributed frames are not visible to worker.    |
-| Raw video bytes never copied to Solo tenant.                                                           | Worker role grants exclude raw-video columns; storage signed URLs replace raw access.         |
-| Worker cannot exfiltrate other clubs' data.                                                            | Role grants scoped to dispatched `(club_id, session_id)`.                                     |
-| Confidence-gated reports prevent silent misattribution.                                                | p10 threshold check; manual coach review required below threshold.                            |
-| Every derive emits an audit record visible in both Club and Solo tenant audit logs.                    | Audit log writer fans out per-tenant.                                                          |
+| Invariant                                                                           | How enforced                                                                               |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Only attributed frames flow to Solo tenant.                                         | Worker SELECT predicate; CI test verifies non-attributed frames are not visible to worker. |
+| Raw video bytes never copied to Solo tenant.                                        | Worker role grants exclude raw-video columns; storage signed URLs replace raw access.      |
+| Worker cannot exfiltrate other clubs' data.                                         | Role grants scoped to dispatched `(club_id, session_id)`.                                  |
+| Confidence-gated reports prevent silent misattribution.                             | p10 threshold check; manual coach review required below threshold.                         |
+| Every derive emits an audit record visible in both Club and Solo tenant audit logs. | Audit log writer fans out per-tenant.                                                      |
 
 ---
 
 ## 6. Attack Mitigations
 
-| Attack                                                                                          | Defense                                                                                                                                          |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| IDOR via `tenant_id` swap in path parameter or body                                              | App-layer wrapper rejects mismatched tenant; RLS catches anything that slips past the wrapper.                                                    |
-| SQL injection that bypasses app-layer filter                                                    | RLS still applies at the DB. Plus: ORM-only, parameter binding, Semgrep CI rules forbidding string-concatenated SQL.                              |
-| Worker forging cross-tenant write by inserting `tenant_id = solo:other_user`                     | Role permissions only allow INSERT into the dispatched athlete's tenant; `with check` policy verifies; CI test harness exercises this.            |
-| Compromised application role attempting to disable RLS                                           | The application role does not own the table; cannot `alter table ... disable row level security`. Only DBA role (separate, MFA-gated) can.        |
-| Signed-URL replay against a different athlete                                                    | Signature includes athlete pseudonym; storage validates; URL TTL short.                                                                           |
-| Signed-URL leak via caching proxy                                                                | `Cache-Control: private, no-store`; storage validates `Referer` is mobile-app/dashboard; pseudonym binding still enforces.                        |
-| Coach in Club B attempting to read Club A's session because they happen to be in both           | Principal is per-request; coach acting in Club B has tenant scope `org:b`; cannot reach `org:a` rows.                                              |
-| Federation operator attempting to read cloud Solo data                                           | Federation has no DB credentials for cloud Solo Postgres; control plane API does not expose Solo data to federation operators.                    |
-| DSAR export role used to dump entire DB                                                          | Role is per-user-export-bound; rate-limited; every export audit-logged; bulk anomaly alerts.                                                     |
-| Backup or read-replica leaking cross-tenant data                                                 | Backups are per-tenant DEK-encrypted (crypto-shredding); read replicas inherit RLS policies; CI verifies replica policy state.                   |
+| Attack                                                                                | Defense                                                                                                                                    |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| IDOR via `tenant_id` swap in path parameter or body                                   | App-layer wrapper rejects mismatched tenant; RLS catches anything that slips past the wrapper.                                             |
+| SQL injection that bypasses app-layer filter                                          | RLS still applies at the DB. Plus: ORM-only, parameter binding, Semgrep CI rules forbidding string-concatenated SQL.                       |
+| Worker forging cross-tenant write by inserting `tenant_id = solo:other_user`          | Role permissions only allow INSERT into the dispatched athlete's tenant; `with check` policy verifies; CI test harness exercises this.     |
+| Compromised application role attempting to disable RLS                                | The application role does not own the table; cannot `alter table ... disable row level security`. Only DBA role (separate, MFA-gated) can. |
+| Signed-URL replay against a different athlete                                         | Signature includes athlete pseudonym; storage validates; URL TTL short.                                                                    |
+| Signed-URL leak via caching proxy                                                     | `Cache-Control: private, no-store`; storage validates `Referer` is mobile-app/dashboard; pseudonym binding still enforces.                 |
+| Coach in Club B attempting to read Club A's session because they happen to be in both | Principal is per-request; coach acting in Club B has tenant scope `org:b`; cannot reach `org:a` rows.                                      |
+| Federation operator attempting to read cloud Solo data                                | Federation has no DB credentials for cloud Solo Postgres; control plane API does not expose Solo data to federation operators.             |
+| DSAR export role used to dump entire DB                                               | Role is per-user-export-bound; rate-limited; every export audit-logged; bulk anomaly alerts.                                               |
+| Backup or read-replica leaking cross-tenant data                                      | Backups are per-tenant DEK-encrypted (crypto-shredding); read replicas inherit RLS policies; CI verifies replica policy state.             |
 
 ---
 
@@ -299,12 +300,12 @@ If the lower-percentile confidence (e.g. p10) is below threshold (say 0.70), the
 
 Coach annotations are first-class data with explicit visibility scopes:
 
-| Scope                       | Who sees                                                                                  | Default |
-| --------------------------- | ----------------------------------------------------------------------------------------- | ------- |
-| `private`                   | The annotating coach only                                                                 | yes     |
-| `share_with_athlete`        | + the athlete who is the subject                                                          |         |
-| `share_with_club`           | + other coaches in the same club, scoped to athletes they are assigned to                 |         |
-| `share_with_federation`     | + federation operators, only for athletes the federation tracks                           |         |
+| Scope                   | Who sees                                                                  | Default |
+| ----------------------- | ------------------------------------------------------------------------- | ------- |
+| `private`               | The annotating coach only                                                 | yes     |
+| `share_with_athlete`    | + the athlete who is the subject                                          |         |
+| `share_with_club`       | + other coaches in the same club, scoped to athletes they are assigned to |         |
+| `share_with_federation` | + federation operators, only for athletes the federation tracks           |         |
 
 Rules:
 
@@ -320,7 +321,7 @@ The repository for annotations is a specialization of `TenantScopedRepository` t
 
 ## 8. Audit Log Integrity
 
-The audit log is *itself* a tenant-scoped data store with extra protections:
+The audit log is _itself_ a tenant-scoped data store with extra protections:
 
 - **Append-only.** Application role has only INSERT, never UPDATE/DELETE. Schema enforces via `revoke update, delete on audit_events from app_role`.
 - **Hash-chained per tenant.** Each event includes `prev_event_hash` and `event_hash`. Verifying the chain confirms no event was excised.
@@ -335,13 +336,13 @@ Full schema and ops detail in `docs/security/audit-logging-spec.md`.
 
 Tenant data location is bound to the athlete's residency:
 
-| Athlete's residency           | Storage region                                                          | Notes                                                                                                                       |
-| ----------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Egypt (athlete or federation) | AWS me-south-1 (Bahrain) **or** on-prem Egypt mirror                     | PDPL; cross-border transfer requires PDPC permit + per-athlete TIA documented in `docs/compliance/`.                          |
-| EU                            | AWS eu-west-1 (Dublin) or eu-central-1 (Frankfurt)                       | GDPR Art. 44–49; SCCs in DPA; TIA per docs/compliance/.                                                                     |
-| UK                            | AWS eu-west-2 (London)                                                  | UK GDPR; UK IDTA in DPA.                                                                                                     |
-| US                            | AWS us-east-1 or us-west-2                                              | COPPA for under-13.                                                                                                          |
-| Other                         | Closest GDPR-equivalent region; documented in onboarding                | Per-jurisdiction TIA.                                                                                                        |
+| Athlete's residency           | Storage region                                           | Notes                                                                                                |
+| ----------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Egypt (athlete or federation) | AWS me-south-1 (Bahrain) **or** on-prem Egypt mirror     | PDPL; cross-border transfer requires PDPC permit + per-athlete TIA documented in `docs/compliance/`. |
+| EU                            | AWS eu-west-1 (Dublin) or eu-central-1 (Frankfurt)       | GDPR Art. 44–49; SCCs in DPA; TIA per docs/compliance/.                                              |
+| UK                            | AWS eu-west-2 (London)                                   | UK GDPR; UK IDTA in DPA.                                                                             |
+| US                            | AWS us-east-1 or us-west-2                               | COPPA for under-13.                                                                                  |
+| Other                         | Closest GDPR-equivalent region; documented in onboarding | Per-jurisdiction TIA.                                                                                |
 
 Data flows across regions only with:
 
@@ -357,63 +358,63 @@ The mobile app and dashboard route to the closest in-region API edge based on th
 
 ### 10.1 Tenant isolation (RLS + app filter)
 
-| #  | Case                                                                                                                  | Expected                                                                                  |
-| -- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 1  | User in tenant A queries `/sessions` with header `X-Tenant-Scope: solo:userA`; sees only their data                    | 200, only A's rows                                                                       |
-| 2  | User in tenant A spoofs `X-Tenant-Scope: solo:userB`                                                                  | 403 (not a member of userB's solo tenant)                                                 |
-| 3  | Direct DB query as `app_role` without `app.current_principal` set                                                     | RLS returns 0 rows                                                                        |
-| 4  | App-layer wrapper called without principal                                                                            | `NoPrincipalError` raised                                                                  |
-| 5  | App layer bypassed (white-box test) but principal set on connection                                                   | RLS still filters correctly                                                                |
-| 6  | INSERT with `tenant_id` value not equal to current principal                                                          | RLS `with check` rejects                                                                   |
-| 7  | UPDATE attempting to flip `tenant_id` of an existing row                                                              | RLS `with check` rejects                                                                   |
-| 8  | Two concurrent requests on same connection (pool reuse) — principal A then B                                          | B's request never sees A's principal (verified via `set_config(... true)` reset)           |
-| 9  | DBA role alters policy; CI catches the drift on next migration check                                                  | CI fails                                                                                   |
-| 10 | Privileged role `attribution_writer` reads cross-tenant only within its grant scope                                   | 200; out-of-scope reads → permission denied                                                |
+| #   | Case                                                                                                | Expected                                                                         |
+| --- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | User in tenant A queries `/sessions` with header `X-Tenant-Scope: solo:userA`; sees only their data | 200, only A's rows                                                               |
+| 2   | User in tenant A spoofs `X-Tenant-Scope: solo:userB`                                                | 403 (not a member of userB's solo tenant)                                        |
+| 3   | Direct DB query as `app_role` without `app.current_principal` set                                   | RLS returns 0 rows                                                               |
+| 4   | App-layer wrapper called without principal                                                          | `NoPrincipalError` raised                                                        |
+| 5   | App layer bypassed (white-box test) but principal set on connection                                 | RLS still filters correctly                                                      |
+| 6   | INSERT with `tenant_id` value not equal to current principal                                        | RLS `with check` rejects                                                         |
+| 7   | UPDATE attempting to flip `tenant_id` of an existing row                                            | RLS `with check` rejects                                                         |
+| 8   | Two concurrent requests on same connection (pool reuse) — principal A then B                        | B's request never sees A's principal (verified via `set_config(... true)` reset) |
+| 9   | DBA role alters policy; CI catches the drift on next migration check                                | CI fails                                                                         |
+| 10  | Privileged role `attribution_writer` reads cross-tenant only within its grant scope                 | 200; out-of-scope reads → permission denied                                      |
 
 ### 10.2 Scope enforcement (annotations)
 
-| #  | Case                                                                                                                  | Expected                                                                                  |
-| -- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 11 | Coach C1 creates annotation with default scope; coach C2 in same club queries                                         | C2 does not see C1's annotation                                                            |
-| 12 | C1 sets scope `share_with_club`; C2 in same club queries                                                              | C2 sees it                                                                                 |
-| 13 | C2 attempts to re-share C1's annotation to another club                                                               | 403 `reshare_forbidden`                                                                   |
-| 14 | Athlete revokes share for an annotation about them                                                                    | Subsequent C1 view shows only their private form; C2 view 404                              |
-| 15 | C1 deletes an annotation                                                                                              | All cached views drop within 60s; report bundles re-derived without it                     |
-| 16 | Scope change emits `annotation.scope_changed` audit event with from/to                                                 | Audit verified; athlete notified                                                            |
+| #   | Case                                                                          | Expected                                                               |
+| --- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 11  | Coach C1 creates annotation with default scope; coach C2 in same club queries | C2 does not see C1's annotation                                        |
+| 12  | C1 sets scope `share_with_club`; C2 in same club queries                      | C2 sees it                                                             |
+| 13  | C2 attempts to re-share C1's annotation to another club                       | 403 `reshare_forbidden`                                                |
+| 14  | Athlete revokes share for an annotation about them                            | Subsequent C1 view shows only their private form; C2 view 404          |
+| 15  | C1 deletes an annotation                                                      | All cached views drop within 60s; report bundles re-derived without it |
+| 16  | Scope change emits `annotation.scope_changed` audit event with from/to        | Audit verified; athlete notified                                       |
 
 ### 10.3 Cross-tier attribution (the high-risk surface)
 
-| #  | Case                                                                                                                  | Expected                                                                                  |
-| -- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 17 | Worker dispatched for `(session_s, athlete_a)` reads session_s's frames                                                | Reads only attributed frames                                                                |
-| 18 | Worker attempts to read frames not attributed to athlete_a                                                            | Permission denied                                                                          |
-| 19 | Worker attempts to INSERT into wrong Solo tenant                                                                       | Permission denied (role grant)                                                              |
-| 20 | Worker attempts to SELECT raw video bytes                                                                              | Permission denied (column-level grant)                                                      |
-| 21 | Solo athlete fetches signed URL for time range outside their attribution                                               | Storage 403                                                                                 |
-| 22 | Signed URL reused by different athlete pseudonym                                                                       | Storage 403                                                                                 |
-| 23 | Signed URL used after `exp`                                                                                           | Storage 403                                                                                 |
-| 24 | Confidence p10 = 0.65 (below threshold); report blocked, coach-review task created                                    | Report not visible to athlete; coach gets review task                                        |
-| 25 | Audit log emitted for derive includes both Club and Solo tenant entries                                                | Verified                                                                                   |
+| #   | Case                                                                               | Expected                                              |
+| --- | ---------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| 17  | Worker dispatched for `(session_s, athlete_a)` reads session_s's frames            | Reads only attributed frames                          |
+| 18  | Worker attempts to read frames not attributed to athlete_a                         | Permission denied                                     |
+| 19  | Worker attempts to INSERT into wrong Solo tenant                                   | Permission denied (role grant)                        |
+| 20  | Worker attempts to SELECT raw video bytes                                          | Permission denied (column-level grant)                |
+| 21  | Solo athlete fetches signed URL for time range outside their attribution           | Storage 403                                           |
+| 22  | Signed URL reused by different athlete pseudonym                                   | Storage 403                                           |
+| 23  | Signed URL used after `exp`                                                        | Storage 403                                           |
+| 24  | Confidence p10 = 0.65 (below threshold); report blocked, coach-review task created | Report not visible to athlete; coach gets review task |
+| 25  | Audit log emitted for derive includes both Club and Solo tenant entries            | Verified                                              |
 
 ### 10.4 Federation on-prem boundary
 
-| #  | Case                                                                                                                  | Expected                                                                                  |
-| -- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 26 | Cloud admin attempts to read federation tenant data without break-glass                                               | 403; audit event in cloud + federation                                                     |
-| 27 | Break-glass approved; admin reads narrow scope; action audit-logged in federation SIEM                                | 200 within scope; SIEM event present                                                       |
-| 28 | Federation cohort metric requires opt-in; not opted in → metric not aggregated                                        | Metric returns "not available"                                                              |
-| 29 | Federation Ollama instance never receives prompts from another federation                                             | Verified by test fixture asserting per-federation Ollama URL                                |
-| 30 | Cloud signing key compromise drill — federation tokens unaffected                                                      | Federation token validators do not trust the cloud key                                     |
+| #   | Case                                                                                   | Expected                                                     |
+| --- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 26  | Cloud admin attempts to read federation tenant data without break-glass                | 403; audit event in cloud + federation                       |
+| 27  | Break-glass approved; admin reads narrow scope; action audit-logged in federation SIEM | 200 within scope; SIEM event present                         |
+| 28  | Federation cohort metric requires opt-in; not opted in → metric not aggregated         | Metric returns "not available"                               |
+| 29  | Federation Ollama instance never receives prompts from another federation              | Verified by test fixture asserting per-federation Ollama URL |
+| 30  | Cloud signing key compromise drill — federation tokens unaffected                      | Federation token validators do not trust the cloud key       |
 
 ### 10.5 Misc
 
-| #  | Case                                                                                                                  | Expected                                                                                  |
-| -- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 31 | DSAR export role rate-limited to one export per athlete per day                                                       | Second request 429                                                                         |
-| 32 | Backup encrypted with per-tenant DEK; deleting DEK renders backup unreadable                                          | Restore attempt fails; documented in IR runbook                                             |
-| 33 | Read replica inherits RLS policies                                                                                    | Replica returns same per-principal results                                                  |
-| 34 | Athlete in two clubs sees clean separation between Club A and Club B contexts                                         | No cross-bleed; verified via fixtures                                                       |
-| 35 | Cross-region access (EU coach views Egypt athlete) without consent                                                     | Blocked + audit event                                                                       |
+| #   | Case                                                                          | Expected                                        |
+| --- | ----------------------------------------------------------------------------- | ----------------------------------------------- |
+| 31  | DSAR export role rate-limited to one export per athlete per day               | Second request 429                              |
+| 32  | Backup encrypted with per-tenant DEK; deleting DEK renders backup unreadable  | Restore attempt fails; documented in IR runbook |
+| 33  | Read replica inherits RLS policies                                            | Replica returns same per-principal results      |
+| 34  | Athlete in two clubs sees clean separation between Club A and Club B contexts | No cross-bleed; verified via fixtures           |
+| 35  | Cross-region access (EU coach views Egypt athlete) without consent            | Blocked + audit event                           |
 
 These tests must run in CI on every backend change. Disagreement between RLS and app-layer is treated as a blocker.
 

@@ -29,11 +29,11 @@ The legacy RN bridge (async JSON, batched messages) tops out at roughly 10 MB/s 
 - **Pose keypoints via Reanimated 3 `SharedValue`.** Keypoints are written by the inference thread directly into a shared memory region; the Reanimated worklet reads them on the UI thread and feeds them to a `@shopify/react-native-skia` canvas. No bridge hop.
 - **Reference architecture: `react-native-vision-camera` v4.** Frame processors on a dedicated worklet runtime, pixel buffers as JSI HostObjects, Skia overlays composited via `@shopify/react-native-skia`. We adopt this pattern wholesale and do not invent a new one.
 - **Threading model (per [Mobile review §3](../reviews/04-mobile-app-builder.md)):**
-  - *Camera I/O thread:* dedicated single-threaded tokio runtime in Rust, owning BLE + Wi-Fi sockets.
-  - *Decode thread:* `VTDecompressionSession` (iOS) / `MediaCodec` async (Android) writing to a triple-buffered ring of pixel handles.
-  - *ML thread:* Core ML / NNAPI inference on a separate dispatch queue, reads pixel buffer by handle (no copy), writes pose tensor to a lock-free SPSC channel.
-  - *UI thread:* Reanimated worklet reads latest pose tensor via `SharedValue`, Fabric commits Skia overlay.
-  - *No `runOnJS` calls in the hot path.*
+  - _Camera I/O thread:_ dedicated single-threaded tokio runtime in Rust, owning BLE + Wi-Fi sockets.
+  - _Decode thread:_ `VTDecompressionSession` (iOS) / `MediaCodec` async (Android) writing to a triple-buffered ring of pixel handles.
+  - _ML thread:_ Core ML / NNAPI inference on a separate dispatch queue, reads pixel buffer by handle (no copy), writes pose tensor to a lock-free SPSC channel.
+  - _UI thread:_ Reanimated worklet reads latest pose tensor via `SharedValue`, Fabric commits Skia overlay.
+  - _No `runOnJS` calls in the hot path._
 - **Backpressure: drop pose frames first, then YOLO frames; never drop video frames or audio frames.** A stale-keypoints flag lets the overlay reuse the previous skeleton if the inference queue depth exceeds 2.
 - **Offline DB: WatermelonDB with the JSI adapter** (`@nozbe/watermelondb` 0.27+ with `JSIAdapter`). SQLite under the hood, observable queries drive the feed UI. Realm is rejected on licensing grounds; expo-sqlite is too low-level for sync.
 - **Background uploads via tus.io over S3 multipart**, 5 MB chunks, resumable, with `BGProcessingTaskRequest` (iOS, not `BGAppRefresh`) and `WorkManager` with `setRequiredNetworkType(UNMETERED)` (Android). On-device SHA-256 computed before upload; backend dedupes.

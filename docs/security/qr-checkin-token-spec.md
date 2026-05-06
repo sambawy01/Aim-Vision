@@ -9,7 +9,7 @@
 
 ## 1. Problem Statement
 
-A Solo subscriber arrives at a partner club. The club runs a session and produces a session video that the club's session-writer ingests. Without check-in, the video belongs entirely to the club tenant. The Solo user wants the parts of that session that depict *them* to flow into their own tenant as a personalized coaching report — without giving the club any read access to the Solo user's history (other sessions, prior coach annotations, ML training opt-ins, payment metadata, identity beyond first name).
+A Solo subscriber arrives at a partner club. The club runs a session and produces a session video that the club's session-writer ingests. Without check-in, the video belongs entirely to the club tenant. The Solo user wants the parts of that session that depict _them_ to flow into their own tenant as a personalized coaching report — without giving the club any read access to the Solo user's history (other sessions, prior coach annotations, ML training opt-ins, payment metadata, identity beyond first name).
 
 This problem has two failure modes that traditional designs fall into:
 
@@ -18,7 +18,7 @@ This problem has two failure modes that traditional designs fall into:
 
 The design below avoids both. The token issued at check-in is **redeemable exactly once, by exactly one club, within 90 seconds**, and the redemption response is **a write-only attribution capability scoped to one session** — not a token that can read anything.
 
-**Core invariant:** *Even a fully compromised club dashboard must not exfiltrate anything beyond the current session attribution.*
+**Core invariant:** _Even a fully compromised club dashboard must not exfiltrate anything beyond the current session attribution._
 
 ---
 
@@ -28,14 +28,14 @@ The design below avoids both. The token issued at check-in is **redeemable exact
 
 ### Why not JWT
 
-| JWT pitfall                                               | PASETO v4.local                                                                                                                |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `alg=none` and key-confusion attacks                      | No `alg` field. Versioned algorithm choice baked into the token version (`v4.local`).                                         |
-| Asymmetric vs symmetric key confusion (RS256 vs HS256)    | One algorithm per version. v4.local is symmetric authenticated encryption only.                                                |
-| Header is unauthenticated by some implementations         | All bytes are authenticated by the AEAD; no separate header trust boundary.                                                    |
-| Algorithm-agility footguns                                | PASETO bumps version, not algorithm. Forward compatibility without negotiation.                                                |
-| Bearer-token-in-URL leaks via referer / logs              | We do not put PASETO in URLs. QR is rendered, not redirected.                                                                  |
-| Sprawling claim conventions                               | PASETO claims are a small, typed footprint we control end to end.                                                              |
+| JWT pitfall                                            | PASETO v4.local                                                                       |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `alg=none` and key-confusion attacks                   | No `alg` field. Versioned algorithm choice baked into the token version (`v4.local`). |
+| Asymmetric vs symmetric key confusion (RS256 vs HS256) | One algorithm per version. v4.local is symmetric authenticated encryption only.       |
+| Header is unauthenticated by some implementations      | All bytes are authenticated by the AEAD; no separate header trust boundary.           |
+| Algorithm-agility footguns                             | PASETO bumps version, not algorithm. Forward compatibility without negotiation.       |
+| Bearer-token-in-URL leaks via referer / logs           | We do not put PASETO in URLs. QR is rendered, not redirected.                         |
+| Sprawling claim conventions                            | PASETO claims are a small, typed footprint we control end to end.                     |
 
 We pick **v4.local** (symmetric) because the token is read and written only by our backend. The club never decrypts the token; it only relays the bytes.
 
@@ -57,10 +57,7 @@ PASETO v4.local encrypted body (CBOR-encoded for compactness; JSON for examples)
   "exp": 1762371090,
   "jti": "01HX2ZP6X7Y8Z9A0B1C2D3E4F5",
   "nonce": "8d4f2a3b1e6c7d9f0a2b4c6e8f0a1b2c",
-  "allowed_club_ids": [
-    "c_01HV9R3E0M",
-    "c_01HW1P8AKQ"
-  ],
+  "allowed_club_ids": ["c_01HV9R3E0M", "c_01HW1P8AKQ"],
   "key_epoch": 7
 }
 ```
@@ -97,9 +94,9 @@ av1:<paseto>-<6digit>
 - `-` — separator.
 - `<6digit>` — a 6-digit numeric channel-binding code, derived as `BLAKE2b(jti || nonce || athlete_id || "channel_binding_v1")` truncated to 20 bits, mod 1,000,000, zero-padded.
 
-The 6-digit code is **also displayed beneath the QR** on the athlete's phone. The redemption endpoint requires the club to submit *both* the PASETO bytes (as scanned) **and** the 6-digit code (as either typed by the club operator after the athlete reads it, or scanned together with the QR). If the QR was photographed from across the room and the photographer never heard the athlete speak, they have only the PASETO. The 6-digit gate forces an in-person interaction that an opportunistic photographer cannot satisfy.
+The 6-digit code is **also displayed beneath the QR** on the athlete's phone. The redemption endpoint requires the club to submit _both_ the PASETO bytes (as scanned) **and** the 6-digit code (as either typed by the club operator after the athlete reads it, or scanned together with the QR). If the QR was photographed from across the room and the photographer never heard the athlete speak, they have only the PASETO. The 6-digit gate forces an in-person interaction that an opportunistic photographer cannot satisfy.
 
-For high-trust facilities the club may turn on "auto-bind" mode where the same QR encodes both — the photographer would still need to be physically present to capture it cleanly during the 90-second window. Auto-bind is an explicit per-facility setting; default is *separate channel-binding code*.
+For high-trust facilities the club may turn on "auto-bind" mode where the same QR encodes both — the photographer would still need to be physically present to capture it cleanly during the 90-second window. Auto-bind is an explicit per-facility setting; default is _separate channel-binding code_.
 
 ---
 
@@ -187,7 +184,7 @@ Content-Type: application/json
 ### 6.3 Rate limiting
 
 - Per-club: 30 redemptions per minute per club (a busy facility; trap > 30/min as anomaly).
-- Per-athlete: at most 1 *successful* redemption per `jti` ever; failed attempts beyond 3 within 60s lock the `jti` to "burned" state and require new issuance.
+- Per-athlete: at most 1 _successful_ redemption per `jti` ever; failed attempts beyond 3 within 60s lock the `jti` to "burned" state and require new issuance.
 
 ---
 
@@ -235,11 +232,11 @@ The capability is itself a PASETO v4.local token (separate signing key from the 
 Critical properties:
 
 - **`athlete_pseudonym`, not `athlete_id`.** A pseudonym scoped to this session, derived from `HMAC(session_attribution_pseudonym_key, athlete_id || session_id)`. The club never sees the underlying `athlete_id`. Cross-session linkage of pseudonyms is impossible without the HMAC key, which lives in KMS.
-- **`session_id` is bound.** The capability is rejected by any endpoint other than the attribution-write endpoint for *this* session.
+- **`session_id` is bound.** The capability is rejected by any endpoint other than the attribution-write endpoint for _this_ session.
 - **`scope = attribution_write_only`.** No history read. No annotation read. No anything else.
 - **`exp` = 1 hour.** A session lasts longer than 90 seconds but shorter than a day; one hour is the standard operating window. Capability expiry forces reauth for stale sessions.
 
-The mobile app *and* the athlete are notified that a successful redemption occurred (push notification with `redeeming_club_id` and timestamp). The athlete can dispute or revoke from the notification.
+The mobile app _and_ the athlete are notified that a successful redemption occurred (push notification with `redeeming_club_id` and timestamp). The athlete can dispute or revoke from the notification.
 
 ---
 
@@ -260,7 +257,7 @@ Content-Type: application/json
 
 ### 9.1 Endpoint behavior
 
-1. Decrypt the capability with the *attribution-capability* KMS subkey (separate from the QR-token subkey).
+1. Decrypt the capability with the _attribution-capability_ KMS subkey (separate from the QR-token subkey).
 2. Validate `purpose == "attribution_write_only"`.
 3. Validate `session_id` in the URL matches the capability claim.
 4. Validate `iat`/`exp`.
@@ -294,7 +291,7 @@ Authorization: Bearer <athlete_session_token>
 Server actions:
 
 1. `SADD checkin:revoked {jti}` (with the Redis set's TTL slightly longer than the token's `exp`).
-2. If the `jti` has *already* been redeemed (i.e. exists in `checkin:redeemed:{jti}`):
+2. If the `jti` has _already_ been redeemed (i.e. exists in `checkin:redeemed:{jti}`):
    - Look up the issued attribution capability's `jti`.
    - Add that capability `jti` to a revoked-capability set.
    - Future calls to the attribution endpoint with that capability fail with 410 `capability_revoked`.
@@ -319,20 +316,20 @@ The system revokes on:
 
 All events conform to `docs/security/audit-logging-spec.md` §3. Events emitted by this subsystem:
 
-| Event                                       | Trigger                                                                                          |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `checkin.token_issued`                      | Issuance endpoint succeeds                                                                       |
-| `checkin.token_issuance_rate_limited`       | Per-athlete or global rate limit hit                                                             |
-| `checkin.token_redeemed`                    | Redemption succeeds                                                                              |
-| `checkin.token_redemption_failed`           | Any failure in §6.2 — includes failure code (`expired`, `channel_binding_mismatch`, etc.)         |
-| `checkin.second_redemption_attempt`         | NX claim fails; second redemption attempted                                                      |
-| `checkin.club_allowlist_mismatch`           | `redeeming_club_id ∉ allowed_club_ids`                                                           |
-| `checkin.token_revoked`                     | Revocation by athlete, club, or system                                                           |
-| `checkin.capability_issued`                 | Attribution capability returned                                                                  |
-| `checkin.capability_used`                   | Successful call to attribution endpoint                                                          |
-| `checkin.capability_misused`                | Capability presented at non-attribution endpoint                                                 |
-| `checkin.capability_revoked`                | Capability invalidated post-issuance                                                             |
-| `checkin.token_expired_unredeemed`          | Janitor sees `exp < now` and `jti` never appeared in `checkin:redeemed:`                          |
+| Event                                 | Trigger                                                                                   |
+| ------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `checkin.token_issued`                | Issuance endpoint succeeds                                                                |
+| `checkin.token_issuance_rate_limited` | Per-athlete or global rate limit hit                                                      |
+| `checkin.token_redeemed`              | Redemption succeeds                                                                       |
+| `checkin.token_redemption_failed`     | Any failure in §6.2 — includes failure code (`expired`, `channel_binding_mismatch`, etc.) |
+| `checkin.second_redemption_attempt`   | NX claim fails; second redemption attempted                                               |
+| `checkin.club_allowlist_mismatch`     | `redeeming_club_id ∉ allowed_club_ids`                                                    |
+| `checkin.token_revoked`               | Revocation by athlete, club, or system                                                    |
+| `checkin.capability_issued`           | Attribution capability returned                                                           |
+| `checkin.capability_used`             | Successful call to attribution endpoint                                                   |
+| `checkin.capability_misused`          | Capability presented at non-attribution endpoint                                          |
+| `checkin.capability_revoked`          | Capability invalidated post-issuance                                                      |
+| `checkin.token_expired_unredeemed`    | Janitor sees `exp < now` and `jti` never appeared in `checkin:redeemed:`                  |
 
 Events `second_redemption_attempt`, `club_allowlist_mismatch`, and `capability_misused` are alert-grade — they fire to on-call SRE.
 
@@ -370,7 +367,7 @@ Events `second_redemption_attempt`, `club_allowlist_mismatch`, and `capability_m
 ### 12.6 Club dashboard XSS exfiltrating the capability
 
 - Capability is short-lived (1 hour) and write-only-scoped.
-- A successful XSS exfiltration would let the attacker write attributions to the *one* session whose ID is in the capability — they cannot pivot to other sessions or read history.
+- A successful XSS exfiltration would let the attacker write attributions to the _one_ session whose ID is in the capability — they cannot pivot to other sessions or read history.
 - The attacker writing fraudulent attributions to a session they do hold the capability for is bounded by §9.2 limits and detectable by anomaly (frames attributed without corresponding capture telemetry).
 - Defense-in-depth: require Subresource Integrity for the dashboard; CSP excludes inline scripts; club dashboard sandboxed in a separate origin from the athlete dashboard.
 
@@ -552,31 +549,33 @@ def redeem(req: RedeemRequest, authenticated_club_id: str) -> str:
 
 ```ts
 // mobile/src/features/checkin/issueQr.ts
-import { secureFetch } from "../net/secureFetch"
+import { secureFetch } from "../net/secureFetch";
 
 export interface QrIssueResult {
-  qrPayload: string
-  displayCode: string
-  expiresAt: number
+  qrPayload: string;
+  displayCode: string;
+  expiresAt: number;
 }
 
 export async function issueQr(facilityHint?: string): Promise<QrIssueResult> {
   const r = await secureFetch("/v1/checkin/tokens", {
     method: "POST",
     body: JSON.stringify({ facility_hint: facilityHint ?? null }),
-  })
-  if (!r.ok) throw new QrIssueError(await r.text())
-  const j = await r.json()
+  });
+  if (!r.ok) throw new QrIssueError(await r.text());
+  const j = await r.json();
   return {
     qrPayload: j.qr_payload,
     displayCode: j.display_code,
     expiresAt: j.expires_at,
-  }
+  };
 }
 
 export async function cancelCheckin(jti: string): Promise<void> {
-  const r = await secureFetch(`/v1/checkin/tokens/${jti}`, { method: "DELETE" })
-  if (!r.ok && r.status !== 404) throw new QrIssueError(await r.text())
+  const r = await secureFetch(`/v1/checkin/tokens/${jti}`, {
+    method: "DELETE",
+  });
+  if (!r.ok && r.status !== 404) throw new QrIssueError(await r.text());
 }
 ```
 
@@ -584,17 +583,20 @@ export async function cancelCheckin(jti: string): Promise<void> {
 
 ```ts
 // web/src/features/checkin/redeem.ts
-import { clubMtlsFetch } from "../net/clubMtlsFetch"
+import { clubMtlsFetch } from "../net/clubMtlsFetch";
 
 export interface RedeemResult {
-  attributionCapability: string
-  sessionId: string
-  expiresAt: number
+  attributionCapability: string;
+  sessionId: string;
+  expiresAt: number;
 }
 
-export async function redeem(qrPayload: string, displayCode: string,
-                             sessionId: string,
-                             redeemingClubId: string): Promise<RedeemResult> {
+export async function redeem(
+  qrPayload: string,
+  displayCode: string,
+  sessionId: string,
+  redeemingClubId: string,
+): Promise<RedeemResult> {
   const r = await clubMtlsFetch("/v1/checkin/redeem", {
     method: "POST",
     body: JSON.stringify({
@@ -603,28 +605,31 @@ export async function redeem(qrPayload: string, displayCode: string,
       session_id: sessionId,
       redeeming_club_id: redeemingClubId,
     }),
-  })
-  if (!r.ok) throw new RedeemError(r.status, await r.text())
-  const j = await r.json()
+  });
+  if (!r.ok) throw new RedeemError(r.status, await r.text());
+  const j = await r.json();
   return {
     attributionCapability: j.attribution_capability,
     sessionId: j.session_id,
     expiresAt: j.expires_at,
-  }
+  };
 }
 
-export async function writeAttribution(cap: string, sessionId: string,
-                                       frameRanges: FrameRange[]) {
+export async function writeAttribution(
+  cap: string,
+  sessionId: string,
+  frameRanges: FrameRange[],
+) {
   const r = await fetch(`/v1/sessions/${sessionId}/attributions`, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${cap}`,
+      Authorization: `Bearer ${cap}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ frame_ranges: frameRanges }),
-  })
-  if (!r.ok) throw new AttributionError(r.status, await r.text())
-  return r.json()
+  });
+  if (!r.ok) throw new AttributionError(r.status, await r.text());
+  return r.json();
 }
 ```
 
@@ -632,33 +637,33 @@ export async function writeAttribution(cap: string, sessionId: string,
 
 ## 14. Test Cases (Minimum 20 Must-Pass)
 
-| #  | Case                                                                                                                        | Expected outcome                                                                              |
-| -- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 1  | Happy path: athlete issues QR, club in allowlist redeems within 90s with correct display_code                               | 200 + attribution capability                                                                   |
-| 2  | Issuance without authenticated athlete                                                                                      | 401                                                                                            |
-| 3  | Issuance for athlete with empty `allowed_club_ids`                                                                          | 422 with prompt to add at least one authorized club                                            |
-| 4  | Redemption 91s after issuance                                                                                               | 401 `expired`                                                                                  |
-| 5  | Redemption with wrong `display_code`                                                                                        | 401 `channel_binding_mismatch`                                                                |
-| 6  | Redemption by a club not in `allowed_club_ids`                                                                              | 403 `club_not_allowed` + audit `checkin.club_allowlist_mismatch`                              |
-| 7  | Second redemption of the same `jti`                                                                                         | 409 `already_redeemed` + audit `checkin.second_redemption_attempt` + alert                     |
-| 8  | Redemption with PASETO whose `purpose` was tampered                                                                         | 401 `decrypt_fail` (AEAD failure)                                                              |
-| 9  | Redemption when Redis is down                                                                                               | 503 `single_use_check_unavailable` (no fallback to allow)                                      |
-| 10 | Redemption with `redeeming_club_id` body claim mismatching mTLS-authenticated identity                                       | 403 `club_assertion_mismatch`                                                                  |
-| 11 | Athlete revokes after issuance, before redemption                                                                           | 410 `revoked` on redemption attempt                                                            |
-| 12 | Athlete revokes *after* redemption                                                                                          | Capability becomes invalid; subsequent attribution-endpoint call returns 410 `capability_revoked` |
-| 13 | Capability used at `/users/{id}/sessions`                                                                                    | 403 `wrong_capability_type` + audit `checkin.capability_misused`                              |
-| 14 | Capability used at attribution endpoint with a different `session_id`                                                        | 403 `session_id_mismatch`                                                                     |
-| 15 | Capability used 1h+ after issuance                                                                                          | 401 `expired`                                                                                  |
-| 16 | Issuance rate limit (>5/min per athlete)                                                                                    | 429 + audit `checkin.token_issuance_rate_limited`                                              |
-| 17 | Redemption rate limit (>30/min per club)                                                                                    | 429                                                                                            |
-| 18 | Token issued under `key_epoch=N`, then root key rotates to `N+1`, redeemed within 24h grace                                  | 200                                                                                            |
-| 19 | Token issued under `key_epoch=N`, redeemed after 24h post-rotation                                                           | 401 `decrypt_fail` (subkey zeroized)                                                          |
-| 20 | Capability used to write attribution for >50% of session frames                                                             | 400 + coach-review task surfaced                                                                |
-| 21 | QR payload with unknown prefix `av2:`                                                                                       | 400 `unsupported_version`                                                                     |
-| 22 | Redemption with malformed PASETO bytes                                                                                       | 401 `invalid_token`                                                                           |
-| 23 | Capability claims edited (replay with substituted `session_id`)                                                              | AEAD failure → 401                                                                            |
-| 24 | `facility_hint` provided that is not in the athlete's allowlist                                                              | Token issued with full allowlist (hint silently ignored), or 400 — implementation decision. Default: 400 with prompt to authorize. |
-| 25 | Two simultaneous redemptions of the same `jti` from two clubs — race                                                         | Exactly one wins (Redis NX); the other gets 409 + audit                                        |
+| #   | Case                                                                                          | Expected outcome                                                                                                                   |
+| --- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Happy path: athlete issues QR, club in allowlist redeems within 90s with correct display_code | 200 + attribution capability                                                                                                       |
+| 2   | Issuance without authenticated athlete                                                        | 401                                                                                                                                |
+| 3   | Issuance for athlete with empty `allowed_club_ids`                                            | 422 with prompt to add at least one authorized club                                                                                |
+| 4   | Redemption 91s after issuance                                                                 | 401 `expired`                                                                                                                      |
+| 5   | Redemption with wrong `display_code`                                                          | 401 `channel_binding_mismatch`                                                                                                     |
+| 6   | Redemption by a club not in `allowed_club_ids`                                                | 403 `club_not_allowed` + audit `checkin.club_allowlist_mismatch`                                                                   |
+| 7   | Second redemption of the same `jti`                                                           | 409 `already_redeemed` + audit `checkin.second_redemption_attempt` + alert                                                         |
+| 8   | Redemption with PASETO whose `purpose` was tampered                                           | 401 `decrypt_fail` (AEAD failure)                                                                                                  |
+| 9   | Redemption when Redis is down                                                                 | 503 `single_use_check_unavailable` (no fallback to allow)                                                                          |
+| 10  | Redemption with `redeeming_club_id` body claim mismatching mTLS-authenticated identity        | 403 `club_assertion_mismatch`                                                                                                      |
+| 11  | Athlete revokes after issuance, before redemption                                             | 410 `revoked` on redemption attempt                                                                                                |
+| 12  | Athlete revokes _after_ redemption                                                            | Capability becomes invalid; subsequent attribution-endpoint call returns 410 `capability_revoked`                                  |
+| 13  | Capability used at `/users/{id}/sessions`                                                     | 403 `wrong_capability_type` + audit `checkin.capability_misused`                                                                   |
+| 14  | Capability used at attribution endpoint with a different `session_id`                         | 403 `session_id_mismatch`                                                                                                          |
+| 15  | Capability used 1h+ after issuance                                                            | 401 `expired`                                                                                                                      |
+| 16  | Issuance rate limit (>5/min per athlete)                                                      | 429 + audit `checkin.token_issuance_rate_limited`                                                                                  |
+| 17  | Redemption rate limit (>30/min per club)                                                      | 429                                                                                                                                |
+| 18  | Token issued under `key_epoch=N`, then root key rotates to `N+1`, redeemed within 24h grace   | 200                                                                                                                                |
+| 19  | Token issued under `key_epoch=N`, redeemed after 24h post-rotation                            | 401 `decrypt_fail` (subkey zeroized)                                                                                               |
+| 20  | Capability used to write attribution for >50% of session frames                               | 400 + coach-review task surfaced                                                                                                   |
+| 21  | QR payload with unknown prefix `av2:`                                                         | 400 `unsupported_version`                                                                                                          |
+| 22  | Redemption with malformed PASETO bytes                                                        | 401 `invalid_token`                                                                                                                |
+| 23  | Capability claims edited (replay with substituted `session_id`)                               | AEAD failure → 401                                                                                                                 |
+| 24  | `facility_hint` provided that is not in the athlete's allowlist                               | Token issued with full allowlist (hint silently ignored), or 400 — implementation decision. Default: 400 with prompt to authorize. |
+| 25  | Two simultaneous redemptions of the same `jti` from two clubs — race                          | Exactly one wins (Redis NX); the other gets 409 + audit                                                                            |
 
 These tests must be in the CI suite for any change touching the check-in subsystem. Coverage tool must verify the redemption code path is exercised end-to-end.
 
@@ -667,6 +672,7 @@ These tests must be in the CI suite for any change touching the check-in subsyst
 ## 15. Open Questions
 
 1. **`allowed_club_ids` onboarding UX.** How does an athlete pre-authorize a club they have never visited?
+
    - **Option A:** Coach at the club generates an "invite QR" containing the club's signed `club_id`; athlete scans in their mobile app, which verifies the signature against a known-clubs registry and adds to the allowlist. Pros: no typing; verifiable. Cons: requires coach contact before first visit.
    - **Option B:** Club's signup landing page deep-links into the mobile app with a signed `club_id` payload. Pros: marketing-friendly. Cons: deep-link spoofing risk; mitigated by signature.
    - **Option C:** Athlete enters a 6-character club code during onboarding; backend verifies and adds. Pros: simple. Cons: code phishing.
@@ -678,7 +684,7 @@ These tests must be in the CI suite for any change touching the check-in subsyst
 
 4. **Channel-binding code length.** 6 digits = 20 bits is sufficient given the 90-second window and rate limits, but if facilities prefer voice-readable, consider 4 words from the EFF wordlist (~52 bits, much higher entropy). Decision pending UX research.
 
-5. **Can the same `jti` be revoked *and* redeemed?** No — revocation set is consulted before NX claim. Revocation must beat redemption to effect. UX: show a brief confirmation modal on cancel that explains the race window.
+5. **Can the same `jti` be revoked _and_ redeemed?** No — revocation set is consulted before NX claim. Revocation must beat redemption to effect. UX: show a brief confirmation modal on cancel that explains the race window.
 
 6. **Auto-bind QR (display_code embedded).** A facility setting; default off. Decide whether this is enabled for federation-tier sessions where high trust + speed matter. Decision pending federation feedback.
 

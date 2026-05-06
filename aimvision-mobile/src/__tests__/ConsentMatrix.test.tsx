@@ -4,11 +4,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from '../locales/en/common.json';
 import { ConsentMatrix } from '../components/ConsentMatrix';
-import {
-  CONSENT_CATEGORIES,
-  CONSENT_PURPOSES,
-  useConsentStore,
-} from '../state/consentStore';
+import { CONSENT_CATEGORIES, CONSENT_PURPOSES, useConsentStore } from '../state/consentStore';
 
 beforeAll(async () => {
   if (!i18n.isInitialized) {

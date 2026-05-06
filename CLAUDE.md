@@ -11,14 +11,14 @@ AIMVISION is a clay/skeet shooting coaching platform: GoPro Hero 13 + React Nati
 
 Repo layout (monorepo for now; can split into separate GitHub repos when team scales):
 
-| Sub-repo | Stack | Purpose | CI |
-|---|---|---|---|
-| [`aimvision-backend/`](aimvision-backend/) | Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic | Multi-tenant API, RLS, audit logging, OpenAPI codegen | [backend-ci.yml](.github/workflows/backend-ci.yml) |
-| [`aimvision-camera-core/`](aimvision-camera-core/) | Rust 1.83 + tokio + UniFFI | Camera abstraction, mock with fault injection, command queue | [camera-core-ci.yml](.github/workflows/camera-core-ci.yml) |
-| [`aimvision-mobile/`](aimvision-mobile/) | RN 0.76 + Expo SDK 51 + New Arch | Mobile app (iOS + Android), age gate, parental consent | [mobile-ci.yml](.github/workflows/mobile-ci.yml) |
-| [`aimvision-web/`](aimvision-web/) | Vite 5 + React 18 + Tailwind | Coach + federation dashboard, QR check-in scanner | [web-ci.yml](.github/workflows/web-ci.yml) |
-| [`aimvision-ml/`](aimvision-ml/) | Python 3.12 + PyTorch + ONNX Runtime + MMPose | Training, eval gates, calibration, LLM PII strip | [ml-ci.yml](.github/workflows/ml-ci.yml) |
-| [`aimvision-infra/`](aimvision-infra/) | Helm + CloudNativePG + k3s/k8s | One chart, cloud + on-prem parity (ADR-0005) | [ci-orchestrator.yml](.github/workflows/ci-orchestrator.yml) |
+| Sub-repo                                           | Stack                                          | Purpose                                                      | CI                                                           |
+| -------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [`aimvision-backend/`](aimvision-backend/)         | Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic | Multi-tenant API, RLS, audit logging, OpenAPI codegen        | [backend-ci.yml](.github/workflows/backend-ci.yml)           |
+| [`aimvision-camera-core/`](aimvision-camera-core/) | Rust 1.83 + tokio + UniFFI                     | Camera abstraction, mock with fault injection, command queue | [camera-core-ci.yml](.github/workflows/camera-core-ci.yml)   |
+| [`aimvision-mobile/`](aimvision-mobile/)           | RN 0.76 + Expo SDK 51 + New Arch               | Mobile app (iOS + Android), age gate, parental consent       | [mobile-ci.yml](.github/workflows/mobile-ci.yml)             |
+| [`aimvision-web/`](aimvision-web/)                 | Vite 5 + React 18 + Tailwind                   | Coach + federation dashboard, QR check-in scanner            | [web-ci.yml](.github/workflows/web-ci.yml)                   |
+| [`aimvision-ml/`](aimvision-ml/)                   | Python 3.12 + PyTorch + ONNX Runtime + MMPose  | Training, eval gates, calibration, LLM PII strip             | [ml-ci.yml](.github/workflows/ml-ci.yml)                     |
+| [`aimvision-infra/`](aimvision-infra/)             | Helm + CloudNativePG + k3s/k8s                 | One chart, cloud + on-prem parity (ADR-0005)                 | [ci-orchestrator.yml](.github/workflows/ci-orchestrator.yml) |
 
 Phase 0 status: docs + scaffolding code shipped. Real implementation begins as the team comes online — see [`docs/AIMVISION_V2_Sprint_Plan.md`](docs/AIMVISION_V2_Sprint_Plan.md).
 
@@ -38,14 +38,17 @@ Phase 0 status: docs + scaffolding code shipped. Real implementation begins as t
 ## Document index
 
 ### Plan & risks
+
 - [V2 Sprint Plan](docs/AIMVISION_V2_Sprint_Plan.md) — supersedes V1. Cites every reviewer recommendation.
 - [Risk register](docs/risk-register.md) — R1–R25 with status (carried/tightened/new).
 
 ### Architecture & ADRs
+
 - [Architecture overview](docs/architecture-overview.md)
 - ADRs: [0001 Backend Python+FastAPI](docs/adr/0001-backend-python-fastapi.md) · [0002 Mobile RN New Architecture](docs/adr/0002-mobile-rn-new-architecture.md) · [0003 Rust camera-core split](docs/adr/0003-rust-camera-core-split.md) · [0004 Multi-tenancy RLS](docs/adr/0004-multi-tenancy-rls.md) · [0005 CloudNativePG cloud↔on-prem parity](docs/adr/0005-cloudnativepg-cloud-onprem-parity.md) · [0006 Event sourcing for shot events](docs/adr/0006-event-sourcing-shot-events.md) · [0007 Temporal orchestration](docs/adr/0007-temporal-orchestration.md) · [0008 Build vs buy](docs/adr/0008-build-vs-buy.md)
 
 ### Domain specs
+
 - [Mobile architecture](docs/mobile-architecture.md) — JSI/Fabric/Hermes, zero-copy frame pipeline, WatermelonDB sync, battery+thermal, hardening
 - [Camera integration spec](docs/camera-integration-spec.md) — Open GoPro reality, USB-C P0 federation, GoPro Labs, firmware matrix, mock fixture grammar
 - [Multi-camera sync spec](docs/multi-camera-sync-spec.md) — `!MSYNC` + audio cross-correlation, ChArUco calibration, drift compensation
@@ -56,12 +59,14 @@ Phase 0 status: docs + scaffolding code shipped. Real implementation begins as t
 - [Observability plan](docs/observability-plan.md) — Sentry/OTel/RUM from Sprint 3
 
 ### Security
+
 - [Threat model](docs/security/threat-model.md) — STRIDE
 - [QR check-in token spec](docs/security/qr-checkin-token-spec.md) — PASETO v4.local + ephemeral attribution capability
 - [Multi-tenant isolation](docs/security/multi-tenant-isolation.md) — RLS + app-layer + derived-report pipeline proof
 - [Audit logging spec](docs/security/audit-logging-spec.md) — required events, hash-chained store
 
 ### Compliance
+
 - [DPIA outline](docs/compliance/dpia-outline.md) — GDPR Art. 35
 - [RoPA template](docs/compliance/ropa-template.md) — Art. 30 records of processing
 - [Parental consent flow](docs/compliance/parental-consent-flow.md) — verifiable consent, age gate, majority transition
@@ -70,6 +75,7 @@ Phase 0 status: docs + scaffolding code shipped. Real implementation begins as t
 - [Data classification](docs/compliance/data-classification.md) — every data type, regulation flags, retention
 
 ### Reviews appendix
+
 - [10 reviewer reports](docs/reviews/) — verbatim audits of the original V1 plan, kept as the source-of-truth audit trail.
 
 ## Architecture (one-paragraph summary)
@@ -84,6 +90,7 @@ AIMVISION is a vertical mobile + Rust + Python + ML stack: Hero 13 → Wi-Fi/USB
 **Remote:** https://github.com/sambawy01/Aim-Vision
 
 ### Recent commits
+
 - 5a9a7f3 docs: V2 sprint plan + architecture, security, compliance, ML, camera specs (sambawy01, 37 seconds ago)
 - 2fe8715 chore(context): refresh CLAUDE.md auto block [skip-context] (github-actions[bot], 65 minutes ago)
 - f4a8b92 docs: note initial scaffold state in CLAUDE.md (sambawy01, 66 minutes ago)
@@ -91,6 +98,7 @@ AIMVISION is a vertical mobile + Rust + Python + ML stack: Hero 13 → Wi-Fi/USB
 - 9e9c3f0 chore: bootstrap repo with auto-updating CLAUDE.md context (sambawy01, 68 minutes ago)
 
 ### Tracked files (first 80)
+
 - .github/workflows/update-context.yml
 - .gitignore
 - CLAUDE.md

@@ -40,9 +40,7 @@ export function ConsentMatrix(): React.ReactElement {
       {CONSENT_CATEGORIES.map((category) => (
         <View key={category} style={styles.row} testID={`consent-row-${category}`}>
           <View style={styles.categoryCell}>
-            <AccessibleText variant="bodySmall">
-              {t(`consent.category.${category}`)}
-            </AccessibleText>
+            <AccessibleText variant="bodySmall">{t(`consent.category.${category}`)}</AccessibleText>
           </View>
           {CONSENT_PURPOSES.map((purpose) => (
             <CheckboxCell

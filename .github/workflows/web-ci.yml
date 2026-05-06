@@ -44,7 +44,8 @@ jobs:
         run: pnpm lint
 
       - name: Test
-        run: pnpm test --run
+        # `pnpm test --run` is parsed by pnpm as `--run` to pnpm itself. Pass via vitest directly.
+        run: pnpm exec vitest run
 
       - name: Build
         run: pnpm build

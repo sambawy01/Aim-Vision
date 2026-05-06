@@ -1,10 +1,6 @@
 module.exports = {
   root: true,
-  extends: [
-    'expo',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:react-native-a11y/all',
-  ],
+  extends: ['expo', 'plugin:@typescript-eslint/recommended', 'plugin:react-native-a11y/all'],
   parser: '@typescript-eslint/parser',
   plugins: ['@typescript-eslint', 'react-native-a11y'],
   parserOptions: {

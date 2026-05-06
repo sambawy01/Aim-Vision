@@ -4,17 +4,17 @@
 
 ## Competitive landscape
 
-| Player | What it does well | Gap AIMVISION can claim |
-|---|---|---|
-| **MantisX Shotgun** | Gun-mounted IMU, per-shot trace, hit/miss tagging, session history. Cheap, big installed base. | No CV, no pose, no target/lead analysis, no coach dashboard, no federation tier, no diagnostic causality ("you lifted your head"). |
-| **ShotKam Gen 4 Mini** | 4K barrel-cam, beloved by sporting-clays coaches; shows lead and pickup point. Dominant in clay-coach circles. | Pure recording device — zero analytics, no pose, no longitudinal data, no club/federation backend. |
-| **Tachyon, Tactacam** | Cheap gun-cams. | Same gap as ShotKam — passive video. |
-| **SCATT / Noptel / RIKA / Meyton** | ISSF-grade rifle/pistol/biathlon optical trainers; trusted by federations and Olympic teams since 1991. | Built for static rifle/pistol; do not handle moving targets, swing, mount, or shotguns. |
-| **DryFire / Marksman Academy** | Laser-based dry-fire simulation. | Indoor-only, no live-fire diagnostics, no CV. |
-| **Hudl / Coach's Eye / OnForm** | General sports video review with telestration. | Generic; no shooting-specific ML, no shot detection, no diagnostics. |
-| **Sportsbox AI / Uplift / Enhance** | CV pose-based golf swing analysis from a phone. Closest analog technically — proves the model works. | Golf-only. None has touched shooting sports. Direct precedent for an AIMVISION-style attack. |
-| **HotClays, ClayShootersGPS, PullCloud** | Score-keeping, club ops, course-mapping. | No analytics or video at all. Potential integration partners, not competitors. |
-| **Academic** | UoL, KIHU, AIS biomechanics labs run custom rigs. | Bespoke, not productized; AIMVISION is the productization layer. |
+| Player                                   | What it does well                                                                                              | Gap AIMVISION can claim                                                                                                            |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **MantisX Shotgun**                      | Gun-mounted IMU, per-shot trace, hit/miss tagging, session history. Cheap, big installed base.                 | No CV, no pose, no target/lead analysis, no coach dashboard, no federation tier, no diagnostic causality ("you lifted your head"). |
+| **ShotKam Gen 4 Mini**                   | 4K barrel-cam, beloved by sporting-clays coaches; shows lead and pickup point. Dominant in clay-coach circles. | Pure recording device — zero analytics, no pose, no longitudinal data, no club/federation backend.                                 |
+| **Tachyon, Tactacam**                    | Cheap gun-cams.                                                                                                | Same gap as ShotKam — passive video.                                                                                               |
+| **SCATT / Noptel / RIKA / Meyton**       | ISSF-grade rifle/pistol/biathlon optical trainers; trusted by federations and Olympic teams since 1991.        | Built for static rifle/pistol; do not handle moving targets, swing, mount, or shotguns.                                            |
+| **DryFire / Marksman Academy**           | Laser-based dry-fire simulation.                                                                               | Indoor-only, no live-fire diagnostics, no CV.                                                                                      |
+| **Hudl / Coach's Eye / OnForm**          | General sports video review with telestration.                                                                 | Generic; no shooting-specific ML, no shot detection, no diagnostics.                                                               |
+| **Sportsbox AI / Uplift / Enhance**      | CV pose-based golf swing analysis from a phone. Closest analog technically — proves the model works.           | Golf-only. None has touched shooting sports. Direct precedent for an AIMVISION-style attack.                                       |
+| **HotClays, ClayShootersGPS, PullCloud** | Score-keeping, club ops, course-mapping.                                                                       | No analytics or video at all. Potential integration partners, not competitors.                                                     |
+| **Academic**                             | UoL, KIHU, AIS biomechanics labs run custom rigs.                                                              | Bespoke, not productized; AIMVISION is the productization layer.                                                                   |
 
 ## Genuinely defensible vs commoditizable in plan
 
