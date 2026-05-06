@@ -7,9 +7,9 @@ on every push to `main`.
 
 ## What this repo is
 
-> _One-liner about the product goes here. Replace this when the project takes shape._
+AIMVISION is a clay/skeet shooting coaching platform: GoPro Hero 13 + React Native mobile + Rust camera core + ML pipeline (audio shot detection, pose, gun barrel tracking, multi-task hierarchical diagnostic head, DeepSeek LLM coaching notes via self-hosted Ollama). Three tiers — Solo, Club, Federation — with Egypt National Team as design partner.
 
-_(Initial scaffold — no application code yet.)_
+This repo currently holds **design and planning artifacts only** — no application code yet. The team forms in Phase 0 of [`docs/AIMVISION_V2_Sprint_Plan.md`](docs/AIMVISION_V2_Sprint_Plan.md).
 
 ## Owner
 
@@ -18,17 +18,52 @@ _(Initial scaffold — no application code yet.)_
 
 ## How to work in this repo
 
+- **Read first:** [`docs/AIMVISION_V2_Sprint_Plan.md`](docs/AIMVISION_V2_Sprint_Plan.md) — the master sprint plan.
+- **Architecture:** [`docs/architecture-overview.md`](docs/architecture-overview.md) anchors all technical decisions; ADRs live under [`docs/adr/`](docs/adr/).
 - **Branching:** feature branches off `main`, PRs reviewed before merge.
 - **Refresh context manually:** `python3 scripts/update_context.py`
 - **Skip the auto-refresh on a commit:** include `[skip-context]` in the commit message.
 
-## Conventions
+## Document index
 
-- _Add language/framework, lint, test, and deploy notes here as they are decided._
+### Plan & risks
+- [V2 Sprint Plan](docs/AIMVISION_V2_Sprint_Plan.md) — supersedes V1. Cites every reviewer recommendation.
+- [Risk register](docs/risk-register.md) — R1–R25 with status (carried/tightened/new).
 
-## Architecture
+### Architecture & ADRs
+- [Architecture overview](docs/architecture-overview.md)
+- ADRs: [0001 Backend Python+FastAPI](docs/adr/0001-backend-python-fastapi.md) · [0002 Mobile RN New Architecture](docs/adr/0002-mobile-rn-new-architecture.md) · [0003 Rust camera-core split](docs/adr/0003-rust-camera-core-split.md) · [0004 Multi-tenancy RLS](docs/adr/0004-multi-tenancy-rls.md) · [0005 CloudNativePG cloud↔on-prem parity](docs/adr/0005-cloudnativepg-cloud-onprem-parity.md) · [0006 Event sourcing for shot events](docs/adr/0006-event-sourcing-shot-events.md) · [0007 Temporal orchestration](docs/adr/0007-temporal-orchestration.md) · [0008 Build vs buy](docs/adr/0008-build-vs-buy.md)
 
-- _Add a short architecture overview once code lands. Diagrams welcome._
+### Domain specs
+- [Mobile architecture](docs/mobile-architecture.md) — JSI/Fabric/Hermes, zero-copy frame pipeline, WatermelonDB sync, battery+thermal, hardening
+- [Camera integration spec](docs/camera-integration-spec.md) — Open GoPro reality, USB-C P0 federation, GoPro Labs, firmware matrix, mock fixture grammar
+- [Multi-camera sync spec](docs/multi-camera-sync-spec.md) — `!MSYNC` + audio cross-correlation, ChArUco calibration, drift compensation
+- [ML architecture](docs/ml-architecture.md) — RTMPose-x, multi-task hierarchical head, VideoMAE pretraining, IMU fusion, per-athlete LoRA, DeepSeek RAG+verifier
+- [Diagnostic taxonomy](docs/diagnostic-taxonomy.md) — vocabulary spec (card-sort gated)
+- [LLM coaching notes schema](docs/llm-coaching-notes-schema.md) — JSON Schema for structured output
+- [Performance budgets](docs/performance-budgets.md) — honest SLAs, latency tables, battery/thermal targets
+- [Observability plan](docs/observability-plan.md) — Sentry/OTel/RUM from Sprint 3
+
+### Security
+- [Threat model](docs/security/threat-model.md) — STRIDE
+- [QR check-in token spec](docs/security/qr-checkin-token-spec.md) — PASETO v4.local + ephemeral attribution capability
+- [Multi-tenant isolation](docs/security/multi-tenant-isolation.md) — RLS + app-layer + derived-report pipeline proof
+- [Audit logging spec](docs/security/audit-logging-spec.md) — required events, hash-chained store
+
+### Compliance
+- [DPIA outline](docs/compliance/dpia-outline.md) — GDPR Art. 35
+- [RoPA template](docs/compliance/ropa-template.md) — Art. 30 records of processing
+- [Parental consent flow](docs/compliance/parental-consent-flow.md) — verifiable consent, age gate, majority transition
+- [Egypt PDPL action plan](docs/compliance/egypt-pdpl-action-plan.md) — pre-Sprint-5 actions
+- [Right-to-erasure architecture](docs/compliance/right-to-erasure-architecture.md) — per-tenant DEK + crypto-shred + sample provenance
+- [Data classification](docs/compliance/data-classification.md) — every data type, regulation flags, retention
+
+### Reviews appendix
+- [10 reviewer reports](docs/reviews/) — verbatim audits of the original V1 plan, kept as the source-of-truth audit trail.
+
+## Architecture (one-paragraph summary)
+
+AIMVISION is a vertical mobile + Rust + Python + ML stack: Hero 13 → Wi-Fi/USB-C → React Native (Hermes/Fabric/JSI) with a Rust camera-core (UniFFI control plane + thin C ABI frame data path) → on-device ONNX Runtime with hardware-accelerated pose + audio shot detection + diagnostic classifier → backend FastAPI + Postgres (RLS, CloudNativePG for cloud↔on-prem parity) + Temporal-orchestrated post-session pipeline + self-hosted Ollama running DeepSeek 14B Q4 with structured-output coaching notes. Multi-tenant by design (Solo / Club / Federation); federation tier supports on-prem deployment as the same Helm chart. See [`docs/architecture-overview.md`](docs/architecture-overview.md).
 
 <!-- AUTO:BEGIN -->
 <!-- Regenerated by scripts/update_context.py via GitHub Actions on every push. Do not edit by hand. -->

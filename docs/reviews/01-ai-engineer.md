@@ -1,0 +1,36 @@
+# AIMVISION ML Stack Evaluation — Accuracy & Smartness
+
+**Reviewer:** AI Engineer · **Date:** 2026-05-06 · **Source:** `AIMVISION_V1_Sprint_Build_Plan.txt` v1.0
+
+## Strengths (3)
+
+1. **Audio-first shot detection is correct.** Gunshot transients are the cleanest, lowest-latency event signal available; YAMNet/PANNs-style CNNs hit >99% TPR trivially. Anchoring the entire pipeline to audio timestamps is the right backbone.
+2. **Honest "cause unclear" abstention path.** Most sports-AI products fake confidence. Building abstention in from Sprint 9 is the single best epistemic decision in the plan.
+3. **Hilight tags + hardware-synchronized capture via Open GoPro.** Real timecode sync at the camera layer (vs. post-hoc software alignment) is the hard prerequisite for everything downstream and they got it right.
+
+## Critical gaps (5)
+
+1. **MediaPipe Pose is wrong for this sport.** It's trained on yoga/fitness/everyday motion, has 33 keypoints, no hand articulation, no gun-relevant landmarks (cheek-weld, dominant-eye, trigger-finger), and degrades on lateral/oblique stances common in skeet stations 1/7. Replace with **RTMPose-x** or **ViTPose-H** from MMPose (both beat MediaPipe by 10-15 AP on COCO and have whole-body 133-keypoint variants), and add **MMPose Wholebody** for hand/face. For barrel + shooter as a unit, **SAM2** for segmentation tracks beats a YOLO bbox once the gun occludes the torso.
+2. **No temporal/action model — only per-frame features.** Mount, swing, follow-through are inherently sequential. A static feature vector throws away the signal. Add **VideoMAE-v2** or **InternVideo2** as a frozen backbone for shot-clip embeddings, and **ActionFormer** or **TriDet** for temporal action detection of mount-start/break-point/follow-through boundaries. This alone will move diagnostic accuracy more than any classifier change.
+3. **Single multiclass diagnostic classifier is structurally wrong.** Head-lift, stopped-gun, off-line, and poor-mount are not mutually exclusive — they co-occur. Use a **multi-label hierarchical head** structure: separate experts for (head/eye), (mount/stance), (swing/lead), (follow-through), each producing calibrated probabilities, with a **meta-classifier or structured causal model** (DAG: stance → mount → swing → break → outcome) on top. This also gives you interpretable failure attribution Franco can verify per branch.
+4. **Confidence calibration is hand-waved.** "High confidence threshold" is not calibration. Apply **temperature scaling** (Guo et al. 2017) on a held-out set, report **Expected Calibration Error** and **Brier scores** per class, and use **conformal prediction** (Angelopoulos & Bates) for per-shot prediction sets with a guaranteed coverage rate (e.g., 90%). Abstention threshold should be tuned per-class, not global — head-lift is easier to detect than stopped-gun.
+5. **2D pose with monocular GoPro cannot estimate true swing-plane geometry or lead distance.** The plan promises mechanical analysis the camera physics can't deliver. Without 3D, "lead distance to a moving clay" is an illusion.
+
+## Accuracy improvements ranked by impact
+
+1. **Cheap BLE IMU on the gun stock (~$15 BOM, MPU-6050 or BMI270).** Single biggest accuracy lever. Gives ground-truth swing velocity, mount jerk, recoil signature, and barrel orientation at 200Hz — fuses with audio for sub-10ms shot timing and resolves stopped-gun/head-lift ambiguity directly. Mantis already proved the form factor. This is non-negotiable for V1.5; ideally V1.
+2. **Multi-camera 3D triangulated pose.** With 2-3 cameras already planned, run **VoxelPose** or **MvP (Multi-view Pose Transformer)** for triangulated 3D keypoints. Calibrate with ChArUco boards + **bundle adjustment** (OpenCV `calibrateCamera` + `solvePnP`, refined with Ceres). 3D unlocks: real swing-plane geometry, head-stock alignment in absolute degrees, lead estimation when combined with clay tracking via **ByteTrack** or **OC-SORT**.
+3. **Self-supervised pretraining + weak supervision.** Don't burn Franco on labels. Pretrain a video encoder with **VideoMAE** masked-autoencoding on all raw shooting footage (no labels needed). Use audio shot timestamps as **weak supervision anchors** to auto-segment ±2s windows. Then **active learning** (BALD or coreset selection) queues only the highest-uncertainty shots for Franco. Expect 5-10x label efficiency.
+4. **Multi-task hierarchical diagnostic head + per-task calibration** (per critical gap #3). Train the heads jointly on shared VideoMAE features with task-specific losses; this regularizes scarce labels.
+5. **RAG over Franco's prior notes per athlete + LoRA fine-tune on Franco-corrected outputs + JSON-schema constrained decoding + verifier pass.** DeepSeek freeform is a hallucination risk. Force structured output (Outlines/Guidance), retrieve the athlete's last 5 sessions of notes for style continuity, fine-tune a **LoRA adapter** on Franco's edits (you'll have hundreds within months), and run a second LLM pass that checks "do the cited features match the data?" — reject if not.
+
+## Smarter-feature differentiators
+
+1. **Microphone array on the camera mount (4-mic, ~$30) for shot localization.** Distinguishes the user's shot from adjacent shooters via **TDOA beamforming** — solves the multi-shooter audio interference risk (R7) that the plan otherwise has no answer for. Also gives you shot direction → station inference automatically.
+2. **Gaze/head-pose from a secondary face-cam or phone front cam.** Run **6DRepNet** or **WHENet** for head-pose, and **L2CS-Net** for gaze. Detects head-lift before the gun even moves (gaze leads head leads gun by 80-150ms — published in shooting-sports biomechanics literature). This is the single most coachable variable in skeet.
+3. **Longitudinal state-space model per athlete.** Replace rolling-window pattern detection with a **Bayesian structural time-series** (or a per-athlete Transformer with athlete-ID embeddings). Detects regime change vs. noise with proper uncertainty — separates "bad day" from "developing fault." Pairs with **per-athlete LoRA personalization** of the diagnostic heads after ~200 shots, addressing Egypt-overfit domain shift directly.
+
+## Unrealistic / under-specified claims
+
+1. **"Diagnostic classifier accuracy >85%, outcome >95%" with no denominator.** 85% of what? Per-class macro-F1? Top-1 vs top-3? On Franco-only labels (no inter-annotator agreement baseline)? This target is meaningless without: (a) **inter-annotator agreement** measured between Franco and ≥2 other expert coaches (expect Cohen's κ ~0.6-0.75 for diagnostics — that's your **ceiling**, not 100%), (b) stratified eval per-station, per-discipline, per-lighting, per-body-type/skin-tone/clothing, (c) expert-vs-model gap analysis. Without these, "85%" will be gamed by class imbalance.
+2. **"Post-session report under 90s" while running higher-accuracy models multi-pass on full-resolution video.** A 50-shot session at 4K60 = ~50GB of raw frames. Running VideoMAE + 3D pose + barrel detection + diagnostic + LLM in 90s requires either an A10/A100 in the cloud (cost) or aggressive **model distillation** (TinyViT, MobileViT-v3) and **ONNX/TensorRT INT8 quantization** that the plan never mentions. Specify the inference hardware and quantization plan, or this target slips.

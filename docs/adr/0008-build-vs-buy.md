@@ -1,0 +1,94 @@
+# ADR-0008: Build vs Buy
+
+**Status:** Accepted · **Date:** 2026-05-06 · **Owner:** Software Architect
+
+## Context
+
+Every infrastructure decision in AIMVISION sits on a build/buy axis. The team is small, Egypt validation is on a tight clock, and the differentiated work — ML models, the LLM coaching system, multi-tenant orchestration — is finite. Anything else we build is hours we did not spend on the moat.
+
+The [Software Architect review §Build vs Buy](../reviews/03-software-architect.md) and [Mobile review §Things missing](../reviews/04-mobile-app-builder.md) name the categories where AIMVISION should buy off-the-shelf, and reviews 06 (Security) and 07 (Compliance) reinforce the choice (e.g., Clerk/WorkOS handle SAML for federation procurement out of the box). This ADR enumerates the catalog, with vendor names, indicative cost tiers, and one-line reasons. Cost guesses are V1-launch (10k DAU, single-region cloud, one federation appliance); they will be re-baselined annually.
+
+## Decision
+
+The catalog below is the reference. Procurement decisions are made against this catalog; deviations require an ADR amendment.
+
+### Buy list
+
+| Category | Vendor | Cost tier (V1) | Reason |
+|---|---|---|---|
+| **Auth (mobile + web)** | Clerk *or* WorkOS | $200–500/mo + per-MAU at scale | Apple/Google/email out of the box; SAML and SCIM for federation procurement; both have RN SDKs; WorkOS leans enterprise, Clerk leans consumer. We pick Clerk for V1 launch and migrate to WorkOS only if a federation requires SAML SP-initiated SSO. |
+| **Payments (web/Stripe + iOS/Android IAP)** | Stripe + RevenueCat | Stripe 2.9% + $0.30; RevenueCat ~$0.30 per $1k tracked | Stripe for web/coach/federation invoicing; RevenueCat for iOS/Android IAP unification, entitlements, and receipt validation. Building IAP correctly across both stores is a 6-week project we do not need. |
+| **Video CDN** | Cloudflare Stream *or* Mux | $1/1000 min stored + $1/1000 min delivered (Cloudflare); Mux similar | Adaptive bitrate, signed URLs, thumbnails, transcoding, JIT packaging. **Never proxy video through the API** — S3 egress through the API would dominate cost by Sprint 19 ([Software Architect review §Scaling Cliffs](../reviews/03-software-architect.md)). Pick Cloudflare for V1 because we already use Cloudflare at the edge; Mux is the Plan B. |
+| **Errors** | Sentry | $26–80/mo at V1 scale | RN JS, Hermes stack traces, native iOS/Android, Rust panic hook (`sentry-rust`). One unified incident view across the mobile stack. From Sprint 3, not Sprint 22 ([Mobile review §Things missing](../reviews/04-mobile-app-builder.md)). |
+| **Logs / metrics / traces** | Grafana Cloud *or* Axiom | $50–200/mo at V1 scale | OTLP-native, Prometheus-native, retention 30–90d, query UX is acceptable. Datadog is the higher-tier alternative and is rejected on cost. We pick Grafana Cloud for V1; Axiom is a strong runner-up for log-heavy workloads. |
+| **Mobile performance / RUM** | Firebase Performance Monitoring + Sentry Performance | included in Sentry tier + free | Live-session screen RUM specifically — the screen most likely to fail in production. From Sprint 5. |
+| **Feature flags + experiments** | Statsig *or* PostHog | Statsig free at V1 scale; PostHog ~$0/mo OSS or $500/mo cloud at V1 | Required to dark-launch the diagnostic classifier, A/B coach-mode tone variations, gate tier features, and toggle the LLM fallback (Ollama → Anthropic) without redeploying. From Sprint 3. We pick PostHog because it doubles as product analytics; Statsig if we want experimentation rigor over breadth. |
+| **Mobile OTA updates** | Expo EAS Update | $0–99/mo at V1 scale | Egypt is in-country; we cannot wait 2–7 days for App Store review on a hotfix. CodePush is being sunset by Microsoft. From Sprint 5. |
+| **Annotation tooling (ML)** | CVAT (self-hosted) | $0 (we run it) | Industry standard for video annotation; supports multi-label, hierarchical taxonomies, integration with active-learning queues. Already in the V1 plan; correct call. |
+| **On-device + server inference runtime** | ONNX Runtime + Core ML / NNAPI | $0 | ONNX is the lingua franca; Core ML (iPhone) and NNAPI (Android) are the right backends for on-device. Already in the V1 plan; correct call. |
+| **ML model registry** | MLflow (self-hosted) | $0 (we run it) | Source of truth for `model_version`, lineage, evaluation metrics, and shadow-routing decisions. Already noted as a critical gap in V1 ([Software Architect review §Missing Concerns](../reviews/03-software-architect.md)). |
+| **Postgres operator** | CloudNativePG | $0 OSS | Per ADR-0005. |
+| **LLM** | Ollama (self-hosted) + Anthropic / Together (fallback) | Ollama infra ~$300–800/mo for 3–4 GPU workers; Anthropic API ~$3–15 per 1M input tokens for Claude | DeepSeek 14B Q4_K_M on A10G runs the V1 coaching report at ~14–22 s ([Performance review](../reviews/10-performance-benchmarker.md)). Hosted fallback is feature-flag-gated for outages and load spikes. |
+| **Email transactional** | Postmark *or* Resend | $10–50/mo at V1 | Lightweight, deliverability-focused, no marketing-ESP bloat. |
+| **Push notifications** | Expo Push (free) + APNs/FCM directly for advanced cases | $0 | Expo Push is fine for V1. |
+| **Domain + DNS + WAF + edge** | Cloudflare | ~$20/mo + Stream | Already chosen for the CDN; consolidates DNS, WAF, and bot management. |
+| **Code sandbox / preview deploys** | Railway (cloud) | included in compute tier | We're already on Railway-managed Kubernetes; preview deploys come for free. |
+| **CI** | GitHub Actions | $0–200/mo at V1 scale | Default given the team is on GitHub. iOS builds on `macos-latest` runners; the Egypt-validation synthetic-replay rig also runs in Actions. |
+| **Mobile device farm** | Firebase Test Lab (Android) + AWS Device Farm or BrowserStack App Live (iOS) | $40–150/mo | Pixel 6a, Galaxy A-series, iPhone 12/13 — the median shooter device, not the team's iPhone 16 Pro ([Mobile review §Things missing](../reviews/04-mobile-app-builder.md)). |
+| **Secrets** | GCP Secret Manager *or* AWS Secrets Manager (cloud) + Vault (federation) | $5–30/mo cloud | No env files in git. Rotation automated via Temporal scheduled workflows. |
+
+### Build list
+
+| Category | Reason | Owner |
+|---|---|---|
+| **Camera core (`aimvision-camera-core`, Rust)** | Justified only if V2 hardware lands or the on-prem appliance ships with locally-attached cameras. Re-evaluation gate at end of Phase 2 (ADR-0003). Until then, the protocol code is *the* hard part of the mobile experience and carrying it as a shared crate is a deliberate bet. | Embedded eng |
+| **ML models (pose, barrel, diagnostic, longitudinal)** | The moat. Egypt-as-design-partner produces a labeled clay-shooting dataset competitors cannot replicate quickly ([Trend Researcher review](../reviews/02-trend-researcher.md)). | ML eng |
+| **LLM coaching prompt + structured-output verifier + per-coach LoRA** | Generic LLM coaching is commoditizable in 12 months. Franco-corrected outputs as fine-tune data and a verifier pass that rejects ungrounded claims is the differentiated layer. | ML eng |
+| **Multi-tenant orchestration (RLS + cross-tenant pipeline)** | No vendor solves federation hierarchy + GDPR + on-prem in one box. Build it once on top of Postgres + Temporal. | Backend eng |
+| **QR check-in (PASETO v4.local)** | A trivial amount of code; vendor solutions add latency and an extra trust party. | Backend eng |
+| **Live-feed projection on device (WatermelonDB schema + WebSocket sync)** | Per ADR-0006, this is the heart of the offline-first product. Off-the-shelf sync engines (PowerSync, ElectricSQL) were considered; both are interesting but premature commitments to a vendor on the data path. | Mobile eng |
+| **Federation appliance installer + Helm chart** | Per ADR-0005. The single Helm chart is our parity model and it is too tied to AIMVISION's specific stack to outsource. | SRE |
+| **Active-learning loop + Franco-feedback workflow** | The data-labeling efficiency gain is the difference between Franco labeling 200 shots/week and 2000 shots/week. We build it because it is also part of the moat. | ML eng + Backend eng |
+
+### Things we are explicitly not buying
+
+- **No third-party multi-tenant SaaS chassis** (e.g., Frontegg). RLS plus our own org/role model is small, well-understood, and audit-friendly.
+- **No "AI app builder" / agent framework on the LLM path.** Outlines or `instructor` for structured output, plus a verifier pass we own. LangChain is rejected on cost-of-abstraction grounds.
+- **No mobile state-management framework beyond what RN ships with + Reanimated.** Zustand for a thin global store, WatermelonDB observable queries for data, no Redux.
+- **No third-party offline-first sync vendor** for V1. PowerSync and ElectricSQL are well-built but tie us to a vendor on the most critical data path. The append-only event-sourcing shape (ADR-0006) means we don't need their generality.
+
+## Consequences
+
+**Easier:**
+
+- The team's hours go to the moat — models, coaching layer, federation experience — not to rebuilding auth or payments.
+- Federation procurement (SAML, SCIM, audit logs) is answered out of the box by Clerk/WorkOS.
+- Mobile incidents in Egypt are observable in real time (Sentry + Firebase RUM + OpenTelemetry) instead of via guesswork.
+- OTA hotfixes ship in hours, not days — critical when the design partner is in-country.
+
+**Harder:**
+
+- Vendor risk: any of these companies can change pricing or sunset features. We mitigate by picking standards-aligned vendors (Clerk/WorkOS speak OIDC; Sentry speaks OpenTelemetry; PostHog is OSS-self-hostable; Cloudflare Stream's URL signing is portable to Mux). Each buy decision has a documented exit strategy in `docs/operations/vendor-exit-plans.md`.
+- Per-MAU pricing on auth and feature flags scales superlinearly with our subscriber growth. We re-baseline at 50k DAU.
+- Different vendors mean different status pages and different support channels. We aggregate into one Statuspage in `docs/operations/dependency-statuses.md`.
+
+**Reversibility:** High for individual line items (e.g., swap Sentry for Bugsnag). Lower for the categories themselves — e.g., switching from "buy auth" to "build auth" is a multi-quarter project we will not undertake without a forcing function.
+
+## Alternatives Considered
+
+1. **Build everything.** Rejected. Out of resources for V1 timelines, no payback on commodity capabilities.
+2. **Buy auth from a single hyperscaler (Cognito, Identity Platform).** Cognito's developer experience is rough; Identity Platform locks us to GCP. Clerk/WorkOS are best-of-breed and portable.
+3. **Mux instead of Cloudflare Stream.** Mux is excellent (better analytics; preferred by some video-heavy products). We pick Cloudflare because we already terminate at the Cloudflare edge for DNS/WAF/CDN, which simplifies operations. Mux remains the documented Plan B.
+4. **Datadog instead of Grafana Cloud / Axiom.** Datadog is the highest-quality option and rejected on cost at V1 scale. Re-evaluate at federation tier scale.
+5. **PowerSync or ElectricSQL for offline sync instead of building it on top of WatermelonDB + WebSocket.** Held in reserve. The append-only event-sourcing model (ADR-0006) is simpler than the full PowerSync feature set, and we don't want vendor lock on the data path. Re-evaluate if multi-device-per-athlete sync becomes a real need.
+
+## References
+
+- [Software Architect review §Build vs Buy](../reviews/03-software-architect.md)
+- [Mobile App Builder review §Things missing](../reviews/04-mobile-app-builder.md)
+- [Trend Researcher review §Defensible vs commoditizable](../reviews/02-trend-researcher.md) — confirms the moat boundary.
+- [Performance review §Instrumentation Plan](../reviews/10-performance-benchmarker.md) — confirms observability vendor needs.
+- [ADR-0003: Rust camera-core](0003-rust-camera-core-split.md) — the camera-core build decision and its re-evaluation gate.
+- [ADR-0005: CloudNativePG + single Helm chart](0005-cloudnativepg-cloud-onprem-parity.md) — deployment vendor stance.
+- [ADR-0007: Temporal](0007-temporal-orchestration.md) — orchestration buy decision.
+- `docs/operations/vendor-exit-plans.md` — predicted filename, owned by SRE.

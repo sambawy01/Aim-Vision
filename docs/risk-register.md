@@ -1,0 +1,50 @@
+# AIMVISION — Risk Register (V2)
+
+**Date:** 2026-05-06 · **Owner:** CTO Hany Sadek (overall) · **Source:** supersedes V1 risk register in `AIMVISION_V1_Sprint_Build_Plan.txt`. Restates V1 R1–R15 with status (carried/tightened/downgraded) reflecting V2 mitigations. Adds R16–R19 from Compliance review (#7) and R20–R25 from reviews #4, #5, #6.
+
+**Probability:** Low / Medium / High. **Impact:** Low / Medium / High / Critical. **Status:** carried | tightened | downgraded | new.
+
+---
+
+| ID | Risk | Probability | Impact | Mitigation | Owner | Status |
+|---|---|---|---|---|---|---|
+| R1 | Camera abstraction layer takes longer than planned | Low | High | Mock + fault-injection grammar fixtures from S3 keep non-CORE tracks unblocked. Trait split (CameraControl/Transport/Media/TimeSource/Capabilities) reduces V1.5+ refactor cost. *Per Embedded review (#5).* | CTO | tightened (probability lowered: split-trait design + fault grammar reduces failure modes) |
+| R2 | ML accuracy doesn't reach validation thresholds | Medium | High | RTMPose-x replaces MediaPipe (S8); multi-task hierarchical head + temperature scaling + conformal prediction (S9); honest abstention path; double-annotated test sets with κ; per-athlete LoRA (S17); declared denominators per slice. *Per AI review (#1).* | ML Lead | tightened (better backbone, calibration, abstention; thresholds now have denominators) |
+| R3 | App Store rejection (firearms-content policy) | Medium | High | Apple/Google early-engagement letter S6; "Olympic shooting sports" positioning rehearsed across 16 sprints; TestFlight S6; web fallback retained. *Per Sprint Prioritizer review (#8).* | Founder + Product | tightened (engagement starts S6 not S22) |
+| R4 | Egypt athlete availability lower than needed | Low–Medium | Medium | Recreational shooter recruitment as supplementary; secondary Western design partner from S21 (R25 mitigation cross-link); systematic capture of every available session. | Founder + Data Lead | carried |
+| R5 | Hiring slower than planned (Rust engineer particularly hard) | Medium | High | Active sourcing from S1; KMM as fallback if Rust hiring fails; staggered hire ladder closes core engineering by S7; second annotator-coach by S6 to attack the true critical path. *Per Sprint Prioritizer review (#8).* | CTO + Founder | tightened (annotator-coach hire surfaced as the real critical path) |
+| R6 | Funding runs out before launch | Low–Medium | Critical | Realistic budget; federation-revenue conversations early; SOC 2 Type I report by S24 to unblock procurement; 18–24 month runway target. | Founder | carried |
+| R7 | Outdoor environmental conditions (Egypt sun, dust, heat) break models | Medium | Medium | Pinned firmware matrix; thermal degradation ladder; white silicone sleeves; foam windscreens; CPL filter; daily lens-and-port wipe protocol; thermal-state poll wired into Camera trait S3; 60-min @ 35 °C SLO with documented degradation. *Per Embedded review (#5), Performance review (#4).* | ML Lead + CTO | tightened (concrete hardware mitigations + thermal SLO ladder) |
+| R8 | Mantis or competitor launches dedicated clay product first | Medium | High | Speed of execution; federation-credibility moat; data-collection moat from S5; cross-discipline scaffolding in S15 to reduce category-defense surface. | Founder | carried |
+| R9 | Annotation bottleneck (Franco's time) | Medium | High | Annotator-coach #2 hired S6; active learning queue (BALD/coreset) S3 scaffolded, S6 live; VideoMAE-v2 pretraining (no labels) S6; LoRA personalization simplifies model updates. *Per AI review (#1), Sprint Prioritizer review (#8).* | Founder + ML Lead | tightened (concrete hire + active-learning + self-supervised pretraining) |
+| R10 | Cross-platform mobile inconsistencies | Medium | Medium | RN New Architecture (Fabric/JSI/Hermes) end-to-end; native modules where needed; thorough QA on both platforms; shared Rust core via UniFFI/JNI. *Per Mobile review (#3), Architect review (#2).* | RN Lead | carried |
+| R11 | Cloud costs higher than projected | Medium | Medium | Monitor early; optimize hot paths; ONNX/TensorRT INT8 quantization for inference (S11); on-prem federation deployment deferred to V1.5 (lower V1 surface). *Per Sprint Prioritizer review (#8).* | CTO | downgraded (V1 cloud surface narrower) |
+| R12 | LLM (DeepSeek via Ollama) quality insufficient | Medium | Medium | Wizard-of-Oz authoring S6–S7; JSON-schema constrained decoding; RAG over athlete history; verifier pass; LoRA-adapter scaffold for fine-tune; hosted-LLM fallback architecturally preserved. *Per AI review (#1), UX review (#9).* | ML Lead | tightened (structured-output guards + verifier) |
+| R13 | Localization delays | Low | Low | Spanish dropped from V1; Arabic + RTL primitives in S3; English-only fallback always available. *Per Sprint Prioritizer review (#8).* | RN Lead + Designer | downgraded (scope cut) |
+| R14 | Accessibility compliance issues | Low | Medium | A11y primitives wired S3; lint rules enforce screen-reader labels; WCAG 2.1 AA tokens from day one; external audit S18. | Designer | downgraded (built in from S3 not S18) |
+| R15 | Beta program participants insufficient | Low | Medium | Recruit broader pool; secondary Western design partner provides club tier beta; extend beta if needed before launch. | Founder | carried |
+| R16 | Regulatory enforcement before launch (PDPC investigation or EU DPA complaint on minor biometric processing halts Egypt pilot) | Medium | Critical | DPO + PDPC license S1; DPIA scoped S1, signed before S5; cross-border transfer permit S1; verifiable parental consent + ministerial sign-off for juniors. *Per Compliance review (#7).* | DPO | new |
+| R17 | Federation procurement blocks deal (no SOC 2 / ISO 27001 means federations cannot sign) | High | High | SOC 2 Type I controls implementation kickoff S14; Type I report S24; Type II observation window opens S19; ISO 27001 + 27701 control mapping S14; pen test S21. *Per Compliance review (#7).* | CTO + Founder | new |
+| R18 | Right-to-erasure technically infeasible (model retraining on deletion request operationally unviable) | High | High | Per-athlete LoRA isolation (S17) makes erasure tractable; documented Art. 17(3)(b) exemption argument with counsel for in-weight residue; deletion-cascade architecture (S3 design, S17 GA) covers S3, training datasets, audit logs, backups. *Per Compliance review (#7), AI review (#1).* | DPO + ML Lead | new |
+| R19 | Minor-data marketing exposure (Egypt case study using junior athletes triggers PDPL + GDPR + image-rights claims) | Medium | High | Adults-only in marketing assets; minors blurred or excluded; signed publicity-rights releases archived; Egypt case-study review S22. *Per Compliance review (#7).* | DPO + Founder | new |
+| R20 | Live feed p95 latency breach on Wi-Fi (1–2 s GoPro UDP MPEG-TS floor + RN bridge cost) | High | Medium | USB-C UVC promoted to P0 for federation tier (p50 ≤ 1.2 s); Wi-Fi SLA reframed honestly (p50 ≤ 2.5 s, p95 ≤ 4 s); perceived-latency decoupling (animate "shot detected" tick at audio-impulse moment, fill diagnostic when ready); JSI/Fabric for zero-copy frame buffers. *Per Performance review (#4), Embedded review (#5).* | RN Lead + Embedded | new |
+| R21 | GoPro Hero 13 firmware regressions (HTTP API surface renumbering between firmware versions; setting IDs broke between v01.20 and v02.00 historically) | Medium | High | Pinned firmware matrix committed S2; startup compatibility check S4 refuses out-of-matrix combos; firmware-update detection in app S12; quarterly Labs-firmware regression run on golden sessions. *Per Embedded review (#5).* | CTO + Embedded | new |
+| R22 | RN bridge throughput collapse on frame data (legacy bridge serializes JSON; pose+frames at 24 fps would overwhelm it) | Medium | High | New Architecture (Fabric + JSI + Hermes) committed S2 with no legacy-bridge fallback for any frame-data path; JSI HostObject zero-copy buffers; perf budget validated S7 (≥ 24 fps sustained, < 1% drops over 10 min). *Per Architect review (#2), Mobile review (#3).* | RN Lead | new |
+| R23 | GoPro / Apple first-party threat (capture-stack vendor announces a clay-shooting analytics app) | Low | Critical | Own algorithm + dataset, not capture stack; federation credibility + per-athlete LoRA + Egypt validity-study moat; cross-discipline scaffolding (S15) widens defensible surface; trait abstraction allows multi-vendor camera support if GoPro becomes adversarial. *Per Trend review (#6).* | Founder | new |
+| R24 | CV-native incumbent (Sportsbox AI, KINEXON, Hudl) pivots into shooting | Medium | High | Speed of execution to v1; depth of shooting-specific dataset (Franco's annotations + κ-validated test sets); federation procurement docs (SOC 2 + ISO + DPIA) raise switching cost; published validity study (V1.5) creates academic moat. *Per Trend review (#6).* | Founder + ML Lead | new |
+| R25 | Egypt-only design partner geopolitical / marketing exposure (regional instability, Western federation skepticism, single-point-of-failure case study) | Medium | Medium | Secondary Western design partner committed before public launch (recruited as part of S21 Club beta — ≥ 1 Western club); two-case-study marketing posture (Egypt + Western) at S24; data-residency posture supports both jurisdictions. *Per Trend review (#6).* | Founder | new |
+
+---
+
+## Risk-status legend
+
+- **carried**: V1 risk retained without material change.
+- **tightened**: V1 risk where V2 plan adds concrete mitigations (probability or impact reduced via specific work in the V2 sprints).
+- **downgraded**: V1 risk where scope cut or earlier mitigation has reduced exposure.
+- **new**: surfaced by V2 reviews; not present in V1.
+
+## Maintenance
+
+- Owner: DPO for compliance risks (R16–R19); CTO for engineering risks; Founder for business risks.
+- Review cadence: at every phase gate plus monthly for tightened/new risks.
+- Escalation: any risk transitioning from Medium → High probability or impact triggers immediate stakeholder review.
