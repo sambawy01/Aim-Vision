@@ -1,0 +1,49 @@
+{{- /*
+PodDisruptionBudgets — keep at least 1 of each tier available during voluntary
+disruptions (node drains, autoscaling). On a 1-replica dev/on-prem cluster,
+flip these off in values-dev.yaml so kubectl drain isn't blocked.
+*/ -}}
+{{- if and .Values.backend.enabled .Values.pdb.backend.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "aimvision.backend.fullname" . }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  minAvailable: {{ .Values.pdb.backend.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "aimvision.backend.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- if and .Values.worker.enabled .Values.pdb.worker.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "aimvision.worker.fullname" . }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  minAvailable: {{ .Values.pdb.worker.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "aimvision.worker.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- if and .Values.web.enabled .Values.pdb.web.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "aimvision.web.fullname" . }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  minAvailable: {{ .Values.pdb.web.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "aimvision.web.selectorLabels" . | nindent 6 }}
+{{- end }}

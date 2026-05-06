@@ -1,0 +1,130 @@
+{{- if .Values.backend.enabled -}}
+{{- /*
+AIMVISION backend (FastAPI behind Granian/Uvicorn).
+Image, replicas, resources, autoscaling all values-driven. See ADR-0001 for
+the language/framework decision and architecture-overview.md §3.3 for the
+multi-tenant invariants this Deployment satisfies (RLS principal binding
+happens INSIDE the app on every request — there is no per-tenant Deployment).
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aimvision.backend.fullname" . }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  {{- with (include "aimvision.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "aimvision.backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "aimvision.backend.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Roll the deployment when the configmap content changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        # Roll on secret-template change. The actual secret payload lives in an
+        # ExternalSecret/SealedSecret; this captures shape changes only.
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets-external.yaml") . | sha256sum }}
+        {{- if .Values.observability.podAnnotations.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.backend.service.metricsPort | quote }}
+        prometheus.io/path: "/metrics"
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "aimvision.serviceAccountName" . }}
+      {{- include "aimvision.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        {{- toYaml .Values.backend.podSecurityContext | nindent 8 }}
+      containers:
+        - name: backend
+          image: {{ include "aimvision.image" (dict "image" .Values.backend.image "global" .Values.global) | quote }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.port }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.backend.service.metricsPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "aimvision.config.fullname" . }}
+            - secretRef:
+                name: {{ .Values.secrets.backend.name }}
+          env:
+            {{- range $k, $v := .Values.backend.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            - name: AIMVISION_RELEASE
+              value: {{ .Release.Name | quote }}
+            - name: AIMVISION_TIER
+              value: {{ .Values.global.tier | quote }}
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.backend.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.backend.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.backend.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.readiness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.backend.containerSecurityContext | nindent 12 }}
+          {{- with .Values.backend.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.backend.extraVolumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

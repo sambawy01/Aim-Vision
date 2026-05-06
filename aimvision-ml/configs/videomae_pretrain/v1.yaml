@@ -1,0 +1,40 @@
+# VideoMAE-v2 masked-autoencoding pretrain on raw shooting footage.
+# Cite docs/ml-architecture.md §10 (self-supervised pretraining).
+
+backbone:
+  arch: videomae-v2
+  model_size: base
+  patch_size: 16
+  tubelet_size: 2
+
+pretrain:
+  mask_ratio: 0.75
+  mask_strategy: tube     # tube masking per VideoMAE-v2 paper
+  clip_length_frames: 16
+  frame_stride: 4
+  input_resolution: 224
+
+  # First epoch: warm-start on near-domain public data.
+  warm_start_dataset: kinetics_400_sports_subset
+  warm_start_epochs: 1
+
+  # Domain-shift onto our own footage. Includes weakly-labeled clips since
+  # MAE doesn't need labels — that's the entire point of this stage.
+  pretrain_dataset:
+    name: aimvision_raw_footage
+    include_weakly_labeled: true
+    consent_filter: ml_training_consent=true   # compliance hard requirement
+    exclude_list_path: data/exclusion_list.txt
+
+  optimizer: adamw
+  lr: 1.5e-4
+  weight_decay: 0.05
+  epochs: 200
+  batch_size_per_gpu: 32
+
+  precision: bf16
+
+# Downstream: frozen embeddings feed ActionFormer and the diagnostic experts
+# (per ml-architecture.md §7 and §8). We do NOT fine-tune end-to-end at V1
+# data scale — that's revisited at >100k labeled shots.
+freeze_for_downstream: true

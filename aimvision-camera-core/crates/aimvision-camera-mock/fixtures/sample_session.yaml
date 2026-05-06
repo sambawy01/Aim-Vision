@@ -1,0 +1,57 @@
+# Canonical sample session: ~30 minutes, ~50 shots over 5 stations.
+# Used by playback.rs and as the baseline for any new fixture.
+shots:
+  - { t: 60.0, station: 1 }
+  - { t: 95.5, station: 1 }
+  - { t: 120.3, station: 1 }
+  - { t: 145.0, station: 1 }
+  - { t: 170.8, station: 1 }
+  - { t: 195.4, station: 1 }
+  - { t: 220.1, station: 1 }
+  - { t: 245.0, station: 1 }
+  - { t: 270.5, station: 1 }
+  - { t: 295.2, station: 1 }
+  - { t: 360.0, station: 2 }
+  - { t: 390.4, station: 2 }
+  - { t: 415.1, station: 2 }
+  - { t: 440.0, station: 2 }
+  - { t: 465.8, station: 2 }
+  - { t: 490.2, station: 2 }
+  - { t: 515.0, station: 2 }
+  - { t: 540.5, station: 2 }
+  - { t: 565.0, station: 2 }
+  - { t: 590.7, station: 2 }
+  - { t: 660.0, station: 3 }
+  - { t: 685.2, station: 3 }
+  - { t: 710.0, station: 3 }
+  - { t: 735.4, station: 3 }
+  - { t: 760.0, station: 3 }
+  - { t: 785.5, station: 3 }
+  - { t: 810.0, station: 3 }
+  - { t: 835.6, station: 3 }
+  - { t: 860.0, station: 3 }
+  - { t: 885.3, station: 3 }
+  - { t: 960.0, station: 4 }
+  - { t: 985.0, station: 4 }
+  - { t: 1010.4, station: 4 }
+  - { t: 1035.0, station: 4 }
+  - { t: 1060.7, station: 4 }
+  - { t: 1085.0, station: 4 }
+  - { t: 1110.0, station: 4 }
+  - { t: 1135.5, station: 4 }
+  - { t: 1160.0, station: 4 }
+  - { t: 1185.4, station: 4 }
+  - { t: 1260.0, station: 5 }
+  - { t: 1285.0, station: 5 }
+  - { t: 1310.0, station: 5 }
+  - { t: 1335.6, station: 5 }
+  - { t: 1360.0, station: 5 }
+  - { t: 1385.0, station: 5 }
+  - { t: 1410.0, station: 5 }
+  - { t: 1435.4, station: 5 }
+  - { t: 1460.0, station: 5 }
+  - { t: 1485.0, station: 5 }
+faults: []
+clock:
+  skew_ms: 0
+  drift_ms_per_min: 0

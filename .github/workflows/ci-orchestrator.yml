@@ -1,0 +1,242 @@
+# =============================================================================
+# CI Orchestrator — top-level path-filter router for the AIMVISION monorepo.
+# =============================================================================
+# Each subrepo owns its own workflow (e.g. aimvision-backend has its own CI).
+# This orchestrator runs once per push/PR, computes which paths changed, and
+# triggers only the workflows whose paths actually changed. We also run two
+# repo-wide checks unconditionally (gitleaks + helm-lint when infra changes).
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Detect which subrepos changed. Downstream jobs are gated on these outputs.
+  # ---------------------------------------------------------------------------
+  changes:
+    name: detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      camera: ${{ steps.filter.outputs.camera }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+      web: ${{ steps.filter.outputs.web }}
+      ml: ${{ steps.filter.outputs.ml }}
+      infra: ${{ steps.filter.outputs.infra }}
+      docs: ${{ steps.filter.outputs.docs }}
+      ci: ${{ steps.filter.outputs.ci }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Path filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'aimvision-backend/**'
+            camera:
+              - 'aimvision-camera-core/**'
+            mobile:
+              - 'aimvision-mobile/**'
+            web:
+              - 'aimvision-web/**'
+            ml:
+              - 'aimvision-ml/**'
+            infra:
+              - 'aimvision-infra/**'
+            docs:
+              - 'docs/**'
+            ci:
+              - '.github/**'
+              - '.pre-commit-config.yaml'
+              - 'Makefile'
+
+  # ---------------------------------------------------------------------------
+  # Repo-wide secret scan — runs on every push, no path gate.
+  # ---------------------------------------------------------------------------
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Enterprise license — empty for OSS repos.
+          GITLEAKS_LICENSE: ""
+
+  # ---------------------------------------------------------------------------
+  # Pre-commit (lint hygiene) — runs on every push.
+  # ---------------------------------------------------------------------------
+  precommit:
+    name: pre-commit (lint, format, secret-scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install pre-commit
+        run: pip install pre-commit==3.8.0
+      - name: Run pre-commit (changed files only on PR, all-files on main)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            pre-commit run --from-ref "origin/${{ github.base_ref }}" --to-ref HEAD --show-diff-on-failure
+          else
+            pre-commit run --all-files --show-diff-on-failure
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Helm lint — only when aimvision-infra changes.
+  # ---------------------------------------------------------------------------
+  helm-lint:
+    name: helm-lint
+    needs: changes
+    if: needs.changes.outputs.infra == 'true' || needs.changes.outputs.ci == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+      - name: helm lint (every overlay)
+        working-directory: aimvision-infra
+        run: |
+          set -euxo pipefail
+          helm lint helm/aimvision --strict
+          helm lint helm/aimvision --strict \
+            -f helm/aimvision/values.yaml -f helm/aimvision/values-cloud.yaml
+          helm lint helm/aimvision --strict \
+            -f helm/aimvision/values.yaml -f helm/aimvision/values-onprem.yaml
+          helm lint helm/aimvision --strict \
+            -f helm/aimvision/values.yaml -f helm/aimvision/values-dev.yaml
+      - name: helm template (sanity render)
+        working-directory: aimvision-infra
+        run: |
+          set -euxo pipefail
+          helm template aim-cloud helm/aimvision \
+            -f helm/aimvision/values.yaml -f helm/aimvision/values-cloud.yaml \
+            --namespace aimvision > /tmp/aimvision-cloud.yaml
+          helm template aim-onprem helm/aimvision \
+            -f helm/aimvision/values.yaml -f helm/aimvision/values-onprem.yaml \
+            --namespace aimvision > /tmp/aimvision-onprem.yaml
+          helm template aim-dev helm/aimvision \
+            -f helm/aimvision/values.yaml -f helm/aimvision/values-dev.yaml \
+            --namespace aimvision > /tmp/aimvision-dev.yaml
+          for f in /tmp/aimvision-{cloud,onprem,dev}.yaml; do
+            echo "== $f =="
+            wc -l "$f"
+            grep -c '^kind:' "$f" || true
+          done
+      - name: kubeconform (validate against k8s API)
+        run: |
+          curl -sSL -o kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz
+          for f in /tmp/aimvision-{cloud,onprem,dev}.yaml; do
+            ./kubeconform -strict -summary -ignore-missing-schemas \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+              "$f"
+          done
+
+  # ---------------------------------------------------------------------------
+  # Subrepo dispatchers — placeholder stubs in v0.1.0. Each subrepo will land
+  # its own reusable workflow at .github/workflows/<subrepo>-ci.yml and we
+  # will swap these stubs for `uses: ./.github/workflows/<subrepo>-ci.yml` once
+  # they exist. Doing it this way keeps the orchestrator green from day 1
+  # without depending on workflows that haven't been written yet.
+  # ---------------------------------------------------------------------------
+
+  backend:
+    name: backend CI
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "TODO: dispatch to .github/workflows/backend-ci.yml"'
+
+  camera:
+    name: camera-core CI
+    needs: changes
+    if: needs.changes.outputs.camera == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "TODO: dispatch to .github/workflows/camera-core-ci.yml"'
+
+  mobile:
+    name: mobile CI
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "TODO: dispatch to .github/workflows/mobile-ci.yml"'
+
+  web:
+    name: web CI
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "TODO: dispatch to .github/workflows/web-ci.yml"'
+
+  ml:
+    name: ml CI
+    needs: changes
+    if: needs.changes.outputs.ml == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "TODO: dispatch to .github/workflows/ml-ci.yml"'
+
+  # ---------------------------------------------------------------------------
+  # Aggregate gate — required-status for branch protection.
+  # ---------------------------------------------------------------------------
+  ci-success:
+    name: ci-success
+    needs:
+      - gitleaks
+      - precommit
+      - helm-lint
+      - backend
+      - camera
+      - mobile
+      - web
+      - ml
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all gates passed (or were skipped legitimately)
+        run: |
+          set -euo pipefail
+          # `cancelled` or `failure` in any non-skipped dependency fails this gate.
+          jq -nr --argjson r '${{ toJSON(needs) }}' '
+            $r | to_entries[]
+            | select(.value.result != null and .value.result != "skipped" and .value.result != "success")
+            | "FAIL: \(.key) -> \(.value.result)"
+          ' && exit 1 || echo "All required jobs passed or were appropriately skipped."

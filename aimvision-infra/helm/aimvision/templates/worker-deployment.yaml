@@ -1,0 +1,117 @@
+{{- if .Values.worker.enabled -}}
+{{- /*
+Arq workers (Redis-backed task queue) — same image as backend, different
+command. Workers do NOT serve HTTP. They run the post-session pipeline,
+RAG indexing, and async fan-out. See architecture-overview.md §3.3 + §4.2.
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aimvision.worker.fullname" . }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+  {{- with (include "aimvision.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "aimvision.worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "aimvision.worker.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets-external.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "aimvision.serviceAccountName" . }}
+      {{- include "aimvision.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        {{- toYaml .Values.worker.podSecurityContext | nindent 8 }}
+      # Workers should drain in-flight Arq jobs before SIGKILL.
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: worker
+          image: {{ include "aimvision.image" (dict "image" .Values.worker.image "global" .Values.global) | quote }}
+          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+          command:
+            {{- toYaml .Values.worker.command | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "aimvision.config.fullname" . }}
+            - secretRef:
+                name: {{ .Values.secrets.backend.name }}
+          env:
+            {{- range $k, $v := .Values.worker.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            - name: AIMVISION_RELEASE
+              value: {{ .Release.Name | quote }}
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          # Arq exposes a health endpoint when the worker process is up; we use
+          # `pgrep` as a portable liveness, since arq has no built-in HTTP server.
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "pgrep -f 'arq app.worker.WorkerSettings' >/dev/null"
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "pgrep -f 'arq app.worker.WorkerSettings' >/dev/null"
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.worker.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /app/.cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+      {{- with .Values.worker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

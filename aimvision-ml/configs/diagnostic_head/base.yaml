@@ -1,0 +1,70 @@
+# Diagnostic head — multi-task hierarchical, multi-label, per-task calibration.
+# Cite docs/ml-architecture.md §8 and docs/diagnostic-taxonomy.md.
+
+taxonomy_version: "0.9-draft"
+schema_version: "1.0"
+
+# Each branch expert produces calibrated probabilities for its own atoms.
+# Atoms map 1:1 to docs/diagnostic-taxonomy.md.
+branches:
+  head_eye:
+    atoms: [head_lift, head_off_stock, eye_dominance_failure]
+    loss_weight: 1.0
+  mount_stance:
+    atoms: [low_mount_break, foot_position, body_alignment_off]
+    loss_weight: 1.0
+  swing_lead:
+    atoms: [stopped_gun, under_lead, over_lead, off_line]
+    loss_weight: 1.2  # highest-impact, densest IMU signal (gyro-Z)
+  follow_through:
+    atoms: [short_follow_through, dropped_gun_post_shot]
+    loss_weight: 0.8
+
+meta:
+  atoms: [cause_unclear, multi_factor, in_session_pattern_flag]
+  cause_unclear_max_rate: 0.15  # UX gate per docs/diagnostic-taxonomy.md §Meta
+
+# Per-class abstention thresholds. Defaults sourced from the taxonomy doc;
+# tuned on stratified validation per ml-architecture.md §8.
+abstention_thresholds:
+  head_lift: 0.55
+  head_off_stock: 0.60
+  eye_dominance_failure: 0.70
+  low_mount_break: 0.60
+  foot_position: 0.65
+  body_alignment_off: 0.60
+  stopped_gun: 0.55  # tightens to 0.70 when IMU is unavailable
+  under_lead: 0.60
+  over_lead: 0.60
+  off_line: 0.60
+  short_follow_through: 0.60
+  dropped_gun_post_shot: 0.65
+
+calibration:
+  method: temperature_scaling   # Guo et al. 2017, per ml-architecture.md §8
+  per_task: true
+  conformal_target_coverage: 0.90
+
+# Bias-audit + calibration gates that block model promotion.
+# Source: docs/ml-architecture.md §12 and §13.
+gates:
+  ece_max: 0.05
+  top3_macro_f1_min: 0.78
+  conformal_coverage_min: 0.88   # 90% target with 2pt slack
+  bias_axis_macro_f1_gap_max: 0.05  # any stratum exceeding this fails
+  inter_rater_normalized_min: 0.92  # of κ-ceiling
+
+stratification_axes:
+  - station
+  - discipline      # skeet | trap | sporting
+  - lighting        # good | harsh_sun | dust
+  - body_type
+  - skin_tone
+  - clothing_color  # orange high-vis vs. black
+
+train:
+  epochs: 40
+  batch_size: 32
+  lr: 0.0003
+  weight_decay: 0.01
+  optimizer: adamw

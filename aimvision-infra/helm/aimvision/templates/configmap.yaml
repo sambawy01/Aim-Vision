@@ -1,0 +1,19 @@
+{{- /*
+Non-secret runtime configuration for backend + worker.
+Tracked separately from secrets so changes here trigger a rolling restart via
+the checksum/config annotation on the Deployment pod template.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aimvision.config.fullname" . }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+  {{- with (include "aimvision.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+data:
+  {{- range $k, $v := .Values.config.data }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}

@@ -1,0 +1,64 @@
+name: backend-ci
+
+on:
+  push:
+    paths:
+      - "aimvision-backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "aimvision-backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+defaults:
+  run:
+    working-directory: aimvision-backend
+
+jobs:
+  lint-type-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: aimvision
+          POSTGRES_PASSWORD: aimvision
+          POSTGRES_DB: aimvision_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aimvision"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      AIMVISION_TEST_POSTGRES_URL: postgresql+asyncpg://aimvision:aimvision@localhost:5432/aimvision_test
+      AIMVISION_JWT_SECRET: ci-secret-ci-secret-ci-secret-32bytes
+      AIMVISION_ENV: ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv==0.5.4
+
+      - name: Install dependencies
+        run: uv pip install --system -e '.[dev]'
+
+      - name: Ruff lint
+        run: uv run --no-project ruff check .
+
+      - name: Ruff format check
+        run: uv run --no-project ruff format --check .
+
+      - name: Mypy
+        run: uv run --no-project mypy app
+
+      - name: Pytest (with Postgres)
+        run: uv run --no-project pytest -v --cov=app --cov-report=xml

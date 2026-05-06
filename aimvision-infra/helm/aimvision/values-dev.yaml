@@ -1,0 +1,115 @@
+# =============================================================================
+# AIMVISION — values-dev.yaml (kind / k3d local laptop loop)
+# =============================================================================
+# Tiny resource footprint, single replicas, ingress via nip.io, no autoscaling.
+# Apply on top of values.yaml:
+#   helm upgrade --install aim-dev ./helm/aimvision \
+#     -f helm/aimvision/values.yaml -f helm/aimvision/values-dev.yaml \
+#     --namespace aimvision --create-namespace
+# =============================================================================
+
+global:
+  domain: 127.0.0.1.nip.io
+  tier: dev
+  region: local
+  commonLabels:
+    aimvision.io/tier: dev
+
+backend:
+  replicas: 1
+  image:
+    pullPolicy: Always
+  ingress:
+    className: nginx
+    host: "api.127.0.0.1.nip.io"
+    tls:
+      enabled: false
+    annotations: {}
+  env:
+    LOG_LEVEL: debug
+    AIMVISION_TIER: "dev"
+    AIMVISION_OBJECT_STORE: "minio"
+    AIMVISION_LLM_PROVIDER: "ollama"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  autoscaling:
+    enabled: false
+
+worker:
+  replicas: 1
+  image:
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+web:
+  replicas: 1
+  ingress:
+    host: "app.127.0.0.1.nip.io"
+    tls:
+      enabled: false
+    annotations: {}
+
+cnpg:
+  enabled: true
+  instances: 1
+  storage:
+    size: 5Gi
+    storageClass: standard
+  walStorage:
+    enabled: false
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  backup:
+    enabled: false
+
+minio:
+  enabled: true
+  replicas: 1
+  storage:
+    size: 5Gi
+    storageClass: standard
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+ollama:
+  enabled: false  # Dev loop typically stubs the LLM; flip on locally if you have a GPU.
+
+observability:
+  serviceMonitor:
+    enabled: false
+
+secrets:
+  backend:
+    provider: "sealed"
+
+networkPolicy:
+  enabled: false   # ease debugging on the laptop
+
+pdb:
+  backend:
+    enabled: false
+  worker:
+    enabled: false
+  web:
+    enabled: false

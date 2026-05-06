@@ -1,0 +1,5 @@
+[build]
+# CI sets RUSTFLAGS via environment; this file is the canonical source for
+# warnings-as-errors during local development. To opt out for a single
+# command, override with `RUSTFLAGS=` on the invocation.
+rustflags = ["-D", "warnings"]

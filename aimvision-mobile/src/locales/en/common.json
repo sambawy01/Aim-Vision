@@ -1,0 +1,84 @@
+{
+  "app": {
+    "name": "AIMVISION",
+    "tagline": "Olympic shooting sports analytics"
+  },
+  "common": {
+    "continue": "Continue",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "done": "Done"
+  },
+  "ageGate": {
+    "title": "When were you born?",
+    "subtitle": "We use your date of birth to set the right protections for your account.",
+    "dobLabel": "Date of birth",
+    "countryLabel": "Country of residence",
+    "continue": "Continue",
+    "errorFuture": "Date of birth cannot be in the future.",
+    "parentRequired": "Parental consent required",
+    "parentRequiredDescription": "Because you're under 18, a parent or guardian needs to set up your account with you.",
+    "coppaWarning": "Children under 13 require verifiable parental consent before any data is collected. Your parent or guardian will need to complete a verification step.",
+    "proceedAdult": "Continue to sign up"
+  },
+  "parentalConsent": {
+    "title": "Parental consent",
+    "subtitle": "Choose how you'd like to verify your identity as the parent or guardian.",
+    "method": {
+      "paper_pdf": "Signed PDF + photo of government ID",
+      "credit_card": "Credit card verification (refunded immediately)",
+      "email_plus_id": "Verified email + signed PDF",
+      "video_call": "Video verification call"
+    },
+    "uploadPdf": "Upload signed PDF",
+    "submit": "Submit for review",
+    "submittedTitle": "Submitted",
+    "submittedBody": "We'll email you when your verification is approved."
+  },
+  "childSetup": {
+    "title": "Welcome",
+    "body": "Your parent set up your account. Here's what's on and off.",
+    "confirmAssent": "I want to use AIMVISION"
+  },
+  "consent": {
+    "title": "What can we use?",
+    "subtitle": "Each row is a category of data. Each column is a purpose. Nothing is on by default.",
+    "headerCategory": "Data category",
+    "category": {
+      "video": "Video",
+      "pose": "Pose keypoints",
+      "voice": "Voice notes",
+      "LLM_coaching": "LLM coaching notes",
+      "ML_training": "ML training contributions"
+    },
+    "purpose": {
+      "coaching": "Coaching",
+      "marketing": "Marketing",
+      "validity_study": "Validity study"
+    },
+    "cell": "{{category}} for {{purpose}}",
+    "save": "Save consent"
+  },
+  "welcome": {
+    "title": "You're all set",
+    "body": "Pair your camera and start your first session whenever you're ready."
+  },
+  "home": {
+    "title": "Home",
+    "noSessions": "No sessions yet."
+  },
+  "settings": {
+    "title": "Settings",
+    "dataPrivacy": "Data & Privacy",
+    "rangeMode": "Range Mode (high contrast)",
+    "language": "Language"
+  },
+  "dataPrivacy": {
+    "title": "Data & Privacy",
+    "revoke": "Revoke a consent",
+    "dsar": "Request my data (DSAR)",
+    "delete": "Delete my account"
+  }
+}

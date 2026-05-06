@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/aimvision-camera-traits",
+    "crates/aimvision-camera-mock",
+    "crates/aimvision-camera-state",
+]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.83"
+license = "Proprietary"
+authors = ["AIMVISION Embedded Firmware Team"]
+repository = "https://github.com/aimvision/aimvision-camera-core"
+
+[workspace.dependencies]
+tokio = { version = "1.40", features = ["full"] }
+thiserror = "1"
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+tracing = "0.1"
+uuid = { version = "1", features = ["v4", "v7", "serde"] }
+
+# Internal crates
+aimvision-camera-traits = { path = "crates/aimvision-camera-traits" }
+aimvision-camera-mock = { path = "crates/aimvision-camera-mock" }
+aimvision-camera-state = { path = "crates/aimvision-camera-state" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+
+[profile.dev]
+opt-level = 0
+debug = true

@@ -1,0 +1,32 @@
+# =============================================================================
+# CloudNativePG operator — install placeholder.
+# =============================================================================
+# This file is intentionally minimal in v0.1.0. The recommended install path
+# is the Helm chart (see README.md in this directory). On air-gapped federation
+# appliances the bundle build pipeline runs `helm template cnpg/cloudnative-pg`
+# to produce a real install manifest at build time and ships that as part of
+# the appliance image.
+#
+# We DO NOT vendor the rendered operator manifest into git because:
+#   1. It changes on every CNPG bump and produces noisy diffs.
+#   2. The chart is the source of truth (upstream-supported, signed).
+#   3. Repo size — the rendered manifest is ~1MB.
+#
+# To regenerate locally for inspection:
+#
+#   helm repo add cnpg https://cloudnative-pg.github.io/charts
+#   helm repo update
+#   helm template cnpg cnpg/cloudnative-pg --version 0.22.1 \
+#     --namespace cnpg-system --create-namespace > /tmp/cnpg-install.yaml
+#
+# CI re-renders on every pin bump and asserts that the diff matches expectations.
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cnpg-system
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

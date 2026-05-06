@@ -1,0 +1,56 @@
+{
+  "app": {
+    "name": "أيم فيجن",
+    "tagline": "تحليلات تدريبية للرماية بالأطباق"
+  },
+  "auth": {
+    "login": {
+      "title": "تسجيل الدخول إلى AIMVISION",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "submit": "تسجيل الدخول",
+      "forgot": "هل نسيت كلمة المرور؟"
+    },
+    "logout": "تسجيل الخروج"
+  },
+  "nav": {
+    "athletes": "الرياضيون",
+    "sessions": "الجلسات",
+    "checkin": "تسجيل الحضور",
+    "settings": "الإعدادات"
+  },
+  "athletes": {
+    "title": "الرياضيون",
+    "empty": "لا يوجد رياضيون بعد"
+  },
+  "sessions": {
+    "title": "الجلسات",
+    "empty": "لا توجد جلسات بعد"
+  },
+  "checkin": {
+    "title": "تسجيل الحضور عبر رمز QR",
+    "scanPlaceholder": "ماسح ضوئي مؤقت — استخدم الإدخال اليدوي أدناه",
+    "manualEntryLabel": "الرمز",
+    "displayCodeLabel": "رمز مكون من 6 أرقام",
+    "sessionIdLabel": "معرف الجلسة",
+    "redeem": "استرداد",
+    "specRef": "راجع docs/security/qr-checkin-token-spec.md"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "language": "اللغة",
+    "tenant": "المستأجر النشط"
+  },
+  "common": {
+    "loading": "جارٍ التحميل…",
+    "error": "حدث خطأ ما",
+    "retry": "إعادة المحاولة",
+    "save": "حفظ",
+    "cancel": "إلغاء"
+  },
+  "locale": {
+    "switcher": "اللغة",
+    "en": "English",
+    "ar": "العربية"
+  }
+}

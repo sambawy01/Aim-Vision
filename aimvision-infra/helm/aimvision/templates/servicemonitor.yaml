@@ -1,0 +1,41 @@
+{{- if .Values.observability.serviceMonitor.enabled -}}
+{{- /*
+Prometheus Operator ServiceMonitor — gated. Cloud uses the Grafana Cloud agent
+(installed cluster-wide outside this chart). On-prem flips this on so the
+in-cluster Prometheus (Loki/Mimir/Tempo via the kube-prometheus-stack chart)
+finds the backend's /metrics.
+
+Per docs/observability-plan.md §3 the same dashboards work in both shapes
+because the metric names are operator/app-defined, not provider-defined.
+*/ -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "aimvision.backend.fullname" . }}
+  {{- with .Values.observability.serviceMonitor.namespace }}
+  namespace: {{ . }}
+  {{- end }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+    {{- with .Values.observability.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "aimvision.backend.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace | quote }}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: {{ .Values.observability.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.observability.serviceMonitor.scrapeTimeout }}
+      honorLabels: true
+      {{- with .Values.observability.serviceMonitor.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

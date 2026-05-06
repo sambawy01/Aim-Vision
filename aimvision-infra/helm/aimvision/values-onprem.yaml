@@ -1,0 +1,131 @@
+# =============================================================================
+# AIMVISION — values-onprem.yaml (federation k3s appliance)
+# =============================================================================
+# Single-node k3s on a 16-core / 64GB fanless box (or 3-node for HA federations).
+# - MinIO replaces S3
+# - Ollama runs on-appliance (federation tier)
+# - pgBackRest writes to local PVC instead of S3
+# - SealedSecrets instead of ExternalSecrets (air-gappable)
+# =============================================================================
+
+global:
+  domain: aimvision.local
+  tier: federation-onprem
+  region: on-prem
+  commonLabels:
+    aimvision.io/tier: federation-onprem
+
+backend:
+  replicas: 2
+  ingress:
+    className: traefik   # k3s default
+    host: "api.aimvision.local"
+    annotations:
+      # Self-signed or federation-CA cert; cert-manager still drives issuance.
+      cert-manager.io/cluster-issuer: aimvision-internal-ca
+    tls:
+      enabled: true
+      secretName: aimvision-api-tls
+  env:
+    LOG_LEVEL: info
+    AIMVISION_TIER: "federation-onprem"
+    AIMVISION_OBJECT_STORE: "minio"
+    AIMVISION_LLM_PROVIDER: "ollama"
+  autoscaling:
+    enabled: false
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+worker:
+  replicas: 2
+  env:
+    LOG_LEVEL: info
+    AIMVISION_TIER: "federation-onprem"
+    AIMVISION_OBJECT_STORE: "minio"
+    AIMVISION_LLM_PROVIDER: "ollama"
+
+web:
+  replicas: 1
+  ingress:
+    className: traefik
+    host: "app.aimvision.local"
+
+# Single-node CNPG cluster on the appliance; pgBackRest local backup.
+cnpg:
+  enabled: true
+  instances: 1
+  storage:
+    size: 500Gi
+    storageClass: local-path # k3s default
+  walStorage:
+    enabled: true
+    size: 100Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: "2"
+      memory: 4Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+  backup:
+    enabled: true
+    target: "local"
+    retentionPolicy: "30d"
+    local:
+      storageClass: local-path
+      size: 500Gi
+
+# On-prem uses MinIO as S3-compatible object store.
+minio:
+  enabled: true
+  replicas: 1
+  storage:
+    size: 2Ti
+    storageClass: local-path
+
+# Ollama on-appliance (federation tier).
+ollama:
+  enabled: true
+  model: "deepseek-coder-v2:14b-q4_k_m"
+  storage:
+    size: 200Gi
+    storageClass: local-path
+  gpu:
+    enabled: true
+    nodeSelector:
+      accelerator: nvidia
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+
+# In-cluster Prometheus on the appliance scrapes everything via ServiceMonitor.
+observability:
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: 30s
+    labels:
+      release: prometheus
+
+# Air-gappable: SealedSecrets controller key shipped with the appliance.
+secrets:
+  backend:
+    provider: "sealed"
+
+networkPolicy:
+  enabled: true
+  defaultDenyIngress: true
+
+config:
+  data:
+    AIMVISION_API_BASE: "https://api.aimvision.local"
+    AIMVISION_WEB_BASE: "https://app.aimvision.local"
+    AIMVISION_DEFAULT_REGION: "on-prem"
+    # On-prem: scrape goes to in-cluster prometheus, not Grafana Cloud
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana-agent.monitoring.svc:4318"

@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+  font-family: theme('fontFamily.sans');
+  -webkit-font-smoothing: antialiased;
+}
+
+html[dir='rtl'] body {
+  font-family: theme('fontFamily.arabic');
+}
+
+body {
+  margin: 0;
+  background: theme('colors.surface.DEFAULT');
+  color: theme('colors.text.DEFAULT');
+}
+
+:focus-visible {
+  outline: 2px solid theme('colors.focus');
+  outline-offset: 2px;
+}

@@ -1,0 +1,174 @@
+# =============================================================================
+# AIMVISION monorepo — Dependabot configuration
+# =============================================================================
+# One ecosystem entry per directory we want scanned. Schedules are weekly to
+# keep PR volume manageable; security advisories override and PR immediately.
+# Ignore patterns are conservative — bump majors deliberately, not via bot.
+# =============================================================================
+
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------
+  # Python — backend
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/aimvision-backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "python", "backend"]
+    commit-message:
+      prefix: "chore(backend-deps)"
+      include: "scope"
+    groups:
+      pydantic:
+        patterns: ["pydantic*", "pydantic-settings"]
+      sqlalchemy:
+        patterns: ["sqlalchemy", "alembic"]
+      otel:
+        patterns: ["opentelemetry-*"]
+    ignore:
+      # Bump majors with intent.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------
+  # Python — ML
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/aimvision-ml"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "python", "ml"]
+    commit-message:
+      prefix: "chore(ml-deps)"
+      include: "scope"
+    ignore:
+      - dependency-name: "torch"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------
+  # JS/TS — mobile (React Native)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/aimvision-mobile"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "javascript", "mobile"]
+    commit-message:
+      prefix: "chore(mobile-deps)"
+      include: "scope"
+    groups:
+      react-native:
+        patterns: ["react-native", "react-native-*", "@react-native/*", "@shopify/react-native-skia"]
+      expo:
+        patterns: ["expo", "expo-*", "@expo/*"]
+      sentry:
+        patterns: ["@sentry/*"]
+    ignore:
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------
+  # JS/TS — web
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/aimvision-web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "javascript", "web"]
+    commit-message:
+      prefix: "chore(web-deps)"
+      include: "scope"
+    groups:
+      react:
+        patterns: ["react", "react-dom", "@types/react*"]
+      tooling:
+        patterns: ["typescript", "vite", "vitest", "eslint*", "prettier"]
+
+  # ---------------------------------------------------------------------------
+  # Rust — camera-core
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "cargo"
+    directory: "/aimvision-camera-core"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "rust", "camera-core"]
+    commit-message:
+      prefix: "chore(camera-deps)"
+      include: "scope"
+    ignore:
+      - dependency-name: "uniffi"
+        # ADR-0003: UniFFI minor version is pinned per release. Manual bumps only.
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ---------------------------------------------------------------------------
+  # GitHub Actions
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+
+  # ---------------------------------------------------------------------------
+  # Docker — backend Dockerfile
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    directory: "/aimvision-backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker", "backend"]
+    commit-message:
+      prefix: "chore(backend-docker)"
+      include: "scope"
+
+  # ---------------------------------------------------------------------------
+  # Docker — ML Dockerfile (CUDA base may pin major)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    directory: "/aimvision-ml"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker", "ml"]
+    commit-message:
+      prefix: "chore(ml-docker)"
+      include: "scope"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

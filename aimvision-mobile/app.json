@@ -1,0 +1,117 @@
+{
+  "expo": {
+    "name": "AIMVISION",
+    "slug": "aimvision-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "scheme": "aimvision",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0F14"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "com.aimvision.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "LSApplicationCategoryType": "public.app-category.sports",
+        "NSCameraUsageDescription": "AIMVISION uses the camera to record your shooting sessions and overlay coaching feedback.",
+        "NSMicrophoneUsageDescription": "AIMVISION uses the microphone to detect shot events for automatic session tagging.",
+        "NSBluetoothAlwaysUsageDescription": "AIMVISION pairs with your GoPro over Bluetooth to start and stop recording.",
+        "NSPhotoLibraryUsageDescription": "AIMVISION saves session recordings to your photo library when you choose to export them.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": ["35F9.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": ["E174.1"]
+          }
+        ]
+      }
+    },
+    "android": {
+      "package": "com.aimvision.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B0F14"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1",
+            "newArchEnabled": true
+          },
+          "android": {
+            "minSdkVersion": 26,
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "newArchEnabled": true
+          }
+        }
+      ],
+      "expo-localization",
+      "expo-secure-store",
+      [
+        "expo-updates",
+        {
+          "username": "aimvision"
+        }
+      ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/REPLACE_WITH_EAS_PROJECT_ID",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      },
+      "locale": {
+        "supportsRTL": true,
+        "defaultLocale": "en",
+        "supportedLocales": ["en", "ar"]
+      },
+      "env": {
+        "API_BASE_URL": "https://api.aimvision.com",
+        "SENTRY_DSN": "",
+        "STATSIG_CLIENT_KEY": "",
+        "OTEL_ENDPOINT": ""
+      }
+    }
+  }
+}

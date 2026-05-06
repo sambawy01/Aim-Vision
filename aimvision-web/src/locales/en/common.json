@@ -1,0 +1,56 @@
+{
+  "app": {
+    "name": "AIMVISION",
+    "tagline": "Coaching analytics for clay & skeet"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to AIMVISION",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "forgot": "Forgot password?"
+    },
+    "logout": "Sign out"
+  },
+  "nav": {
+    "athletes": "Athletes",
+    "sessions": "Sessions",
+    "checkin": "Check-in",
+    "settings": "Settings"
+  },
+  "athletes": {
+    "title": "Athletes",
+    "empty": "No athletes yet"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "empty": "No sessions yet"
+  },
+  "checkin": {
+    "title": "QR Check-in",
+    "scanPlaceholder": "Scanner placeholder — manual entry below",
+    "manualEntryLabel": "Token",
+    "displayCodeLabel": "6-digit code",
+    "sessionIdLabel": "Session ID",
+    "redeem": "Redeem",
+    "specRef": "See docs/security/qr-checkin-token-spec.md"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "tenant": "Active tenant"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "locale": {
+    "switcher": "Language",
+    "en": "English",
+    "ar": "العربية"
+  }
+}

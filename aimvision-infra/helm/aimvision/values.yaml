@@ -1,0 +1,497 @@
+# =============================================================================
+# AIMVISION — base values.yaml
+# =============================================================================
+# Per ADR-0005, container images are identical in cloud and on-prem; differences
+# are values, secrets, replica counts, and which storage class is requested.
+# This file holds the safe defaults. Environment overlays live in:
+#   - values-cloud.yaml    (Railway-managed Kubernetes, S3, Grafana Cloud)
+#   - values-onprem.yaml   (federation k3s appliance, MinIO, on-appliance Ollama)
+#   - values-dev.yaml      (kind/k3d laptop loop)
+# =============================================================================
+
+global:
+  imageRegistry: ""
+  # Kubernetes ImagePullSecrets — names of pre-existing secrets in the namespace.
+  imagePullSecrets: []
+  # Apex domain for ingress hostname templating (api.<domain>, app.<domain>).
+  domain: aimvision.example.com
+  # Deployment tier — drives feature gating and resource shapes.
+  # Allowed: cloud | federation-onprem | dev
+  tier: cloud
+  region: eu-west-1
+  # Common labels merged into every resource's metadata.labels.
+  commonLabels: {}
+  # Common annotations merged into every resource's metadata.annotations.
+  commonAnnotations: {}
+
+# -----------------------------------------------------------------------------
+# Backend (FastAPI) — see docs/architecture-overview.md §3.3
+# -----------------------------------------------------------------------------
+backend:
+  enabled: true
+  replicas: 3
+  image:
+    repository: ghcr.io/sambawy01/aimvision-backend
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+    metricsPort: 8001
+  ingress:
+    enabled: true
+    className: nginx
+    host: "api.aimvision.example.com" # rendered explicitly; we do not embed templates inside values
+    tls:
+      enabled: true
+      secretName: aimvision-api-tls
+    annotations:
+      # cert-manager automated certs by default
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  # Plain (non-secret) env. Secrets come from secrets-external.yaml.
+  env:
+    LOG_LEVEL: info
+    AIMVISION_TIER: "cloud"
+    OPENTELEMETRY_SERVICE_NAME: "aimvision-backend"
+    OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+  # Liveness / readiness probe overrides (paths are fixed by the app contract).
+  probes:
+    liveness:
+      initialDelaySeconds: 20
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    readiness:
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Topology spread for HA scheduling across AZs (cloud) or nodes (on-prem).
+  topologySpreadConstraints: []
+  # Extra volumes / mounts (e.g. tmpfs for /tmp because rootfs is read-only).
+  extraVolumes:
+    - name: tmp
+      emptyDir: {}
+    - name: cache
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: tmp
+      mountPath: /tmp
+    - name: cache
+      mountPath: /app/.cache
+
+# -----------------------------------------------------------------------------
+# Arq workers — Redis-backed task queue, same image as backend
+# -----------------------------------------------------------------------------
+worker:
+  enabled: true
+  replicas: 2
+  image:
+    repository: ghcr.io/sambawy01/aimvision-backend
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  command:
+    - "uv"
+    - "run"
+    - "arq"
+    - "app.worker.WorkerSettings"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  env:
+    LOG_LEVEL: info
+    AIMVISION_TIER: "cloud"
+    AIMVISION_WORKER_ROLE: "default"
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# Web frontend (React) — coach dashboard, federation admin
+# -----------------------------------------------------------------------------
+web:
+  enabled: true
+  replicas: 2
+  image:
+    repository: ghcr.io/sambawy01/aimvision-web
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: true
+    className: nginx
+    host: "app.aimvision.example.com"
+    tls:
+      enabled: true
+      secretName: aimvision-web-tls
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+
+# -----------------------------------------------------------------------------
+# CloudNativePG-managed Postgres cluster (ADR-0005)
+# -----------------------------------------------------------------------------
+cnpg:
+  enabled: true
+  # Cluster name; the chart will use this as the metadata.name.
+  clusterName: aimvision-pg
+  # Postgres version (track CloudNativePG's supported minor list).
+  postgresVersion: "16.4"
+  imageName: "ghcr.io/cloudnative-pg/postgresql:16.4-1"
+  instances: 3
+  # ADR-0005: TimescaleDB + pgvector + RLS enabled.
+  postgresql:
+    parameters:
+      # Tuned for ~4 vCPU / 8GB pod; override per-environment.
+      max_connections: "200"
+      shared_buffers: "1GB"
+      effective_cache_size: "3GB"
+      work_mem: "16MB"
+      maintenance_work_mem: "256MB"
+      wal_compression: "on"
+      # ADR-0004 multi-tenant audit
+      "pgaudit.log": "ddl, role, write"
+      "pgaudit.log_catalog": "off"
+      "pgaudit.log_parameter": "off"
+      "shared_preload_libraries": "pgaudit, timescaledb"
+    pg_hba:
+      # Default to scram-sha-256, enforce TLS in cloud.
+      - "hostssl all all all scram-sha-256"
+  bootstrap:
+    initdb:
+      database: aimvision
+      owner: aimvision
+      # Extensions are created post-init by the operator (see post-init SQL).
+      postInitSQL:
+        - "CREATE EXTENSION IF NOT EXISTS pgaudit;"
+        - "CREATE EXTENSION IF NOT EXISTS pgvector;"
+        - "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
+        # TimescaleDB requires shared_preload_libraries above.
+        - "CREATE EXTENSION IF NOT EXISTS timescaledb;"
+  storage:
+    size: 50Gi
+    # storageClass: "" → cluster default. Cloud overrides set a fast SSD class.
+    storageClass: ""
+  # WAL on a separate PVC (CloudNativePG best practice for IOPS isolation).
+  walStorage:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+  monitoring:
+    # Operator emits Prometheus metrics; ServiceMonitor created when
+    # observability.serviceMonitor.enabled is true.
+    enablePodMonitor: false
+  # Backup config — cloud uses S3, on-prem uses pgBackRest local. Both are
+  # toggled via the discriminator field below.
+  backup:
+    enabled: true
+    # one of: s3 | local
+    target: "s3"
+    retentionPolicy: "30d"
+    s3:
+      # destinationPath e.g. s3://aimvision-pg-backup-eu/aimvision
+      bucket: "aimvision-pg-backup-eu"
+      path: "aimvision"
+      region: "eu-west-1"
+      # secret with AWS creds; created by ExternalSecret in cloud overlay
+      credentialsSecretName: "cnpg-s3-creds"
+      # AES-256 server-side encryption
+      encryption: "AES256"
+    local:
+      # On-prem only: PVC class for pgBackRest archive
+      storageClass: ""
+      size: 200Gi
+  superuserSecret: aimvision-pg-superuser
+  # Tolerations / affinity for db node pool isolation
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# MinIO — only enabled on the federation on-prem appliance.
+# Cloud uses S3 directly (no MinIO Pod).
+# -----------------------------------------------------------------------------
+minio:
+  enabled: false
+  image:
+    repository: quay.io/minio/minio
+    tag: "RELEASE.2025-04-08T15-41-24Z"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 9000
+    consolePort: 9001
+  storage:
+    size: 500Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  # Credentials come from a SealedSecret named below.
+  credentialsSecretName: aimvision-minio-creds
+  # Buckets to ensure on startup (created by an init container; not modeled here).
+  buckets:
+    - aimvision-recordings
+    - aimvision-derived
+    - aimvision-reports
+    - aimvision-models
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false # MinIO writes config to /root/.minio
+    capabilities:
+      drop:
+        - ALL
+
+# -----------------------------------------------------------------------------
+# Ollama — federation tier only (gated). Cloud uses Anthropic / Together API.
+# -----------------------------------------------------------------------------
+ollama:
+  enabled: false
+  image:
+    repository: ollama/ollama
+    tag: "0.4.7"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 11434
+  # Performance review §LLM stage: 14B Q4_K_M on A10G is the production target.
+  model: "deepseek-coder-v2:14b-q4_k_m"
+  # Pull the model on first boot via an initContainer (`ollama pull <model>`).
+  pullModelOnStart: true
+  storage:
+    size: 100Gi
+    storageClass: ""
+  # GPU scheduling — only on federation nodes that have an NVIDIA accelerator.
+  gpu:
+    enabled: true
+    nodeSelector:
+      accelerator: nvidia
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+  resources:
+    requests:
+      cpu: "2"
+      memory: 16Gi
+    limits:
+      cpu: "8"
+      memory: 32Gi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop:
+        - ALL
+
+# -----------------------------------------------------------------------------
+# Secrets management — choose ONE of `sealedSecrets` or `externalSecrets`.
+# Cloud overlay typically uses ExternalSecrets (pulling from GCP/AWS Secret
+# Manager). On-prem overlay uses SealedSecrets, since the appliance is
+# air-gappable and ships with a known controller key.
+# -----------------------------------------------------------------------------
+secrets:
+  # Backend application secrets (DB URL, JWT keys, S3 creds, Ollama URL, etc.).
+  # Manifested as a SealedSecret OR ExternalSecret; the rendered Secret name is
+  # `aimvision-backend-secrets` and the backend Deployment reads envFrom it.
+  backend:
+    name: aimvision-backend-secrets
+    # Either "sealed" or "external".
+    provider: "external"
+    sealed:
+      # Encrypted payload — base64 encrypted by `kubeseal`. Placeholders here;
+      # replace at deploy time. Do NOT commit real values.
+      encryptedData: {}
+    external:
+      # ESO refers to a SecretStore (cluster-scoped) created out-of-band.
+      secretStoreRef:
+        kind: ClusterSecretStore
+        name: aimvision-secrets
+      # Each entry maps env var name → remote secret key.
+      data:
+        - secretKey: DATABASE_URL
+          remoteRef:
+            key: aimvision/backend/database-url
+        - secretKey: REDIS_URL
+          remoteRef:
+            key: aimvision/backend/redis-url
+        - secretKey: AWS_ACCESS_KEY_ID
+          remoteRef:
+            key: aimvision/backend/s3-access-key-id
+        - secretKey: AWS_SECRET_ACCESS_KEY
+          remoteRef:
+            key: aimvision/backend/s3-secret-access-key
+        - secretKey: SENTRY_DSN
+          remoteRef:
+            key: aimvision/backend/sentry-dsn
+        - secretKey: OPENAI_API_KEY
+          remoteRef:
+            key: aimvision/backend/openai-api-key
+        - secretKey: ANTHROPIC_API_KEY
+          remoteRef:
+            key: aimvision/backend/anthropic-api-key
+        - secretKey: PASETO_SIGNING_KEY
+          remoteRef:
+            key: aimvision/backend/paseto-signing-key
+        - secretKey: CLERK_SECRET_KEY
+          remoteRef:
+            key: aimvision/backend/clerk-secret-key
+
+# -----------------------------------------------------------------------------
+# Observability — gated. Cloud relies on Grafana Cloud agent (DaemonSet not in
+# this chart). On-prem turns on the in-cluster Prometheus + ServiceMonitor.
+# -----------------------------------------------------------------------------
+observability:
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    interval: 30s
+    scrapeTimeout: 10s
+    labels:
+      release: prometheus
+    metricRelabelings: []
+  # Pod-level annotations for Prometheus scraping when ServiceMonitor isn't in use.
+  podAnnotations:
+    enabled: false
+
+# -----------------------------------------------------------------------------
+# Network policies — default-deny + explicit allow rules.
+# Per docs/security/multi-tenant-isolation.md §"defense-in-depth".
+# -----------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  # When true, deny all ingress to all pods in this namespace by default.
+  defaultDenyIngress: true
+  # Namespace selector for the ingress controller (so backend can receive traffic).
+  ingressControllerNamespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: ingress-nginx
+  # Namespace where Prometheus / Grafana Agent runs.
+  monitoringNamespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: monitoring
+
+# -----------------------------------------------------------------------------
+# PodDisruptionBudgets — keep at least 1 backend & 1 worker available.
+# -----------------------------------------------------------------------------
+pdb:
+  backend:
+    enabled: true
+    minAvailable: 1
+  worker:
+    enabled: true
+    minAvailable: 1
+  web:
+    enabled: true
+    minAvailable: 1
+
+# -----------------------------------------------------------------------------
+# ConfigMap — non-secret config consumed by backend + worker.
+# -----------------------------------------------------------------------------
+config:
+  # Free-form key-value pairs added to the env via envFrom.
+  data:
+    AIMVISION_API_BASE: "https://api.aimvision.example.com"
+    AIMVISION_WEB_BASE: "https://app.aimvision.example.com"
+    AIMVISION_DEFAULT_REGION: "eu-west-1"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana-agent.monitoring.svc:4318"

@@ -1,0 +1,14 @@
+# Hot-day Egypt session: thermal warning escalates, then battery drops.
+# Tests assert the app responds to ThermalWarning(Hot) by issuing the
+# cooldown protocol per docs/camera-integration-spec.md §11.1.
+shots:
+  - { t: 30.0, station: 1 }
+  - { t: 60.0, station: 1 }
+  - { t: 90.0, station: 1 }
+faults:
+  - { t: 22.0, kind: thermal_warn }
+  - { t: 45.0, kind: battery_low, level: 15 }
+  - { t: 75.0, kind: ble_disconnect }
+clock:
+  skew_ms: 0
+  drift_ms_per_min: 0

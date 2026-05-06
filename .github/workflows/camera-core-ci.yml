@@ -1,0 +1,89 @@
+name: aimvision-camera-core CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "aimvision-camera-core/**"
+      - ".github/workflows/camera-core-ci.yml"
+  pull_request:
+    paths:
+      - "aimvision-camera-core/**"
+      - ".github/workflows/camera-core-ci.yml"
+
+# Cancel in-progress runs on the same ref to keep CI fast.
+concurrency:
+  group: camera-core-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  RUST_BACKTRACE: "1"
+
+jobs:
+  fmt:
+    name: cargo fmt
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aimvision-camera-core
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain (1.83)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.83"
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: cargo clippy
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aimvision-camera-core
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain (1.83)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.83"
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: aimvision-camera-core
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  test:
+    name: cargo test (workspace)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aimvision-camera-core
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain (1.83)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.83"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: aimvision-camera-core
+      - run: cargo test --workspace --all-features --no-fail-fast
+
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aimvision-camera-core
+    continue-on-error: true # advisory-only until we wire it into a release gate
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked --version "^0.20"
+      - name: Audit
+        run: cargo audit --deny warnings

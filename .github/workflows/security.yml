@@ -1,0 +1,140 @@
+# =============================================================================
+# Security CI — semgrep + trivy + cargo-audit on push to main, plus weekly cron.
+# =============================================================================
+# Findings post to GitHub code-scanning (SARIF). On main and weekly, all three
+# scanners run; on PRs we only run semgrep (fast) and trivy fs (config scan).
+# =============================================================================
+
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 04:17 UTC every Monday — out-of-band of the dependabot 06:00 sweep.
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Semgrep — SAST across Python, JS/TS, Rust, YAML, and Helm.
+  # ---------------------------------------------------------------------------
+  semgrep:
+    name: semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.92.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run semgrep
+        run: |
+          semgrep ci \
+            --sarif --output=semgrep.sarif \
+            --config=p/owasp-top-ten \
+            --config=p/python \
+            --config=p/typescript \
+            --config=p/react \
+            --config=p/rust \
+            --config=p/dockerfile \
+            --config=p/kubernetes \
+            --config=p/secrets || true
+      - name: Upload SARIF to GitHub
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  # ---------------------------------------------------------------------------
+  # Trivy — filesystem, config (IaC), and (on main) container image scans.
+  # ---------------------------------------------------------------------------
+  trivy-fs:
+    name: trivy fs+config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+      - name: Upload fs SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+      - name: Trivy config (IaC) scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: aimvision-infra
+          format: sarif
+          output: trivy-config.sarif
+          severity: CRITICAL,HIGH,MEDIUM
+      - name: Upload config SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-config.sarif
+          category: trivy-config
+
+  trivy-image:
+    name: trivy image
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - ghcr.io/sambawy01/aimvision-backend:latest
+          - ghcr.io/sambawy01/aimvision-web:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy image scan (${{ matrix.image }})
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ matrix.image }}
+          format: sarif
+          output: trivy-image.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+        continue-on-error: true # image may not exist on first runs
+      - name: Upload image SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image-${{ matrix.image }}
+
+  # ---------------------------------------------------------------------------
+  # cargo-audit — Rust crate advisories from RustSec.
+  # ---------------------------------------------------------------------------
+  cargo-audit:
+    name: cargo-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-audit
+        run: cargo install --version 0.21.1 cargo-audit
+      - name: Audit aimvision-camera-core
+        working-directory: aimvision-camera-core
+        run: cargo audit --deny warnings
+        continue-on-error: false

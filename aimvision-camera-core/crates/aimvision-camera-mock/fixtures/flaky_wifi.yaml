@@ -1,0 +1,13 @@
+# Wi-Fi drops twice mid-session. Tests assert the state machine reconnects
+# without dropping BLE.
+shots:
+  - { t: 5.0, station: 1 }
+  - { t: 10.0, station: 1 }
+  - { t: 20.0, station: 1 }
+  - { t: 30.0, station: 1 }
+faults:
+  - { t: 12.3, kind: drop_wifi, duration: 4.0 }
+  - { t: 25.0, kind: drop_wifi, duration: 3.0 }
+clock:
+  skew_ms: 0
+  drift_ms_per_min: 0

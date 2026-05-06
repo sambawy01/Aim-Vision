@@ -1,0 +1,30 @@
+# Patterns to ignore when packaging the chart.
+# https://helm.sh/docs/topics/charts/#the-helmignore-file
+
+# VCS metadata
+.git/
+.gitignore
+.gitattributes
+
+# CI / editor
+.github/
+.idea/
+.vscode/
+*.swp
+*.tmp
+*.bak
+*.orig
+*~
+.DS_Store
+
+# Test outputs
+tests/_rendered/
+*.tgz
+
+# Helm
+charts/
+.helmrelease.yaml
+
+# Documentation drafts (README.md is intentionally NOT ignored)
+NOTES.txt.draft
+*.draft.md

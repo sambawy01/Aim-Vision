@@ -1,0 +1,55 @@
+# AIMVISION umbrella chart.
+# One chart, two deployment shapes (cloud Railway-managed-k8s vs federation k3s appliance).
+# See ../../README.md and docs/adr/0005-cloudnativepg-cloud-onprem-parity.md for the parity model.
+apiVersion: v2
+name: aimvision
+description: |
+  AIMVISION coaching analytics platform — backend (FastAPI), Arq workers, web (React),
+  CloudNativePG-managed Postgres, optional MinIO (on-prem), optional Ollama (federation tier).
+  Single chart that deploys identically on Railway-managed Kubernetes (cloud) and a federation
+  k3s appliance (ADR-0005).
+type: application
+icon: https://aimvision.example.com/static/logo.png
+home: https://aimvision.example.com
+sources:
+  - https://github.com/sambawy01/aimvision-infra
+
+# Chart version follows infra repo SemVer; appVersion tracks the backend release.
+version: 0.1.0
+appVersion: "0.1.0"
+
+kubeVersion: ">=1.27.0-0"
+
+maintainers:
+  - name: AIMVISION Platform Team
+    email: platform@aimvision.example.com
+
+# Dependencies are intentionally NOT vendored at v0.1.0. We require operators
+# (CloudNativePG, cert-manager, sealed-secrets) to be installed cluster-wide
+# by the install-prereqs.sh script. This keeps the AIMVISION chart focused on
+# our own workloads and avoids version-coupling our app release to an operator
+# upgrade.
+#
+# TODO(infra): once we cut a v1.0 release, evaluate vendoring as Helm dependencies
+# behind feature flags so air-gapped federation appliances can `helm install` the
+# operators with us. The on-prem installer currently does that out-of-band.
+dependencies: []
+#  - name: cloudnative-pg
+#    version: "0.22.x"
+#    repository: "https://cloudnative-pg.github.io/charts"
+#    condition: cnpg.operator.vendored
+#  - name: cert-manager
+#    version: "v1.15.x"
+#    repository: "https://charts.jetstack.io"
+#    condition: certManager.vendored
+#  - name: sealed-secrets
+#    version: "2.16.x"
+#    repository: "https://bitnami-labs.github.io/sealed-secrets"
+#    condition: sealedSecrets.vendored
+
+annotations:
+  # Used by Argo CD / Flux for change-window gating.
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial scaffold (backend, worker, web, cnpg, minio, ollama, observability hooks)
+  artifacthub.io/license: Apache-2.0

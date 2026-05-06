@@ -1,0 +1,172 @@
+{{- if .Values.cnpg.enabled -}}
+{{- /*
+CloudNativePG Cluster CR — single source of truth for AIMVISION's Postgres.
+Per ADR-0005 we run the SAME operator and the SAME PG major in cloud and on-prem.
+Differences are only:
+  - .spec.instances     (3 cloud, 1 on-prem)
+  - .spec.storage.size  (200Gi cloud SSD, 500Gi on-prem local)
+  - .spec.backup        (S3 in cloud, pgBackRest local on-prem)
+
+This template REQUIRES the CloudNativePG operator to be installed cluster-wide.
+See manifests/cnpg-operator/README.md.
+*/ -}}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "aimvision.cnpg.fullname" . }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+  {{- with (include "aimvision.annotations" .) }}
+  annotations:
+    {{- . | nindent 4 }}
+  {{- end }}
+spec:
+  description: "AIMVISION primary Postgres cluster (ADR-0005)"
+  imageName: {{ .Values.cnpg.imageName | quote }}
+  instances: {{ .Values.cnpg.instances }}
+
+  # CNPG handles failover, certs, and PgBouncer via this CR. Don't reach around it.
+  primaryUpdateStrategy: unsupervised
+  primaryUpdateMethod: switchover
+
+  postgresql:
+    parameters:
+      {{- range $k, $v := .Values.cnpg.postgresql.parameters }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+    {{- with .Values.cnpg.postgresql.pg_hba }}
+    pg_hba:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    # Synchronous replication when 3+ instances are available; the operator
+    # automatically demotes synchronous to async if quorum is lost.
+    {{- if ge (int .Values.cnpg.instances) 3 }}
+    syncReplicaElectionConstraint:
+      enabled: true
+      nodeLabelsAntiAffinity:
+        - topology.kubernetes.io/zone
+    {{- end }}
+
+  bootstrap:
+    initdb:
+      database: {{ .Values.cnpg.bootstrap.initdb.database | quote }}
+      owner: {{ .Values.cnpg.bootstrap.initdb.owner | quote }}
+      encoding: UTF8
+      localeCollate: en_US.utf8
+      localeCType: en_US.utf8
+      {{- with .Values.cnpg.bootstrap.initdb.postInitSQL }}
+      postInitApplicationSQL:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+  superuserSecret:
+    name: {{ .Values.cnpg.superuserSecret | quote }}
+
+  storage:
+    size: {{ .Values.cnpg.storage.size | quote }}
+    {{- if .Values.cnpg.storage.storageClass }}
+    storageClass: {{ .Values.cnpg.storage.storageClass | quote }}
+    {{- end }}
+
+  {{- if .Values.cnpg.walStorage.enabled }}
+  walStorage:
+    size: {{ .Values.cnpg.walStorage.size | quote }}
+    {{- if .Values.cnpg.walStorage.storageClass }}
+    storageClass: {{ .Values.cnpg.walStorage.storageClass | quote }}
+    {{- end }}
+  {{- end }}
+
+  resources:
+    {{- toYaml .Values.cnpg.resources | nindent 4 }}
+
+  {{- if .Values.cnpg.monitoring.enablePodMonitor }}
+  monitoring:
+    enablePodMonitor: true
+  {{- end }}
+
+  {{- if .Values.cnpg.backup.enabled }}
+  backup:
+    retentionPolicy: {{ .Values.cnpg.backup.retentionPolicy | quote }}
+    {{- if eq .Values.cnpg.backup.target "s3" }}
+    barmanObjectStore:
+      destinationPath: {{ printf "s3://%s/%s" .Values.cnpg.backup.s3.bucket .Values.cnpg.backup.s3.path | quote }}
+      s3Credentials:
+        accessKeyId:
+          name: {{ .Values.cnpg.backup.s3.credentialsSecretName | quote }}
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: {{ .Values.cnpg.backup.s3.credentialsSecretName | quote }}
+          key: ACCESS_SECRET_KEY
+      wal:
+        compression: gzip
+        encryption: {{ .Values.cnpg.backup.s3.encryption | quote }}
+        maxParallel: 8
+      data:
+        compression: gzip
+        encryption: {{ .Values.cnpg.backup.s3.encryption | quote }}
+        immediateCheckpoint: false
+        jobs: 2
+    {{- else if eq .Values.cnpg.backup.target "local" }}
+    # On-prem: CNPG's `barmanObjectStore` requires an S3-compatible backend.
+    # For purely local backups on the federation appliance we therefore point
+    # barman at the in-cluster MinIO (deployed by this chart) using a dedicated
+    # bucket. This keeps the operator's backup machinery identical to cloud —
+    # the difference is only the endpoint URL.
+    #
+    # TODO(infra): once CNPG ships native PVC-backed backups (in-roadmap),
+    # switch to that and drop the MinIO dependency from the backup path.
+    barmanObjectStore:
+      destinationPath: "s3://aimvision-pg-backup/aimvision"
+      endpointURL: "http://{{ include "aimvision.minio.fullname" . }}:{{ .Values.minio.service.port }}"
+      s3Credentials:
+        accessKeyId:
+          name: {{ .Values.minio.credentialsSecretName | quote }}
+          key: rootUser
+        secretAccessKey:
+          name: {{ .Values.minio.credentialsSecretName | quote }}
+          key: rootPassword
+      wal:
+        compression: gzip
+        maxParallel: 4
+      data:
+        compression: gzip
+        immediateCheckpoint: false
+        jobs: 2
+    {{- end }}
+  {{- end }}
+
+  {{- with .Values.cnpg.nodeSelector }}
+  nodeSelector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.cnpg.tolerations }}
+  tolerations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.cnpg.affinity }}
+  affinity:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- if and .Values.cnpg.backup.enabled (eq .Values.cnpg.backup.target "s3") }}
+---
+{{- /*
+Daily scheduled backup. The CNPG operator will run a `Backup` resource at the
+specified cron. Recovery is performed by creating a new Cluster from a Backup
+ref — see docs/operations/runbooks/postgres-restore.md.
+*/ -}}
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ include "aimvision.cnpg.fullname" . }}-daily
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database-backup
+spec:
+  # CNPG ScheduledBackup uses 6-field cron: "sec min hour day-of-month month day-of-week"
+  schedule: "0 0 3 * * *"  # 03:00:00 daily
+  backupOwnerReference: self
+  cluster:
+    name: {{ include "aimvision.cnpg.fullname" . }}
+{{- end }}
+{{- end }}

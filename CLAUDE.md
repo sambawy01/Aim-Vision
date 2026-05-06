@@ -9,7 +9,18 @@ on every push to `main`.
 
 AIMVISION is a clay/skeet shooting coaching platform: GoPro Hero 13 + React Native mobile + Rust camera core + ML pipeline (audio shot detection, pose, gun barrel tracking, multi-task hierarchical diagnostic head, DeepSeek LLM coaching notes via self-hosted Ollama). Three tiers — Solo, Club, Federation — with Egypt National Team as design partner.
 
-This repo currently holds **design and planning artifacts only** — no application code yet. The team forms in Phase 0 of [`docs/AIMVISION_V2_Sprint_Plan.md`](docs/AIMVISION_V2_Sprint_Plan.md).
+Repo layout (monorepo for now; can split into separate GitHub repos when team scales):
+
+| Sub-repo | Stack | Purpose | CI |
+|---|---|---|---|
+| [`aimvision-backend/`](aimvision-backend/) | Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic | Multi-tenant API, RLS, audit logging, OpenAPI codegen | [backend-ci.yml](.github/workflows/backend-ci.yml) |
+| [`aimvision-camera-core/`](aimvision-camera-core/) | Rust 1.83 + tokio + UniFFI | Camera abstraction, mock with fault injection, command queue | [camera-core-ci.yml](.github/workflows/camera-core-ci.yml) |
+| [`aimvision-mobile/`](aimvision-mobile/) | RN 0.76 + Expo SDK 51 + New Arch | Mobile app (iOS + Android), age gate, parental consent | [mobile-ci.yml](.github/workflows/mobile-ci.yml) |
+| [`aimvision-web/`](aimvision-web/) | Vite 5 + React 18 + Tailwind | Coach + federation dashboard, QR check-in scanner | [web-ci.yml](.github/workflows/web-ci.yml) |
+| [`aimvision-ml/`](aimvision-ml/) | Python 3.12 + PyTorch + ONNX Runtime + MMPose | Training, eval gates, calibration, LLM PII strip | [ml-ci.yml](.github/workflows/ml-ci.yml) |
+| [`aimvision-infra/`](aimvision-infra/) | Helm + CloudNativePG + k3s/k8s | One chart, cloud + on-prem parity (ADR-0005) | [ci-orchestrator.yml](.github/workflows/ci-orchestrator.yml) |
+
+Phase 0 status: docs + scaffolding code shipped. Real implementation begins as the team comes online — see [`docs/AIMVISION_V2_Sprint_Plan.md`](docs/AIMVISION_V2_Sprint_Plan.md).
 
 ## Owner
 

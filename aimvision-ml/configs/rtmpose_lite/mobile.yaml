@@ -1,0 +1,52 @@
+# RTMPose-Lite live-tier export.
+# Distilled from RTMPose-x (Wholebody) onto the COCO-17 topology.
+# Cite docs/ml-architecture.md §4 and docs/performance-budgets.md §4.
+
+teacher:
+  arch: rtmpose-x
+  topology: wholebody-133
+  weights: registry://rtmpose_x/wholebody/v1
+
+student:
+  arch: rtmpose-lite
+  topology: coco-17
+  input_size: [192, 256]   # H x W; matches MMPose default
+  num_keypoints: 17
+
+distillation:
+  loss: kl_div_per_keypoint
+  temperature: 4.0
+  alpha: 0.7  # weight on teacher logits vs. ground-truth heatmaps
+
+# Live diagnostic only consumes signals the COCO topology supports.
+# Cheek-weld and trigger-finger are post-session only.
+exposed_signals:
+  - head_torso_angle
+  - shoulder_to_stock_distance
+  - elbow_angle
+  - hip_alignment
+
+export:
+  format: onnx
+  opset: 17
+  dynamic_batch: false
+  static_input_shape: [1, 3, 256, 192]
+
+  quantization:
+    method: int8_static
+    per_channel: true
+    calibration_dataset: dataset://aimvision/calibration_v1
+    target_macro_f1_loss_max: 1.0  # macro-F1 points; gate per ml-architecture.md §3
+    targets:
+      ios: [coreml]
+      android: [nnapi, qnn]
+
+# Per-device latency budgets (p95) from docs/performance-budgets.md §4.
+latency_budgets_ms:
+  iphone_13: 22
+  iphone_15_pro: 14
+  pixel_6a: 60
+  pixel_8: 38
+  galaxy_a54: 70
+  galaxy_s22: 35
+  galaxy_s24: 28

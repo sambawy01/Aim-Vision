@@ -1,0 +1,136 @@
+{{- if .Values.ollama.enabled -}}
+{{- /*
+Ollama LLM server — federation tier (on-prem) only by default.
+Performance review §LLM stage: 14B Q4_K_M on A10G is the production target;
+32B is rejected on cost grounds. We pull the model on first boot so air-gapped
+appliances can be reseeded by side-loading the model into the PVC and skipping
+the initContainer (toggle pullModelOnStart=false).
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aimvision.ollama.fullname" . }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ollama
+spec:
+  replicas: {{ .Values.ollama.replicas }}
+  strategy:
+    # Recreate because the GPU device is exclusive — RollingUpdate would deadlock
+    # on the new pod waiting for the GPU still held by the old pod.
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "aimvision.ollama.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "aimvision.ollama.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "aimvision.serviceAccountName" . }}
+      {{- include "aimvision.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        {{- toYaml .Values.ollama.podSecurityContext | nindent 8 }}
+      {{- if .Values.ollama.gpu.enabled }}
+      {{- with .Values.ollama.gpu.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ollama.gpu.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.ollama.pullModelOnStart }}
+      initContainers:
+        - name: pull-model
+          image: {{ include "aimvision.image" (dict "image" .Values.ollama.image "global" .Values.global) | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              # Start ollama in the background, pull, then stop.
+              ollama serve &
+              OLLAMA_PID=$!
+              for i in 1 2 3 4 5 6 7 8 9 10; do
+                if ollama list >/dev/null 2>&1; then break; fi
+                sleep 2
+              done
+              ollama pull "{{ .Values.ollama.model }}"
+              kill "$OLLAMA_PID" || true
+              wait "$OLLAMA_PID" || true
+          env:
+            - name: OLLAMA_MODELS
+              value: /root/.ollama/models
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+      {{- end }}
+      containers:
+        - name: ollama
+          image: {{ include "aimvision.image" (dict "image" .Values.ollama.image "global" .Values.global) | quote }}
+          imagePullPolicy: {{ .Values.ollama.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.ollama.service.port }}
+              protocol: TCP
+          env:
+            - name: OLLAMA_HOST
+              value: "0.0.0.0:{{ .Values.ollama.service.port }}"
+            - name: OLLAMA_KEEP_ALIVE
+              value: "30m"
+            - name: OLLAMA_MODELS
+              value: /root/.ollama/models
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 5
+          resources:
+            requests:
+              {{- toYaml .Values.ollama.resources.requests | nindent 14 }}
+            limits:
+              {{- toYaml .Values.ollama.resources.limits | nindent 14 }}
+              {{- if .Values.ollama.gpu.enabled }}
+              {{- range $k, $v := .Values.ollama.gpu.resources.limits }}
+              {{ $k }}: {{ $v }}
+              {{- end }}
+              {{- end }}
+          securityContext:
+            {{- toYaml .Values.ollama.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: {{ include "aimvision.ollama.fullname" . }}-models
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "aimvision.ollama.fullname" . }}-models
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ollama
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.ollama.storage.storageClass }}
+  storageClassName: {{ .Values.ollama.storage.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.ollama.storage.size | quote }}
+{{- end }}
