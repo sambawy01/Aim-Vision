@@ -3,7 +3,7 @@
  * Activated when ambient light exceeds 50,000 lux (UX review threshold) or via Settings.
  * See docs/mobile-architecture.md §14 (Range Mode).
  */
-import { spacing, radii, typography, tapTargets } from './tokens';
+import { spacing, radii } from './tokens';
 import type { Theme } from './tokens';
 
 const rangeColors = {

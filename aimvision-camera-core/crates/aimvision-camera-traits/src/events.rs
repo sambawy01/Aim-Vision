@@ -43,9 +43,9 @@ pub enum ThermalState {
 ///
 /// We deliberately do not use `Box<dyn Any>` here — UniFFI cannot cross
 /// arbitrary `Any` types over the FFI boundary, and the Swift / Kotlin sides
-/// would have to reinterpret pointers. Instead the `kind` field is a vendor
-/// + identifier string and `payload_json` is a serde-serialized opaque blob.
-/// See `docs/camera-integration-spec.md` §13.2.
+/// would have to reinterpret pointers. Instead the `kind` field is a
+/// vendor identifier string and `payload_json` is a serde-serialized opaque
+/// blob. See `docs/camera-integration-spec.md` §13.2.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VendorEvent {
     /// Vendor identifier, e.g. `"gopro"`, `"insta360"`, `"aimvision-v3"`.

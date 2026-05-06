@@ -51,12 +51,20 @@ export const tapTargets = {
   primary: 56,
 } as const;
 
+// Theme is a structural shape, not a literal-narrowed shape, so variants
+// (e.g. Range Mode) can override values without `as const` clashes.
+export type Colors = { readonly [K in keyof typeof colors]: string };
+export type Spacing = { readonly [K in keyof typeof spacing]: number };
+export type Radii = { readonly [K in keyof typeof radii]: number };
+export type Typography = { readonly [K in keyof typeof typography]: number };
+export type TapTargets = { readonly [K in keyof typeof tapTargets]: number };
+
 export type Theme = {
-  colors: typeof colors;
-  spacing: typeof spacing;
-  radii: typeof radii;
-  typography: typeof typography;
-  tapTargets: typeof tapTargets;
+  colors: Colors;
+  spacing: Spacing;
+  radii: Radii;
+  typography: Typography;
+  tapTargets: TapTargets;
 };
 
 export const theme: Theme = { colors, spacing, radii, typography, tapTargets };

@@ -11,7 +11,8 @@ export function useThermal(): ThermalState {
   const [state, setState] = useState<ThermalState>('nominal');
 
   useEffect(() => {
-    // Native bridge wired in Sprint 7. Default to 'nominal' until then.
+    // Native bridge wired in Sprint 7 (uses `setState`). Until then: 'nominal'.
+    void setState;
     return () => undefined;
   }, []);
 

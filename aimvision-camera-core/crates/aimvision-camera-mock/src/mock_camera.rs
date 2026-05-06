@@ -398,6 +398,9 @@ pub async fn set_capture_mode(cam: &MockCamera, mode: CaptureMode) -> CameraResu
         CaptureMode::Video => SettingValue::U8(0),
         CaptureMode::Webcam => SettingValue::U8(1),
         CaptureMode::Photo => SettingValue::U8(2),
+        // CaptureMode is `#[non_exhaustive]` (defining crate may add variants);
+        // any future variant maps to a sentinel until the mock learns it.
+        _ => SettingValue::U8(0xFF),
     };
     cam.set_setting(capture_mode_setting_id(), v).await
 }
