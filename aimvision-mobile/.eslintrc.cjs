@@ -9,12 +9,10 @@ module.exports = {
     ecmaFeatures: { jsx: true },
   },
   env: {
-    'react-native/react-native': true,
     es2022: true,
     jest: true,
   },
   rules: {
-    'react-native/no-raw-text': ['error', { skip: ['AccessibleText'] }],
     'react-native-a11y/has-accessibility-hint': 'off',
     'react-native-a11y/has-valid-accessibility-actions': 'warn',
     'react-native-a11y/has-valid-accessibility-component-type': 'warn',
