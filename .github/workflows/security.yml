@@ -36,7 +36,7 @@ jobs:
     container:
       image: semgrep/semgrep:1.92.0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run semgrep
         run: |
           semgrep ci \
@@ -64,7 +64,7 @@ jobs:
     name: trivy fs+config
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.35.0
         with:
@@ -109,7 +109,7 @@ jobs:
           - ghcr.io/sambawy01/aimvision-backend:latest
           - ghcr.io/sambawy01/aimvision-web:latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Trivy image scan (${{ matrix.image }})
         uses: aquasecurity/trivy-action@0.35.0
         with:
@@ -134,7 +134,7 @@ jobs:
     name: cargo-audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Install cargo-audit
         run: cargo install --version 0.21.1 cargo-audit
