@@ -9,6 +9,8 @@ on every push to `main`.
 
 > _One-liner about the product goes here. Replace this when the project takes shape._
 
+_(Initial scaffold — no application code yet.)_
+
 ## Owner
 
 - GitHub: [@sambawy01](https://github.com/sambawy01)
