@@ -1,8 +1,13 @@
 module.exports = {
   root: true,
-  extends: ['expo', 'plugin:@typescript-eslint/recommended', 'plugin:react-native-a11y/all'],
+  // The `expo` preset already pulls in eslint-plugin-react, react-hooks, and
+  // jsx-a11y. We add @typescript-eslint on top. Avoid the
+  // react-native-a11y preset until we audit whether its rules align with
+  // @typescript-eslint v8 (it transitively requires the removed
+  // `@typescript-eslint/ban-types` rule definition).
+  extends: ['expo', 'plugin:@typescript-eslint/recommended'],
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint', 'react-native-a11y'],
+  plugins: ['@typescript-eslint'],
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
@@ -13,16 +18,6 @@ module.exports = {
     jest: true,
   },
   rules: {
-    'react-native-a11y/has-accessibility-hint': 'off',
-    'react-native-a11y/has-valid-accessibility-actions': 'warn',
-    'react-native-a11y/has-valid-accessibility-component-type': 'warn',
-    'react-native-a11y/has-valid-accessibility-descriptors': 'warn',
-    'react-native-a11y/has-valid-accessibility-role': 'warn',
-    'react-native-a11y/has-valid-accessibility-state': 'warn',
-    'react-native-a11y/has-valid-accessibility-states': 'warn',
-    'react-native-a11y/has-valid-accessibility-traits': 'warn',
-    'react-native-a11y/has-valid-accessibility-value': 'warn',
-    'react-native-a11y/has-valid-important-for-accessibility': 'warn',
     '@typescript-eslint/no-unused-vars': [
       'error',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },

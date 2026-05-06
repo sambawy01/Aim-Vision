@@ -14,7 +14,7 @@ authors = ["AIMVISION Embedded Firmware Team"]
 repository = "https://github.com/aimvision/aimvision-camera-core"
 
 [workspace.dependencies]
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.40", features = ["full", "test-util"] }
 thiserror = "1"
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
