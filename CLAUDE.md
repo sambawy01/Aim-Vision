@@ -11,14 +11,14 @@ AIMVISION is a clay/skeet shooting coaching platform: GoPro Hero 13 + React Nati
 
 Repo layout (monorepo for now; can split into separate GitHub repos when team scales):
 
-| Sub-repo                                           | Stack                                          | Purpose                                                      | CI                                                           |
-| -------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| [`aimvision-backend/`](aimvision-backend/)         | Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic | Multi-tenant API, RLS, audit logging, OpenAPI codegen        | [backend-ci.yml](.github/workflows/backend-ci.yml)           |
-| [`aimvision-camera-core/`](aimvision-camera-core/) | Rust 1.83 + tokio + UniFFI                     | Camera abstraction, mock with fault injection, command queue | [camera-core-ci.yml](.github/workflows/camera-core-ci.yml)   |
-| [`aimvision-mobile/`](aimvision-mobile/)           | RN 0.76 + Expo SDK 51 + New Arch               | Mobile app (iOS + Android), age gate, parental consent       | [mobile-ci.yml](.github/workflows/mobile-ci.yml)             |
-| [`aimvision-web/`](aimvision-web/)                 | Vite 5 + React 18 + Tailwind                   | Coach + federation dashboard, QR check-in scanner            | [web-ci.yml](.github/workflows/web-ci.yml)                   |
-| [`aimvision-ml/`](aimvision-ml/)                   | Python 3.12 + PyTorch + ONNX Runtime + MMPose  | Training, eval gates, calibration, LLM PII strip             | [ml-ci.yml](.github/workflows/ml-ci.yml)                     |
-| [`aimvision-infra/`](aimvision-infra/)             | Helm + CloudNativePG + k3s/k8s                 | One chart, cloud + on-prem parity (ADR-0005)                 | [ci-orchestrator.yml](.github/workflows/ci-orchestrator.yml) |
+| Sub-repo | Stack | Purpose | CI |
+|---|---|---|---|
+| [`aimvision-backend/`](aimvision-backend/) | Python 3.12 + FastAPI + SQLAlchemy 2 + Alembic | Multi-tenant API, RLS, audit logging, OpenAPI codegen | [backend-ci.yml](.github/workflows/backend-ci.yml) |
+| [`aimvision-camera-core/`](aimvision-camera-core/) | Rust 1.83 + tokio + UniFFI | Camera abstraction, mock with fault injection, command queue | [camera-core-ci.yml](.github/workflows/camera-core-ci.yml) |
+| [`aimvision-mobile/`](aimvision-mobile/) | RN 0.76 + Expo SDK 51 + New Arch | Mobile app (iOS + Android), age gate, parental consent | [mobile-ci.yml](.github/workflows/mobile-ci.yml) |
+| [`aimvision-web/`](aimvision-web/) | Vite 5 + React 18 + Tailwind | Coach + federation dashboard, QR check-in scanner | [web-ci.yml](.github/workflows/web-ci.yml) |
+| [`aimvision-ml/`](aimvision-ml/) | Python 3.12 + PyTorch + ONNX Runtime + MMPose | Training, eval gates, calibration, LLM PII strip | [ml-ci.yml](.github/workflows/ml-ci.yml) |
+| [`aimvision-infra/`](aimvision-infra/) | Helm + CloudNativePG + k3s/k8s | One chart, cloud + on-prem parity (ADR-0005) | [ci-orchestrator.yml](.github/workflows/ci-orchestrator.yml) |
 
 Phase 0 status: docs + scaffolding code shipped. Real implementation begins as the team comes online — see [`docs/AIMVISION_V2_Sprint_Plan.md`](docs/AIMVISION_V2_Sprint_Plan.md).
 
@@ -38,17 +38,14 @@ Phase 0 status: docs + scaffolding code shipped. Real implementation begins as t
 ## Document index
 
 ### Plan & risks
-
 - [V2 Sprint Plan](docs/AIMVISION_V2_Sprint_Plan.md) — supersedes V1. Cites every reviewer recommendation.
 - [Risk register](docs/risk-register.md) — R1–R25 with status (carried/tightened/new).
 
 ### Architecture & ADRs
-
 - [Architecture overview](docs/architecture-overview.md)
 - ADRs: [0001 Backend Python+FastAPI](docs/adr/0001-backend-python-fastapi.md) · [0002 Mobile RN New Architecture](docs/adr/0002-mobile-rn-new-architecture.md) · [0003 Rust camera-core split](docs/adr/0003-rust-camera-core-split.md) · [0004 Multi-tenancy RLS](docs/adr/0004-multi-tenancy-rls.md) · [0005 CloudNativePG cloud↔on-prem parity](docs/adr/0005-cloudnativepg-cloud-onprem-parity.md) · [0006 Event sourcing for shot events](docs/adr/0006-event-sourcing-shot-events.md) · [0007 Temporal orchestration](docs/adr/0007-temporal-orchestration.md) · [0008 Build vs buy](docs/adr/0008-build-vs-buy.md)
 
 ### Domain specs
-
 - [Mobile architecture](docs/mobile-architecture.md) — JSI/Fabric/Hermes, zero-copy frame pipeline, WatermelonDB sync, battery+thermal, hardening
 - [Camera integration spec](docs/camera-integration-spec.md) — Open GoPro reality, USB-C P0 federation, GoPro Labs, firmware matrix, mock fixture grammar
 - [Multi-camera sync spec](docs/multi-camera-sync-spec.md) — `!MSYNC` + audio cross-correlation, ChArUco calibration, drift compensation
@@ -59,14 +56,12 @@ Phase 0 status: docs + scaffolding code shipped. Real implementation begins as t
 - [Observability plan](docs/observability-plan.md) — Sentry/OTel/RUM from Sprint 3
 
 ### Security
-
 - [Threat model](docs/security/threat-model.md) — STRIDE
 - [QR check-in token spec](docs/security/qr-checkin-token-spec.md) — PASETO v4.local + ephemeral attribution capability
 - [Multi-tenant isolation](docs/security/multi-tenant-isolation.md) — RLS + app-layer + derived-report pipeline proof
 - [Audit logging spec](docs/security/audit-logging-spec.md) — required events, hash-chained store
 
 ### Compliance
-
 - [DPIA outline](docs/compliance/dpia-outline.md) — GDPR Art. 35
 - [RoPA template](docs/compliance/ropa-template.md) — Art. 30 records of processing
 - [Parental consent flow](docs/compliance/parental-consent-flow.md) — verifiable consent, age gate, majority transition
@@ -75,7 +70,6 @@ Phase 0 status: docs + scaffolding code shipped. Real implementation begins as t
 - [Data classification](docs/compliance/data-classification.md) — every data type, regulation flags, retention
 
 ### Reviews appendix
-
 - [10 reviewer reports](docs/reviews/) — verbatim audits of the original V1 plan, kept as the source-of-truth audit trail.
 
 ## Architecture (one-paragraph summary)
@@ -85,62 +79,98 @@ AIMVISION is a vertical mobile + Rust + Python + ML stack: Hero 13 → Wi-Fi/USB
 <!-- AUTO:BEGIN -->
 <!-- Regenerated by scripts/update_context.py via GitHub Actions on every push. Do not edit by hand. -->
 
-**Last updated:** 2026-05-06 18:09:34 UTC
-**Branch:** `main` · **Commits:** 5 · **Tracked files:** 44
+**Last updated:** 2026-05-06 18:46:23 UTC
+**Branch:** `main` · **Commits:** 7 · **Tracked files:** 333
 **Remote:** https://github.com/sambawy01/Aim-Vision
 
 ### Recent commits
-
-- 5a9a7f3 docs: V2 sprint plan + architecture, security, compliance, ML, camera specs (sambawy01, 37 seconds ago)
-- 2fe8715 chore(context): refresh CLAUDE.md auto block [skip-context] (github-actions[bot], 65 minutes ago)
-- f4a8b92 docs: note initial scaffold state in CLAUDE.md (sambawy01, 66 minutes ago)
-- e47d2a3 chore(context): refresh CLAUDE.md auto block [skip-context] (github-actions[bot], 67 minutes ago)
-- 9e9c3f0 chore: bootstrap repo with auto-updating CLAUDE.md context (sambawy01, 68 minutes ago)
+- 8d6266d feat: scaffold 6 sub-repos for Phase 0/Sprint 3 of V2 plan (sambawy01, 29 seconds ago)
+- 9d0db4f chore(context): refresh CLAUDE.md auto block [skip-context] (github-actions[bot], 37 minutes ago)
+- 5a9a7f3 docs: V2 sprint plan + architecture, security, compliance, ML, camera specs (sambawy01, 37 minutes ago)
+- 2fe8715 chore(context): refresh CLAUDE.md auto block [skip-context] (github-actions[bot], 2 hours ago)
+- f4a8b92 docs: note initial scaffold state in CLAUDE.md (sambawy01, 2 hours ago)
+- e47d2a3 chore(context): refresh CLAUDE.md auto block [skip-context] (github-actions[bot], 2 hours ago)
+- 9e9c3f0 chore: bootstrap repo with auto-updating CLAUDE.md context (sambawy01, 2 hours ago)
 
 ### Tracked files (first 80)
-
+- .github/PULL_REQUEST_TEMPLATE.md
+- .github/dependabot.yml
+- .github/workflows/backend-ci.yml
+- .github/workflows/camera-core-ci.yml
+- .github/workflows/ci-orchestrator.yml
+- .github/workflows/ml-ci.yml
+- .github/workflows/mobile-ci.yml
+- .github/workflows/security.yml
 - .github/workflows/update-context.yml
+- .github/workflows/web-ci.yml
 - .gitignore
+- .pre-commit-config.yaml
 - CLAUDE.md
-- docs/AIMVISION_V2_Sprint_Plan.md
-- docs/adr/0001-backend-python-fastapi.md
-- docs/adr/0002-mobile-rn-new-architecture.md
-- docs/adr/0003-rust-camera-core-split.md
-- docs/adr/0004-multi-tenancy-rls.md
-- docs/adr/0005-cloudnativepg-cloud-onprem-parity.md
-- docs/adr/0006-event-sourcing-shot-events.md
-- docs/adr/0007-temporal-orchestration.md
-- docs/adr/0008-build-vs-buy.md
-- docs/architecture-overview.md
-- docs/camera-integration-spec.md
-- docs/compliance/data-classification.md
-- docs/compliance/dpia-outline.md
-- docs/compliance/egypt-pdpl-action-plan.md
-- docs/compliance/parental-consent-flow.md
-- docs/compliance/right-to-erasure-architecture.md
-- docs/compliance/ropa-template.md
-- docs/diagnostic-taxonomy.md
-- docs/llm-coaching-notes-schema.md
-- docs/ml-architecture.md
-- docs/mobile-architecture.md
-- docs/multi-camera-sync-spec.md
-- docs/observability-plan.md
-- docs/performance-budgets.md
-- docs/reviews/01-ai-engineer.md
-- docs/reviews/02-trend-researcher.md
-- docs/reviews/03-software-architect.md
-- docs/reviews/04-mobile-app-builder.md
-- docs/reviews/05-embedded-firmware-engineer.md
-- docs/reviews/06-security-engineer.md
-- docs/reviews/07-compliance-auditor.md
-- docs/reviews/08-ux-researcher.md
-- docs/reviews/09-sprint-prioritizer.md
-- docs/reviews/10-performance-benchmarker.md
-- docs/reviews/README.md
-- docs/risk-register.md
-- docs/security/audit-logging-spec.md
-- docs/security/multi-tenant-isolation.md
-- docs/security/qr-checkin-token-spec.md
-- docs/security/threat-model.md
-- scripts/update_context.py
+- CONTRIBUTING.md
+- Makefile
+- aimvision-backend/.dockerignore
+- aimvision-backend/.env.example
+- aimvision-backend/Dockerfile
+- aimvision-backend/README.md
+- aimvision-backend/alembic.ini
+- aimvision-backend/alembic/env.py
+- aimvision-backend/alembic/versions/0001_federation_first_schema.py
+- aimvision-backend/alembic/versions/0002_audit_log.py
+- aimvision-backend/alembic/versions/0003_rls_policies.py
+- aimvision-backend/app/__init__.py
+- aimvision-backend/app/config.py
+- aimvision-backend/app/db.py
+- aimvision-backend/app/deps.py
+- aimvision-backend/app/main.py
+- aimvision-backend/app/middleware/__init__.py
+- aimvision-backend/app/middleware/audit.py
+- aimvision-backend/app/middleware/tenant_context.py
+- aimvision-backend/app/models/__init__.py
+- aimvision-backend/app/models/annotation.py
+- aimvision-backend/app/models/audit.py
+- aimvision-backend/app/models/base.py
+- aimvision-backend/app/models/consent.py
+- aimvision-backend/app/models/session.py
+- aimvision-backend/app/models/tenancy.py
+- aimvision-backend/app/routers/__init__.py
+- aimvision-backend/app/routers/auth.py
+- aimvision-backend/app/routers/consent.py
+- aimvision-backend/app/routers/health.py
+- aimvision-backend/app/routers/session.py
+- aimvision-backend/app/schemas/__init__.py
+- aimvision-backend/app/schemas/audit.py
+- aimvision-backend/app/schemas/consent.py
+- aimvision-backend/app/schemas/session.py
+- aimvision-backend/app/schemas/tenancy.py
+- aimvision-backend/app/services/__init__.py
+- aimvision-backend/app/services/audit.py
+- aimvision-backend/app/services/auth.py
+- aimvision-backend/app/services/tenancy.py
+- aimvision-backend/pyproject.toml
+- aimvision-backend/tests/__init__.py
+- aimvision-backend/tests/conftest.py
+- aimvision-backend/tests/test_audit_chain.py
+- aimvision-backend/tests/test_health.py
+- aimvision-backend/tests/test_tenancy_isolation.py
+- aimvision-camera-core/.cargo/config.toml
+- aimvision-camera-core/Cargo.toml
+- aimvision-camera-core/README.md
+- aimvision-camera-core/clippy.toml
+- aimvision-camera-core/crates/aimvision-camera-mock/Cargo.toml
+- aimvision-camera-core/crates/aimvision-camera-mock/fixtures/flaky_wifi.yaml
+- aimvision-camera-core/crates/aimvision-camera-mock/fixtures/sample_session.yaml
+- aimvision-camera-core/crates/aimvision-camera-mock/fixtures/thermal_throttle.yaml
+- aimvision-camera-core/crates/aimvision-camera-mock/src/clock.rs
+- aimvision-camera-core/crates/aimvision-camera-mock/src/fault_script.rs
+- aimvision-camera-core/crates/aimvision-camera-mock/src/lib.rs
+- aimvision-camera-core/crates/aimvision-camera-mock/src/mock_camera.rs
+- aimvision-camera-core/crates/aimvision-camera-mock/tests/fault_injection.rs
+- aimvision-camera-core/crates/aimvision-camera-mock/tests/multi_camera_sync.rs
+- aimvision-camera-core/crates/aimvision-camera-mock/tests/playback.rs
+- aimvision-camera-core/crates/aimvision-camera-state/Cargo.toml
+- aimvision-camera-core/crates/aimvision-camera-state/src/command_queue.rs
+- aimvision-camera-core/crates/aimvision-camera-state/src/lib.rs
+- aimvision-camera-core/crates/aimvision-camera-state/src/state_machine.rs
+- aimvision-camera-core/crates/aimvision-camera-state/tests/command_queue.rs
+- aimvision-camera-core/crates/aimvision-camera-state/tests/state_transitions.rs
 <!-- AUTO:END -->
