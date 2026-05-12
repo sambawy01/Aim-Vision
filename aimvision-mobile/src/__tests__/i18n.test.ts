@@ -1,11 +1,9 @@
 import { I18nManager } from 'react-native';
-import i18n from '../config/i18n';
-import { setLocale } from '../config/i18n';
+import i18n, { initI18n, setLocale } from '../config/i18n';
 
 describe('i18n', () => {
   beforeAll(async () => {
     if (!i18n.isInitialized) {
-      const { initI18n } = await import('../config/i18n');
       await initI18n();
     }
   });
