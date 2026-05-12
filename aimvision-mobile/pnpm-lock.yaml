@@ -23,6 +23,9 @@ importers:
       expo:
         specifier: ~51.0.39
         version: 51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(react-native@0.76.3(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
+      expo-battery:
+        specifier: ~8.0.1
+        version: 8.0.1(expo@51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(react-native@0.76.3(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))
       expo-build-properties:
         specifier: ~0.12.5
         version: 0.12.5(expo@51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(react-native@0.76.3(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1))
@@ -2651,6 +2654,11 @@ packages:
 
   expo-asset@10.0.10:
     resolution: {integrity: sha512-0qoTIihB79k+wGus9wy0JMKq7DdenziVx3iUkGvMAy2azscSgWH6bd2gJ9CGnhC6JRd3qTMFBL0ou/fx7WZl7A==}
+    peerDependencies:
+      expo: '*'
+
+  expo-battery@8.0.1:
+    resolution: {integrity: sha512-4lpwvKPCKzXn91UYJu/tYDgN1mLMb678P6H9M61t6Asmp8B8FpRi/AAhs2FhLatw1iM3Jz6lIREUNkrW0Cn3nQ==}
     peerDependencies:
       expo: '*'
 
@@ -8850,6 +8858,10 @@ snapshots:
       md5-file: 3.2.3
     transitivePeerDependencies:
       - supports-color
+
+  expo-battery@8.0.1(expo@51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(react-native@0.76.3(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)):
+    dependencies:
+      expo: 51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(react-native@0.76.3(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
 
   expo-build-properties@0.12.5(expo@51.0.39(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(react-native@0.76.3(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)):
     dependencies:
