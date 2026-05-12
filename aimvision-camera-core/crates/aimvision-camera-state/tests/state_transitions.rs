@@ -21,53 +21,51 @@ fn walk_to(sm: &StateMachine, target: ConnectionState) -> Option<()> {
     }
     match target {
         S::Disconnected => Some(()),
-        S::Discovering => sm.transition(S::Discovering).ok().map(|()| ()),
+        S::Discovering => sm.transition(S::Discovering).ok(),
         S::BlePairing => {
             sm.transition(S::Discovering).ok()?;
-            sm.transition(S::BlePairing).ok().map(|()| ())
+            sm.transition(S::BlePairing).ok()
         }
         S::BleConnected => {
             sm.transition(S::Discovering).ok()?;
             sm.transition(S::BlePairing).ok()?;
-            sm.transition(S::BleConnected).ok().map(|()| ())
+            sm.transition(S::BleConnected).ok()
         }
         S::WifiActivating => {
             walk_to(sm, S::BleConnected)?;
-            sm.transition(S::WifiActivating).ok().map(|()| ())
+            sm.transition(S::WifiActivating).ok()
         }
         S::WifiConnected => {
             walk_to(sm, S::WifiActivating)?;
-            sm.transition(S::WifiConnected).ok().map(|()| ())
+            sm.transition(S::WifiConnected).ok()
         }
         S::UsbcConnected => {
             walk_to(sm, S::BleConnected)?;
-            sm.transition(S::UsbcConnected).ok().map(|()| ())
+            sm.transition(S::UsbcConnected).ok()
         }
         S::ReadyForRecording => {
             walk_to(sm, S::WifiConnected)?;
-            sm.transition(S::ReadyForRecording).ok().map(|()| ())
+            sm.transition(S::ReadyForRecording).ok()
         }
         S::Recording => {
             walk_to(sm, S::ReadyForRecording)?;
-            sm.transition(S::Recording).ok().map(|()| ())
+            sm.transition(S::Recording).ok()
         }
         S::RecordingPaused => {
             walk_to(sm, S::Recording)?;
-            sm.transition(S::RecordingPaused).ok().map(|()| ())
+            sm.transition(S::RecordingPaused).ok()
         }
         S::FileTransferring => {
             walk_to(sm, S::Recording)?;
-            sm.transition(S::FileTransferring).ok().map(|()| ())
+            sm.transition(S::FileTransferring).ok()
         }
         S::Disconnecting => {
             walk_to(sm, S::ReadyForRecording)?;
-            sm.transition(S::Disconnecting).ok().map(|()| ())
+            sm.transition(S::Disconnecting).ok()
         }
         S::Errored => {
             walk_to(sm, S::Discovering)?;
-            sm.transition_to_errored(CameraError::Cancelled)
-                .ok()
-                .map(|()| ())
+            sm.transition_to_errored(CameraError::Cancelled).ok()
         }
     }
 }
