@@ -1,6 +1,42 @@
 module.exports = {
   preset: 'jest-expo',
   setupFiles: ['<rootDir>/jest.setup.ts'],
+  // Split the transform by extension so babel's parser only ever sees one
+  // type system at a time. `babel-preset-expo` enables `@babel/preset-typescript`
+  // with `allExtensions: true`, which forces the TS parser on `.js` files
+  // too — and RN's vendor sources (`EventEmitter.js`, `error-guard.js`) ship
+  // raw Flow syntax that the TS parser rejects. We bypass `babel.config.js`
+  // here (`configFile: false`) and pick the right parser per extension.
+  transform: {
+    // Project source. TS parser handles `.ts/.tsx`.
+    '\\.(ts|tsx)$': [
+      'babel-jest',
+      {
+        configFile: false,
+        babelrc: false,
+        presets: [
+          ['@babel/preset-env', { targets: { node: 'current' } }],
+          '@babel/preset-typescript',
+          ['@babel/preset-react', { runtime: 'automatic' }],
+        ],
+      },
+    ],
+    // Everything else (RN vendor + plain JS). Flow parser handles `.js/.jsx`.
+    // `{ all: true }` strips Flow types from files without an `@flow` pragma
+    // too, since not every RN vendor file declares one.
+    '\\.(js|jsx|cjs|mjs)$': [
+      'babel-jest',
+      {
+        configFile: false,
+        babelrc: false,
+        presets: [
+          ['@babel/preset-env', { targets: { node: 'current' } }],
+          ['@babel/preset-flow', { all: true }],
+          ['@babel/preset-react', { runtime: 'automatic' }],
+        ],
+      },
+    ],
+  },
   transformIgnorePatterns: [
     // Two patterns because pnpm resolves packages through a flat virtual
     // store at `node_modules/.pnpm/<pkg>@<ver>/node_modules/<pkg>/...`,
