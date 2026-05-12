@@ -105,9 +105,10 @@ impl StateMachine {
         if to != ConnectionState::Errored {
             *self.last_error.lock().expect("last_error mutex poisoned") = None;
         }
-        // Send is best-effort; if there are no subscribers we still update
-        // the sender's slot, so `current()` reads the new value.
-        let _ = self.tx.send(to);
+        // send_replace updates the slot even when there are no subscribers;
+        // plain `send` would no-op without an active receiver and `current()`
+        // would silently stay on the old value.
+        self.tx.send_replace(to);
         tracing::debug!(?from, ?to, "state transition");
         Ok(())
     }
@@ -125,7 +126,7 @@ impl StateMachine {
             });
         }
         *self.last_error.lock().expect("last_error mutex poisoned") = Some(err);
-        let _ = self.tx.send(ConnectionState::Errored);
+        self.tx.send_replace(ConnectionState::Errored);
         Ok(())
     }
 }
