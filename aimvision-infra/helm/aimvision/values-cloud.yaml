@@ -10,8 +10,9 @@ global:
   domain: aimvision.io
   tier: cloud
   region: eu-west-1
+  # `aimvision.io/tier` is auto-emitted from `global.tier` by the labels
+  # helper; do not duplicate it here.
   commonLabels:
-    aimvision.io/tier: cloud
     aimvision.io/region: eu-west-1
 
 backend:
@@ -77,13 +78,13 @@ cnpg:
       max_connections: "300"
       shared_buffers: "4GB"
       effective_cache_size: "12GB"
+  # CNPG owns its own affinity schema — `spec.affinity.podAntiAffinity`
+  # (raw k8s form) is rejected by the Cluster CRD. Use CNPG's keys instead;
+  # this still pins one instance per zone.
   affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchLabels:
-              cnpg.io/cluster: aimvision-pg
-          topologyKey: topology.kubernetes.io/zone
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: topology.kubernetes.io/zone
 
 # Cloud uses S3 directly, NOT MinIO.
 minio:

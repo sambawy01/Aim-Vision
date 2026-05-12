@@ -12,8 +12,8 @@ global:
   domain: 127.0.0.1.nip.io
   tier: dev
   region: local
-  commonLabels:
-    aimvision.io/tier: dev
+  # `aimvision.io/tier` is auto-emitted from `global.tier` by the labels
+  # helper; do not duplicate it here.
 
 backend:
   replicas: 1

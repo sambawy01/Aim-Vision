@@ -235,8 +235,16 @@ jobs:
         run: |
           set -euo pipefail
           # `cancelled` or `failure` in any non-skipped dependency fails this gate.
-          jq -nr --argjson r '${{ toJSON(needs) }}' '
+          # Capture the filtered output explicitly — `jq` itself exits 0 on
+          # success regardless of whether it printed anything, so chaining
+          # `&& exit 1` would fail this step unconditionally.
+          failures=$(jq -nr --argjson r '${{ toJSON(needs) }}' '
             $r | to_entries[]
             | select(.value.result != null and .value.result != "skipped" and .value.result != "success")
             | "FAIL: \(.key) -> \(.value.result)"
-          ' && exit 1 || echo "All required jobs passed or were appropriately skipped."
+          ')
+          if [ -n "$failures" ]; then
+            echo "$failures"
+            exit 1
+          fi
+          echo "All required jobs passed or were appropriately skipped."
