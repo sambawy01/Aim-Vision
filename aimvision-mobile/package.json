@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "main": "index.js",
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "start": "expo start",
     "ios": "expo run:ios",
