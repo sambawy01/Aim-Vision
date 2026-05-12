@@ -40,12 +40,12 @@ the values into `extra.env`. At runtime `src/config/env.ts` reads them back via
 `expo-constants`. The contract — kept stable across builds — is documented in
 `.env.example`:
 
-| Var                  | Purpose                                            | Empty value behaviour                         |
-| -------------------- | -------------------------------------------------- | --------------------------------------------- |
-| `API_BASE_URL`       | FastAPI backend base URL                           | Falls back to `https://api.aimvision.com`     |
-| `SENTRY_DSN`         | Sentry RN crash + perf ingestion                   | Sentry init no-ops (no events sent)           |
-| `STATSIG_CLIENT_KEY` | Statsig feature flag client SDK key                | `useFlag` returns the default for every gate  |
-| `OTEL_ENDPOINT`      | OTLP endpoint (placeholder until Sprint 6)         | OTel init no-ops                              |
+| Var                  | Purpose                                    | Empty value behaviour                        |
+| -------------------- | ------------------------------------------ | -------------------------------------------- |
+| `API_BASE_URL`       | FastAPI backend base URL                   | Falls back to `https://api.aimvision.com`    |
+| `SENTRY_DSN`         | Sentry RN crash + perf ingestion           | Sentry init no-ops (no events sent)          |
+| `STATSIG_CLIENT_KEY` | Statsig feature flag client SDK key        | `useFlag` returns the default for every gate |
+| `OTEL_ENDPOINT`      | OTLP endpoint (placeholder until Sprint 6) | OTel init no-ops                             |
 
 Local development: `export SENTRY_DSN=...` before `npx expo start`, or load
 `.env` with `dotenv-cli` / `direnv`. EAS Build pulls these from the

@@ -21,9 +21,7 @@ export function HomeScreen(): React.ReactElement {
       </AccessibleText>
       {showDiagnosticBanner ? (
         <View style={styles.banner} testID="home-diagnostic-banner">
-          <AccessibleText variant="title">
-            {t('home.diagnosticBanner.title')}
-          </AccessibleText>
+          <AccessibleText variant="title">{t('home.diagnosticBanner.title')}</AccessibleText>
           <AccessibleText variant="body" color="textSecondary" style={styles.body}>
             {t('home.diagnosticBanner.body')}
           </AccessibleText>
