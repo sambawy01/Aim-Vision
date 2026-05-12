@@ -7,17 +7,20 @@ module.exports = {
   // too — and RN's vendor sources (`EventEmitter.js`, `error-guard.js`) ship
   // raw Flow syntax that the TS parser rejects. We bypass `babel.config.js`
   // here (`configFile: false`) and pick the right parser per extension.
+  // `require.resolve` returns absolute paths so babel-jest can locate the
+  // presets under pnpm's flat virtual store, where peer-only-style traversal
+  // from babel-jest's own `node_modules/` may not surface them.
   transform: {
     // Project source. TS parser handles `.ts/.tsx`.
     '\\.(ts|tsx)$': [
-      'babel-jest',
+      require.resolve('babel-jest'),
       {
         configFile: false,
         babelrc: false,
         presets: [
-          ['@babel/preset-env', { targets: { node: 'current' } }],
-          '@babel/preset-typescript',
-          ['@babel/preset-react', { runtime: 'automatic' }],
+          [require.resolve('@babel/preset-env'), { targets: { node: 'current' } }],
+          require.resolve('@babel/preset-typescript'),
+          [require.resolve('@babel/preset-react'), { runtime: 'automatic' }],
         ],
       },
     ],
@@ -25,14 +28,14 @@ module.exports = {
     // `{ all: true }` strips Flow types from files without an `@flow` pragma
     // too, since not every RN vendor file declares one.
     '\\.(js|jsx|cjs|mjs)$': [
-      'babel-jest',
+      require.resolve('babel-jest'),
       {
         configFile: false,
         babelrc: false,
         presets: [
-          ['@babel/preset-env', { targets: { node: 'current' } }],
-          ['@babel/preset-flow', { all: true }],
-          ['@babel/preset-react', { runtime: 'automatic' }],
+          [require.resolve('@babel/preset-env'), { targets: { node: 'current' } }],
+          [require.resolve('@babel/preset-flow'), { all: true }],
+          [require.resolve('@babel/preset-react'), { runtime: 'automatic' }],
         ],
       },
     ],
