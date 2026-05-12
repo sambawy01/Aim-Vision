@@ -67,7 +67,11 @@
   },
   "home": {
     "title": "Home",
-    "noSessions": "No sessions yet."
+    "noSessions": "No sessions yet.",
+    "diagnosticBanner": {
+      "title": "Diagnostic feed (preview)",
+      "body": "Live shot diagnostics are rolling out. We'll let you know when your account is included."
+    }
   },
   "settings": {
     "title": "Settings",

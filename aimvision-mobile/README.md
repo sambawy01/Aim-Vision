@@ -19,6 +19,7 @@ Statsig, EAS Update, and the iOS privacy manifest.
 
 ```bash
 pnpm install                # or npm install / yarn
+cp .env.example .env        # then set SENTRY_DSN / STATSIG_CLIENT_KEY / ...
 npx expo prebuild           # generates ios/ and android/ projects
 npx expo run:ios            # boots iOS simulator (requires Xcode 15+ + macOS)
 npx expo run:android        # boots Android emulator (requires Android SDK 34)
@@ -31,6 +32,37 @@ pnpm format                 # Prettier write
 The CI workflow at `.github/workflows/mobile-ci.yml` runs `typecheck`, `lint`,
 and `test` only — native builds need a macOS runner with Xcode and a matching
 Android SDK and are deferred to Sprint 4.
+
+## Environment
+
+Runtime config lives in `app.config.ts`, which reads `process.env` and writes
+the values into `extra.env`. At runtime `src/config/env.ts` reads them back via
+`expo-constants`. The contract — kept stable across builds — is documented in
+`.env.example`:
+
+| Var                  | Purpose                                            | Empty value behaviour                         |
+| -------------------- | -------------------------------------------------- | --------------------------------------------- |
+| `API_BASE_URL`       | FastAPI backend base URL                           | Falls back to `https://api.aimvision.com`     |
+| `SENTRY_DSN`         | Sentry RN crash + perf ingestion                   | Sentry init no-ops (no events sent)           |
+| `STATSIG_CLIENT_KEY` | Statsig feature flag client SDK key                | `useFlag` returns the default for every gate  |
+| `OTEL_ENDPOINT`      | OTLP endpoint (placeholder until Sprint 6)         | OTel init no-ops                              |
+
+Local development: `export SENTRY_DSN=...` before `npx expo start`, or load
+`.env` with `dotenv-cli` / `direnv`. EAS Build pulls these from the
+`env` block in `eas.json` per profile — keep production secrets there, not in
+the repo.
+
+### Verifying the gate
+
+Sprint 3 gate item: _Sentry receives a test event; a flagged feature can be
+toggled live._
+
+- **Sentry:** with `SENTRY_DSN` set, open the Metro debugger and run
+  `require('./src/config/sentry').Sentry.captureMessage('aimvision-test-event')`.
+  The event should appear in the Sentry project within ~10s.
+- **Flags:** `HomeScreen` consumes `home_diagnostic_banner_v1` via `useFlag`.
+  Toggling that gate in the Statsig console flips the banner on the next render
+  (or app restart — `useFlag` reads on mount and on `name` change).
 
 ## Stack
 

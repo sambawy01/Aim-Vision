@@ -105,12 +105,6 @@
         "supportsRTL": true,
         "defaultLocale": "en",
         "supportedLocales": ["en", "ar"]
-      },
-      "env": {
-        "API_BASE_URL": "https://api.aimvision.com",
-        "SENTRY_DSN": "",
-        "STATSIG_CLIENT_KEY": "",
-        "OTEL_ENDPOINT": ""
       }
     }
   }
