@@ -45,4 +45,6 @@ jobs:
         run: pnpm lint
 
       - name: Test
-        run: pnpm test --ci --coverage=false
+        # `--` forwards remaining args to jest; without it pnpm tries to
+        # parse `--ci` / `--coverage` as its own flags.
+        run: pnpm test -- --ci --coverage=false
