@@ -76,7 +76,13 @@ fn every_allowed_transition_is_accepted_by_state_machine() {
         for &to in from.allowed_transitions() {
             let sm = StateMachine::new();
             walk_to(&sm, from).unwrap_or_else(|| panic!("walk to {from:?} failed"));
-            assert_eq!(sm.current(), from, "walk landed on {:?} not {:?}", sm.current(), from);
+            assert_eq!(
+                sm.current(),
+                from,
+                "walk landed on {:?} not {:?}",
+                sm.current(),
+                from
+            );
 
             let result = if to == ConnectionState::Errored {
                 sm.transition_to_errored(CameraError::Cancelled)

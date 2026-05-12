@@ -5,8 +5,8 @@ use aimvision_camera_mock::{FaultScript, MockCamera};
 use aimvision_camera_traits::{CameraControl, CameraEvent};
 
 fn fixture_path(name: &str) -> std::path::PathBuf {
-    let manifest = std::env::var("CARGO_MANIFEST_DIR")
-        .expect("cargo sets CARGO_MANIFEST_DIR for tests");
+    let manifest =
+        std::env::var("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR for tests");
     let mut p = std::path::PathBuf::from(manifest);
     p.push("fixtures");
     p.push(name);
@@ -17,7 +17,10 @@ fn fixture_path(name: &str) -> std::path::PathBuf {
 async fn sample_session_plays_clean() {
     let script = FaultScript::from_path(fixture_path("sample_session.yaml"))
         .expect("parse sample_session.yaml");
-    assert!(script.shots.len() >= 50, "sample fixture should have 50+ shots");
+    assert!(
+        script.shots.len() >= 50,
+        "sample fixture should have 50+ shots"
+    );
     assert!(script.faults.is_empty());
 
     let cam = MockCamera::new("cam_a", script);

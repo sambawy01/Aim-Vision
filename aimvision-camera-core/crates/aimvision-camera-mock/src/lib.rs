@@ -23,7 +23,5 @@ pub mod fault_script;
 pub mod mock_camera;
 
 pub use clock::MockClock;
-pub use fault_script::{
-    ClockSpec, FaultKind, FaultScript, FaultSpec, ShotSpec,
-};
+pub use fault_script::{ClockSpec, FaultKind, FaultScript, FaultSpec, ShotSpec};
 pub use mock_camera::MockCamera;
