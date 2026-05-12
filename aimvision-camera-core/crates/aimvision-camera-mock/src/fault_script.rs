@@ -131,7 +131,8 @@ impl FaultScript {
 
     /// Parse a fault script from a file on disk.
     pub fn from_path(path: impl AsRef<Path>) -> CameraResult<Self> {
-        let bytes = std::fs::read_to_string(path).map_err(aimvision_camera_traits::CameraError::from)?;
+        let bytes =
+            std::fs::read_to_string(path).map_err(aimvision_camera_traits::CameraError::from)?;
         Self::from_yaml_str(&bytes)
     }
 

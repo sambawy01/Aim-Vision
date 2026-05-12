@@ -130,7 +130,10 @@ mod tests {
     #[test]
     fn hero13_stock_has_audio_only_sync() {
         let caps = CameraCapabilities::hero13_stock();
-        assert_eq!(caps.multi_camera_sync, Some(MultiCamSyncProtocol::AudioOnly));
+        assert_eq!(
+            caps.multi_camera_sync,
+            Some(MultiCamSyncProtocol::AudioOnly)
+        );
         assert_eq!(caps.audio_sample_rate_hz, 48_000);
         assert_eq!(caps.max_resolution, Resolution::new(3840, 2160));
     }

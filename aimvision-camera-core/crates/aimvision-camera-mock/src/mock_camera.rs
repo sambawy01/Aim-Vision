@@ -182,20 +182,22 @@ impl MockCamera {
             FaultKind::Command500 => {
                 // Surfaces as a vendor event — the command queue tests
                 // exercise watchdog timeouts via a separate path.
-                st.pending_events
-                    .push_back(CameraEvent::Vendor(aimvision_camera_traits::VendorEvent {
+                st.pending_events.push_back(CameraEvent::Vendor(
+                    aimvision_camera_traits::VendorEvent {
                         vendor: "mock".into(),
                         kind: "command_500".into(),
                         payload_json: "{}".into(),
-                    }));
+                    },
+                ));
             }
             FaultKind::FileChunkDropped => {
-                st.pending_events
-                    .push_back(CameraEvent::Vendor(aimvision_camera_traits::VendorEvent {
+                st.pending_events.push_back(CameraEvent::Vendor(
+                    aimvision_camera_traits::VendorEvent {
                         vendor: "mock".into(),
                         kind: "file_chunk_dropped".into(),
                         payload_json: "{}".into(),
-                    }));
+                    },
+                ));
             }
         }
     }
@@ -300,7 +302,8 @@ impl CameraControl for MockCamera {
 
     async fn insert_hilight(&self, at: TimeNs) -> CameraResult<()> {
         let mut st = self.lock();
-        st.pending_events.push_back(CameraEvent::HilightInserted(at));
+        st.pending_events
+            .push_back(CameraEvent::HilightInserted(at));
         Ok(())
     }
 
@@ -372,11 +375,7 @@ impl CameraMedia for MockCamera {
         st.pending_audio.pop_front()
     }
 
-    async fn download_file(
-        &self,
-        _file_id: FileId,
-        sink: &mut dyn MediaSink,
-    ) -> CameraResult<()> {
+    async fn download_file(&self, _file_id: FileId, sink: &mut dyn MediaSink) -> CameraResult<()> {
         // Synthesize a small file for tests.
         const PAYLOAD: &[u8] = b"FAKE-MP4-FAKE-MP4-FAKE-MP4-FAKE-MP4";
         sink.write_chunk(PAYLOAD).await?;

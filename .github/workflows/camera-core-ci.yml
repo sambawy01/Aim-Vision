@@ -18,18 +18,12 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  # TODO(camera-core): re-enable -D warnings after first engineer runs
-  # cargo fmt --all && cargo clippy --workspace --fix.
-  # RUSTFLAGS: "-D warnings"
   RUST_BACKTRACE: "1"
 
 jobs:
   fmt:
     name: cargo fmt
     runs-on: ubuntu-latest
-    # TODO(camera-core): scaffolding wasn't run through `cargo fmt`; first
-    # Rust engineer should run `cargo fmt --all` and re-promote to blocking.
-    continue-on-error: true
     defaults:
       run:
         working-directory: aimvision-camera-core

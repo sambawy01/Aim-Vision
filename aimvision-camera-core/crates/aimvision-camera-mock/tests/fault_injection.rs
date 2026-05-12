@@ -5,8 +5,8 @@ use aimvision_camera_mock::{FaultScript, MockCamera};
 use aimvision_camera_traits::{CameraControl, CameraEvent};
 
 fn fixture_path(name: &str) -> std::path::PathBuf {
-    let manifest = std::env::var("CARGO_MANIFEST_DIR")
-        .expect("cargo sets CARGO_MANIFEST_DIR for tests");
+    let manifest =
+        std::env::var("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR for tests");
     let mut p = std::path::PathBuf::from(manifest);
     p.push("fixtures");
     p.push(name);
@@ -15,8 +15,8 @@ fn fixture_path(name: &str) -> std::path::PathBuf {
 
 #[tokio::test]
 async fn drop_wifi_at_12_3_emits_wifidown_then_wifiup() {
-    let script = FaultScript::from_path(fixture_path("flaky_wifi.yaml"))
-        .expect("parse flaky_wifi.yaml");
+    let script =
+        FaultScript::from_path(fixture_path("flaky_wifi.yaml")).expect("parse flaky_wifi.yaml");
 
     let cam = MockCamera::new("cam_a", script);
     cam.connect().await.expect("connect");
@@ -55,8 +55,8 @@ async fn drop_wifi_at_12_3_emits_wifidown_then_wifiup() {
 
 #[tokio::test]
 async fn second_drop_wifi_window_recovers() {
-    let script = FaultScript::from_path(fixture_path("flaky_wifi.yaml"))
-        .expect("parse flaky_wifi.yaml");
+    let script =
+        FaultScript::from_path(fixture_path("flaky_wifi.yaml")).expect("parse flaky_wifi.yaml");
     let cam = MockCamera::new("cam_a", script);
     cam.connect().await.expect("connect");
     cam.start_recording().await.expect("start");
@@ -97,9 +97,7 @@ async fn thermal_throttle_emits_warning_and_battery_low() {
         e,
         CameraEvent::ThermalWarning(aimvision_camera_traits::ThermalState::Hot)
     )));
-    assert!(evs
-        .iter()
-        .any(|e| matches!(e, CameraEvent::BatteryLow(15))));
+    assert!(evs.iter().any(|e| matches!(e, CameraEvent::BatteryLow(15))));
     assert!(evs
         .iter()
         .any(|e| matches!(e, CameraEvent::BleDisconnected)));

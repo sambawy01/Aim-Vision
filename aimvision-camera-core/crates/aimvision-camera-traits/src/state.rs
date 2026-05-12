@@ -218,14 +218,18 @@ mod tests {
         assert!(ConnectionState::BlePairing.can_transition_to(ConnectionState::BleConnected));
         assert!(ConnectionState::BleConnected.can_transition_to(ConnectionState::WifiActivating));
         assert!(ConnectionState::WifiActivating.can_transition_to(ConnectionState::WifiConnected));
-        assert!(ConnectionState::WifiConnected.can_transition_to(ConnectionState::ReadyForRecording));
+        assert!(
+            ConnectionState::WifiConnected.can_transition_to(ConnectionState::ReadyForRecording)
+        );
         assert!(ConnectionState::ReadyForRecording.can_transition_to(ConnectionState::Recording));
     }
 
     #[test]
     fn federation_usbc_path_skips_wifi() {
         assert!(ConnectionState::BleConnected.can_transition_to(ConnectionState::UsbcConnected));
-        assert!(ConnectionState::UsbcConnected.can_transition_to(ConnectionState::ReadyForRecording));
+        assert!(
+            ConnectionState::UsbcConnected.can_transition_to(ConnectionState::ReadyForRecording)
+        );
     }
 
     #[test]
