@@ -1,10 +1,11 @@
 import React from 'react';
 import { Text, type TextProps, type TextStyle, StyleSheet } from 'react-native';
-import { colors, typography } from '../../theme/tokens';
+import { useRangeMode } from '../RangeMode';
+import type { Colors } from '../../theme/tokens';
 
 export interface AccessibleTextProps extends TextProps {
   variant?: 'body' | 'bodySmall' | 'caption' | 'title' | 'display';
-  color?: keyof typeof colors;
+  color?: keyof Colors;
 }
 
 export function AccessibleText({
@@ -13,10 +14,11 @@ export function AccessibleText({
   style,
   ...rest
 }: AccessibleTextProps): React.ReactElement {
+  const { theme } = useRangeMode();
   const composed: TextStyle = {
-    fontSize: typography[variant],
-    color: colors[color],
-    lineHeight: typography[variant] * 1.35,
+    fontSize: theme.typography[variant],
+    color: theme.colors[color],
+    lineHeight: theme.typography[variant] * 1.35,
   };
   return (
     <Text
