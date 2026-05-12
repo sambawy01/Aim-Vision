@@ -9,7 +9,9 @@
     "save": "Save",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "done": "Done"
+    "done": "Done",
+    "on": "On",
+    "off": "Off"
   },
   "ageGate": {
     "title": "When were you born?",

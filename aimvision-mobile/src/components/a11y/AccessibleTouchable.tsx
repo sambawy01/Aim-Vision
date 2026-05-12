@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, type PressableProps, type ViewStyle } from 'react-native';
-import { tapTargets } from '../../theme/tokens';
+import { useRangeMode } from '../RangeMode';
 
 export interface AccessibleTouchableProps extends PressableProps {
   variant?: 'default' | 'primary';
@@ -16,7 +16,8 @@ export function AccessibleTouchable({
   hitSlop,
   ...rest
 }: AccessibleTouchableProps): React.ReactElement {
-  const minSize = variant === 'primary' ? tapTargets.primary : tapTargets.minimum;
+  const { theme } = useRangeMode();
+  const minSize = variant === 'primary' ? theme.tapTargets.primary : theme.tapTargets.minimum;
   return (
     <Pressable
       accessibilityRole="button"
