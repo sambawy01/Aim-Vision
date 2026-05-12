@@ -34,9 +34,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        # No frozen lockfile until pnpm-lock.yaml is committed (Sprint 4
-        # pinning task). Until then, accept resolver drift in CI.
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Typecheck
         run: pnpm typecheck
