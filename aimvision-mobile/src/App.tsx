@@ -13,6 +13,7 @@ import { initI18n } from './config/i18n';
 import { initSentry } from './config/sentry';
 import { initStatsig } from './config/statsig';
 import { initOtel } from './config/otel';
+import { startTelemetrySubscribers, type TelemetryHandle } from './services/telemetry';
 import { useAuthStore } from './state/authStore';
 import { RangeModeProvider } from './components/RangeMode';
 import { RootNavigator } from './navigation/RootNavigator';
@@ -23,8 +24,10 @@ export default function App(): React.ReactElement | null {
 
   useEffect(() => {
     let mounted = true;
+    let telemetry: TelemetryHandle | null = null;
     (async () => {
       initSentry();
+      telemetry = startTelemetrySubscribers();
       initOtel();
       await initI18n();
       await Promise.all([hydrate(), initStatsig()]);
@@ -32,6 +35,7 @@ export default function App(): React.ReactElement | null {
     })();
     return () => {
       mounted = false;
+      telemetry?.dispose();
     };
   }, [hydrate]);
 
