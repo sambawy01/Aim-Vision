@@ -12,8 +12,8 @@ global:
   domain: aimvision.local
   tier: federation-onprem
   region: on-prem
-  commonLabels:
-    aimvision.io/tier: federation-onprem
+  # `aimvision.io/tier` is auto-emitted from `global.tier` by the labels
+  # helper; do not duplicate it here.
 
 backend:
   replicas: 2

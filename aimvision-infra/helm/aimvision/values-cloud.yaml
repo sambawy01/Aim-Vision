@@ -10,8 +10,9 @@ global:
   domain: aimvision.io
   tier: cloud
   region: eu-west-1
+  # `aimvision.io/tier` is auto-emitted from `global.tier` by the labels
+  # helper; do not duplicate it here.
   commonLabels:
-    aimvision.io/tier: cloud
     aimvision.io/region: eu-west-1
 
 backend:
