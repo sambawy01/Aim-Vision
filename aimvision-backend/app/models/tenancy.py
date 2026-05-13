@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import enum
 
-from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,6 +22,10 @@ class Role(enum.StrEnum):
     athlete = "athlete"
     admin = "admin"
     parent = "parent"
+    # Federation-tier role: cross-club admin over a Federation Org and its
+    # subordinate Clubs. Authorization layer treats this as a superset of
+    # `admin` scoped to the federation hierarchy. Per V2 plan §EPIC 4.3.
+    federation_admin = "federation_admin"
 
 
 class Account(Base, TimestampMixin):
@@ -106,3 +110,29 @@ class AthleteProfile(Base, TimestampMixin, TenantScopedMixin):
     )
     discipline: Mapped[str] = mapped_column(String(64), nullable=False, default="trap")
     handedness: Mapped[str] = mapped_column(String(8), nullable=False, default="right")
+
+
+class CoachProfile(Base, TimestampMixin, TenantScopedMixin):
+    """Coach-side profile. One row per (user, tenant) — a coach contracting with
+    two federations carries two profiles, each scoped to its own tenant.
+
+    Sprint 4 EPIC 4.3 deliverable per V2 plan; complements `AthleteProfile`.
+    """
+
+    __tablename__ = "coach_profiles"
+    __table_args__ = (
+        UniqueConstraint("user_id", "tenant_id", name="uq_coach_profile_user_tenant"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=new_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    bio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # JSON list of {issuer, level, issued_at, expires_at?}. Free-form because the
+    # certification landscape is fragmented (ISSF, national federations, NRA,
+    # private bodies); a strict enum would force premature normalization.
+    certifications: Mapped[list[dict[str, object]] | None] = mapped_column(JSON, nullable=True)
+    # JSON list of discipline strings: "trap", "skeet", "sporting", "doubles", etc.
+    specializations: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    accepting_clients: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

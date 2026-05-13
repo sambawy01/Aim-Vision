@@ -4,8 +4,18 @@ from .annotation import Annotation, AnnotationVisibility
 from .audit import AuditEvent
 from .base import Base
 from .consent import ConsentRecord
-from .session import Recording, Session, Shot
-from .tenancy import Account, AthleteProfile, Cohort, Membership, Org, OrgKind, Role, User
+from .session import Recording, Session, Shot, ShotEvent
+from .tenancy import (
+    Account,
+    AthleteProfile,
+    CoachProfile,
+    Cohort,
+    Membership,
+    Org,
+    OrgKind,
+    Role,
+    User,
+)
 
 __all__ = [
     "Account",
@@ -14,6 +24,7 @@ __all__ = [
     "AthleteProfile",
     "AuditEvent",
     "Base",
+    "CoachProfile",
     "Cohort",
     "ConsentRecord",
     "Membership",
@@ -23,5 +34,6 @@ __all__ = [
     "Role",
     "Session",
     "Shot",
+    "ShotEvent",
     "User",
 ]
