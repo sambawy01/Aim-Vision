@@ -19,13 +19,9 @@
  * without a live database.
  */
 
-import { TABLES } from "./schema";
+import { TABLES } from './schema';
 
-export type ResolutionKind =
-  | "use_local"
-  | "use_server"
-  | "merge_fields"
-  | "skip";
+export type ResolutionKind = 'use_local' | 'use_server' | 'merge_fields' | 'skip';
 
 export interface ConflictResolution {
   kind: ResolutionKind;
@@ -37,8 +33,8 @@ export interface ConflictResolution {
   reason: string;
 }
 
-const APPEND_ONLY_TABLES = new Set(["shots", "shot_events", "recordings"]);
-const SERVER_AUTHORITATIVE_TABLES = new Set(["consent_records"]);
+const APPEND_ONLY_TABLES = new Set(['shots', 'shot_events', 'recordings']);
+const SERVER_AUTHORITATIVE_TABLES = new Set(['consent_records']);
 
 export interface ConflictInput {
   tableName: string;
@@ -61,14 +57,14 @@ export function resolveConflict(input: ConflictInput): ConflictResolution {
 
   if (!TABLES.some((t) => t.name === tableName)) {
     return {
-      kind: "skip",
+      kind: 'skip',
       reason: `unknown table "${tableName}" — refusing to merge`,
     };
   }
 
   if (SERVER_AUTHORITATIVE_TABLES.has(tableName)) {
     return {
-      kind: "use_server",
+      kind: 'use_server',
       reason: `${tableName} is server-authoritative`,
     };
   }
@@ -76,12 +72,12 @@ export function resolveConflict(input: ConflictInput): ConflictResolution {
   if (APPEND_ONLY_TABLES.has(tableName)) {
     if (local.server_id && local.server_id === server.server_id) {
       return {
-        kind: "use_server",
+        kind: 'use_server',
         reason: `${tableName} is append-only; server row wins on collision`,
       };
     }
     return {
-      kind: "skip",
+      kind: 'skip',
       reason: `${tableName} append-only with no matching server_id — keep local for next push`,
     };
   }
@@ -89,8 +85,8 @@ export function resolveConflict(input: ConflictInput): ConflictResolution {
   // Athlete-owned mutable: field-level LWW.
   if (locallyChanged.size === 0) {
     return {
-      kind: "use_server",
-      reason: "no local changes — adopt server copy",
+      kind: 'use_server',
+      reason: 'no local changes — adopt server copy',
     };
   }
 
@@ -105,15 +101,15 @@ export function resolveConflict(input: ConflictInput): ConflictResolution {
       patch[col] = local[col];
     }
     return {
-      kind: "merge_fields",
+      kind: 'merge_fields',
       patch,
       reason: `LWW server-newer, preserving ${locallyChanged.size} locally-dirty column(s)`,
     };
   }
 
   return {
-    kind: "use_local",
-    reason: "LWW local-newer",
+    kind: 'use_local',
+    reason: 'LWW local-newer',
   };
 }
 
@@ -123,7 +119,7 @@ export function parseChangedCols(changedCsv: string | null | undefined): Set<str
   if (!changedCsv) return new Set();
   return new Set(
     changedCsv
-      .split(",")
+      .split(',')
       .map((c) => c.trim())
       .filter(Boolean),
   );

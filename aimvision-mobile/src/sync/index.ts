@@ -7,7 +7,7 @@ export {
   type ColumnSpec,
   type ColumnType,
   type RowStatus,
-} from "./schema";
+} from './schema';
 
 export {
   resolveConflict,
@@ -15,7 +15,7 @@ export {
   type ConflictInput,
   type ConflictResolution,
   type ResolutionKind,
-} from "./conflict";
+} from './conflict';
 
 export {
   validatePushPayload,
@@ -23,7 +23,7 @@ export {
   type PullChanges,
   type PushPayload,
   type PushResult,
-} from "./protocol";
+} from './protocol';
 
 export {
   SyncEngine,
@@ -31,4 +31,4 @@ export {
   type LocalStore,
   type Transport,
   type SyncResult,
-} from "./engine";
+} from './engine';

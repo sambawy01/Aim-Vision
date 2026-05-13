@@ -13,19 +13,19 @@
  * compatibility on RN 0.76 (Sprint 5 EPIC 5.4 sub-task).
  */
 
-import { resolveConflict, parseChangedCols } from "./conflict";
+import { resolveConflict, parseChangedCols } from './conflict';
 import {
   type PullChanges,
   type PushPayload,
   type PushResult,
   validatePushPayload,
-} from "./protocol";
-import { columnsForTable, pushableTables, TABLES } from "./schema";
+} from './protocol';
+import { columnsForTable, pushableTables, TABLES } from './schema';
 
 export interface LocalRow extends Record<string, unknown> {
   id: string; // local primary key
   server_id?: string;
-  _status: "synced" | "created" | "updated" | "deleted";
+  _status: 'synced' | 'created' | 'updated' | 'deleted';
   _changed?: string; // CSV of column names dirty since last push
   updated_at: number;
 }
@@ -65,7 +65,7 @@ export interface SyncResult {
   pulled: { [tableName: string]: number };
   pushed: { [tableName: string]: number };
   conflicts: number;
-  rejected: PushResult["rejected"];
+  rejected: PushResult['rejected'];
 }
 
 export class SyncEngine {
@@ -106,12 +106,12 @@ export class SyncEngine {
             locallyChanged: parseChangedCols(local._changed),
           });
           conflicts++;
-          if (resolution.kind === "use_server" || resolution.kind === "merge_fields") {
+          if (resolution.kind === 'use_server' || resolution.kind === 'merge_fields') {
             await this.store.upsertSynced(
               tableName,
-              resolution.kind === "merge_fields" ? resolution.patch! : updated,
+              resolution.kind === 'merge_fields' ? resolution.patch! : updated,
             );
-          } else if (resolution.kind === "skip") {
+          } else if (resolution.kind === 'skip') {
             this.onWarning(`sync: ${resolution.reason} (${tableName}/${updated.server_id})`);
           }
         }
@@ -140,10 +140,10 @@ export class SyncEngine {
       const updated: (Record<string, unknown> & { server_id: string })[] = [];
       const deleted: string[] = [];
       for (const row of dirty) {
-        if (row._status === "created") created.push(row);
-        else if (row._status === "updated" && row.server_id)
+        if (row._status === 'created') created.push(row);
+        else if (row._status === 'updated' && row.server_id)
           updated.push(row as Record<string, unknown> & { server_id: string });
-        else if (row._status === "deleted" && row.server_id) deleted.push(row.server_id);
+        else if (row._status === 'deleted' && row.server_id) deleted.push(row.server_id);
       }
       payload.changes[tableName] = { created, updated, deleted };
       pushed[tableName] = created.length + updated.length + deleted.length;
@@ -155,8 +155,8 @@ export class SyncEngine {
     if (errors.length > 0) {
       const first = errors.slice(0, 3).map((e) => `${e.table}.${e.column}`);
       throw new Error(
-        `sync: push payload contains unknown columns: ${first.join(", ")}${
-          errors.length > 3 ? "..." : ""
+        `sync: push payload contains unknown columns: ${first.join(', ')}${
+          errors.length > 3 ? '...' : ''
         }`,
       );
     }
@@ -205,9 +205,9 @@ export class SyncEngine {
       server: row as Record<string, unknown> & { updated_at: number; server_id: string },
       locallyChanged: parseChangedCols(local._changed),
     });
-    if (resolution.kind === "use_server") {
+    if (resolution.kind === 'use_server') {
       await this.store.upsertSynced(tableName, row);
-    } else if (resolution.kind === "merge_fields" && resolution.patch) {
+    } else if (resolution.kind === 'merge_fields' && resolution.patch) {
       await this.store.upsertSynced(tableName, resolution.patch);
     }
   }

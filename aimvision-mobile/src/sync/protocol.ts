@@ -80,10 +80,10 @@ export function validatePushPayload(
   for (const [table, bucket] of Object.entries(payload.changes)) {
     const valid = validColumnsByTable[table];
     if (!valid) {
-      errors.push({ table, column: "<unknown table>" });
+      errors.push({ table, column: '<unknown table>' });
       continue;
     }
-    const validSet = new Set([...valid, "id"]); // local "id" is internal but
+    const validSet = new Set([...valid, 'id']); // local "id" is internal but
     // the engine may include it for round-trip resolution
 
     for (const row of [...bucket.created, ...bucket.updated]) {
@@ -99,5 +99,5 @@ export function validatePushPayload(
 }
 
 export function emptyPullChanges(): PullChanges {
-  return { changes: {}, timestamp: "" };
+  return { changes: {}, timestamp: '' };
 }

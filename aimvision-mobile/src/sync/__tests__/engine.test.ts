@@ -3,13 +3,13 @@
  * No native modules involved.
  */
 
-import { SyncEngine, type LocalRow, type LocalStore, type Transport } from "../engine";
-import type { PullChanges, PushPayload, PushResult } from "../protocol";
+import { SyncEngine, type LocalRow, type LocalStore, type Transport } from '../engine';
+import type { PullChanges, PushPayload, PushResult } from '../protocol';
 
 class MemoryStore implements LocalStore {
   private tables = new Map<string, Map<string, LocalRow>>(); // tableName -> id -> row
   private byServerId = new Map<string, Map<string, string>>(); // tableName -> serverId -> localId
-  private cursor = "";
+  private cursor = '';
 
   private bucket(name: string) {
     if (!this.tables.has(name)) this.tables.set(name, new Map());
@@ -27,7 +27,7 @@ class MemoryStore implements LocalStore {
   }
 
   async collectDirty(name: string): Promise<LocalRow[]> {
-    return this.rows(name).filter((r) => r._status !== "synced");
+    return this.rows(name).filter((r) => r._status !== 'synced');
   }
 
   async findByServerId(name: string, serverId: string): Promise<LocalRow | null> {
@@ -44,7 +44,7 @@ class MemoryStore implements LocalStore {
       ...(this.bucket(name).get(localId) ?? {}),
       ...row,
       id: localId,
-      _status: "synced",
+      _status: 'synced',
       _changed: undefined,
       updated_at: (row.updated_at as number) ?? Date.now(),
     } as LocalRow;
@@ -56,7 +56,7 @@ class MemoryStore implements LocalStore {
     const row = this.bucket(name).get(localId);
     if (!row) return;
     row.server_id = serverId;
-    row._status = "synced";
+    row._status = 'synced';
     row._changed = undefined;
     this.byServerId.get(name)!.set(serverId, localId);
   }
@@ -66,7 +66,7 @@ class MemoryStore implements LocalStore {
     if (!localId) return;
     const row = this.bucket(name).get(localId);
     if (row) {
-      row._status = "synced";
+      row._status = 'synced';
       row._changed = undefined;
     }
   }
@@ -101,8 +101,8 @@ class StubTransport implements Transport {
   }
 }
 
-describe("SyncEngine.syncOnce", () => {
-  test("pulled creates land as synced rows and cursor advances", async () => {
+describe('SyncEngine.syncOnce', () => {
+  test('pulled creates land as synced rows and cursor advances', async () => {
     const store = new MemoryStore();
     const transport = new StubTransport(
       {
@@ -110,12 +110,12 @@ describe("SyncEngine.syncOnce", () => {
           sessions: {
             created: [
               {
-                server_id: "srv-s1",
-                org_id: "org1",
-                athlete_user_id: "u1",
-                discipline: "trap",
+                server_id: 'srv-s1',
+                org_id: 'org1',
+                athlete_user_id: 'u1',
+                discipline: 'trap',
                 started_at: 1000,
-                tenant_id: "org:club1",
+                tenant_id: 'org:club1',
                 updated_at: 1000,
               },
             ],
@@ -123,41 +123,41 @@ describe("SyncEngine.syncOnce", () => {
             deleted: [],
           },
         },
-        timestamp: "cursor-1",
+        timestamp: 'cursor-1',
       },
-      { server_ids: {}, rejected: [], timestamp: "cursor-1" },
+      { server_ids: {}, rejected: [], timestamp: 'cursor-1' },
     );
 
     const engine = new SyncEngine(store, transport);
     const result = await engine.syncOnce();
 
     expect(result.pulled.sessions).toBe(1);
-    expect(await store.getCursor()).toBe("cursor-1");
-    const rows = store.rows("sessions");
+    expect(await store.getCursor()).toBe('cursor-1');
+    const rows = store.rows('sessions');
     expect(rows).toHaveLength(1);
-    expect(rows[0]._status).toBe("synced");
-    expect(rows[0].server_id).toBe("srv-s1");
+    expect(rows[0]._status).toBe('synced');
+    expect(rows[0].server_id).toBe('srv-s1');
   });
 
-  test("push: locally-created row gets a server_id and is marked synced", async () => {
+  test('push: locally-created row gets a server_id and is marked synced', async () => {
     const store = new MemoryStore();
-    store.seed("sessions", {
-      id: "loc-s1",
-      _status: "created",
+    store.seed('sessions', {
+      id: 'loc-s1',
+      _status: 'created',
       updated_at: 1500,
-      org_id: "org1",
-      athlete_user_id: "u1",
-      discipline: "trap",
+      org_id: 'org1',
+      athlete_user_id: 'u1',
+      discipline: 'trap',
       started_at: 1500,
-      tenant_id: "org:club1",
+      tenant_id: 'org:club1',
       created_at: 1500,
     });
     const transport = new StubTransport(
-      { changes: {}, timestamp: "cursor-0" },
+      { changes: {}, timestamp: 'cursor-0' },
       {
-        server_ids: { sessions: { "loc-s1": "srv-new" } },
+        server_ids: { sessions: { 'loc-s1': 'srv-new' } },
         rejected: [],
-        timestamp: "cursor-2",
+        timestamp: 'cursor-2',
       },
     );
 
@@ -165,32 +165,32 @@ describe("SyncEngine.syncOnce", () => {
     const result = await engine.syncOnce();
 
     expect(result.pushed.sessions).toBe(1);
-    const row = store.rows("sessions")[0];
-    expect(row.server_id).toBe("srv-new");
-    expect(row._status).toBe("synced");
-    expect(await store.getCursor()).toBe("cursor-2");
+    const row = store.rows('sessions')[0];
+    expect(row.server_id).toBe('srv-new');
+    expect(row._status).toBe('synced');
+    expect(await store.getCursor()).toBe('cursor-2');
   });
 
-  test("push rejection surfaces via onWarning, not by throwing", async () => {
+  test('push rejection surfaces via onWarning, not by throwing', async () => {
     const store = new MemoryStore();
-    store.seed("shots", {
-      id: "loc-shot1",
-      _status: "created",
+    store.seed('shots', {
+      id: 'loc-shot1',
+      _status: 'created',
       updated_at: 1500,
-      session_id: "loc-s1",
+      session_id: 'loc-s1',
       monotonic_seq: 1,
       device_clock_ns: 1_000_000_000,
       server_clock_ns: 1_000_000_500,
-      shot_kind: "single",
-      tenant_id: "org:club1",
+      shot_kind: 'single',
+      tenant_id: 'org:club1',
       created_at: 1500,
     });
     const transport = new StubTransport(
-      { changes: {}, timestamp: "cursor-0" },
+      { changes: {}, timestamp: 'cursor-0' },
       {
         server_ids: {},
-        rejected: [{ table: "shots", local_id: "loc-shot1", reason: "RLS denied" }],
-        timestamp: "cursor-3",
+        rejected: [{ table: 'shots', local_id: 'loc-shot1', reason: 'RLS denied' }],
+        timestamp: 'cursor-3',
       },
     );
     const warnings: string[] = [];
@@ -202,19 +202,19 @@ describe("SyncEngine.syncOnce", () => {
     expect(warnings[0]).toMatch(/RLS denied/);
   });
 
-  test("server update on a row with local dirty cols -> merge_fields applied", async () => {
+  test('server update on a row with local dirty cols -> merge_fields applied', async () => {
     const store = new MemoryStore();
-    store.seed("sessions", {
-      id: "loc-s1",
-      server_id: "srv-s1",
-      _status: "updated",
-      _changed: "discipline",
+    store.seed('sessions', {
+      id: 'loc-s1',
+      server_id: 'srv-s1',
+      _status: 'updated',
+      _changed: 'discipline',
       updated_at: 1000,
-      org_id: "org1",
-      athlete_user_id: "u1",
-      discipline: "doubles_trap", // local
+      org_id: 'org1',
+      athlete_user_id: 'u1',
+      discipline: 'doubles_trap', // local
       started_at: 999,
-      tenant_id: "org:club1",
+      tenant_id: 'org:club1',
       created_at: 999,
     });
     const transport = new StubTransport(
@@ -224,50 +224,50 @@ describe("SyncEngine.syncOnce", () => {
             created: [],
             updated: [
               {
-                server_id: "srv-s1",
-                org_id: "org1",
-                athlete_user_id: "u1",
-                discipline: "skeet", // server
+                server_id: 'srv-s1',
+                org_id: 'org1',
+                athlete_user_id: 'u1',
+                discipline: 'skeet', // server
                 started_at: 1000,
-                tenant_id: "org:club1",
+                tenant_id: 'org:club1',
                 updated_at: 2000,
               },
             ],
             deleted: [],
           },
         },
-        timestamp: "cursor-4",
+        timestamp: 'cursor-4',
       },
-      { server_ids: {}, rejected: [], timestamp: "cursor-4" },
+      { server_ids: {}, rejected: [], timestamp: 'cursor-4' },
     );
 
     const engine = new SyncEngine(store, transport);
     await engine.syncOnce();
 
-    const row = store.rows("sessions")[0];
-    expect(row.discipline).toBe("doubles_trap");
+    const row = store.rows('sessions')[0];
+    expect(row.discipline).toBe('doubles_trap');
     expect(row.started_at).toBe(1000);
-    expect(row._status).toBe("synced");
+    expect(row._status).toBe('synced');
   });
 
-  test("push payload with an unknown column throws before contacting the server", async () => {
+  test('push payload with an unknown column throws before contacting the server', async () => {
     const store = new MemoryStore();
-    store.seed("sessions", {
-      id: "loc-s1",
-      _status: "created",
+    store.seed('sessions', {
+      id: 'loc-s1',
+      _status: 'created',
       updated_at: 1500,
-      org_id: "org1",
-      athlete_user_id: "u1",
-      discipline: "trap",
+      org_id: 'org1',
+      athlete_user_id: 'u1',
+      discipline: 'trap',
       started_at: 1500,
-      tenant_id: "org:club1",
+      tenant_id: 'org:club1',
       created_at: 1500,
       // Inject a column the schema does not know about.
-      bogus_column: "x",
+      bogus_column: 'x',
     } as unknown as LocalRow);
     const transport = new StubTransport(
-      { changes: {}, timestamp: "cursor-0" },
-      { server_ids: {}, rejected: [], timestamp: "" },
+      { changes: {}, timestamp: 'cursor-0' },
+      { server_ids: {}, rejected: [], timestamp: '' },
     );
     const engine = new SyncEngine(store, transport);
 

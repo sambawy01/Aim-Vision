@@ -16,7 +16,7 @@
  * Hermes compatibility verification).
  */
 
-export type ColumnType = "string" | "number" | "boolean" | "json";
+export type ColumnType = 'string' | 'number' | 'boolean' | 'json';
 
 export interface ColumnSpec {
   name: string;
@@ -38,81 +38,81 @@ export interface TableSpec {
  *  - `updated`: server has older copy, push pending
  *  - `deleted`: tombstoned locally, awaiting server confirmation
  */
-export type RowStatus = "synced" | "created" | "updated" | "deleted";
+export type RowStatus = 'synced' | 'created' | 'updated' | 'deleted';
 
 const tenantScoped: ColumnSpec[] = [
-  { name: "tenant_id", type: "string", isIndexed: true },
-  { name: "_status", type: "string", isIndexed: true },
-  { name: "_changed", type: "string", isOptional: true },
-  { name: "created_at", type: "number" },
-  { name: "updated_at", type: "number" },
+  { name: 'tenant_id', type: 'string', isIndexed: true },
+  { name: '_status', type: 'string', isIndexed: true },
+  { name: '_changed', type: 'string', isOptional: true },
+  { name: 'created_at', type: 'number' },
+  { name: 'updated_at', type: 'number' },
 ];
 
 export const SCHEMA_VERSION = 1;
 
 export const TABLES: readonly TableSpec[] = [
   {
-    name: "sessions",
+    name: 'sessions',
     columns: [
-      { name: "server_id", type: "string", isOptional: true, isIndexed: true },
-      { name: "org_id", type: "string", isIndexed: true },
-      { name: "athlete_user_id", type: "string", isIndexed: true },
-      { name: "discipline", type: "string" },
-      { name: "started_at", type: "number" },
-      { name: "ended_at", type: "number", isOptional: true },
+      { name: 'server_id', type: 'string', isOptional: true, isIndexed: true },
+      { name: 'org_id', type: 'string', isIndexed: true },
+      { name: 'athlete_user_id', type: 'string', isIndexed: true },
+      { name: 'discipline', type: 'string' },
+      { name: 'started_at', type: 'number' },
+      { name: 'ended_at', type: 'number', isOptional: true },
       ...tenantScoped,
     ],
   },
   {
-    name: "recordings",
+    name: 'recordings',
     columns: [
-      { name: "server_id", type: "string", isOptional: true, isIndexed: true },
-      { name: "session_id", type: "string", isIndexed: true },
-      { name: "storage_uri", type: "string" },
-      { name: "sha256", type: "string", isOptional: true },
-      { name: "duration_ms", type: "number", isOptional: true },
-      { name: "upload_state", type: "string" },
-      { name: "camera_clock_offset_ms", type: "number", isOptional: true },
+      { name: 'server_id', type: 'string', isOptional: true, isIndexed: true },
+      { name: 'session_id', type: 'string', isIndexed: true },
+      { name: 'storage_uri', type: 'string' },
+      { name: 'sha256', type: 'string', isOptional: true },
+      { name: 'duration_ms', type: 'number', isOptional: true },
+      { name: 'upload_state', type: 'string' },
+      { name: 'camera_clock_offset_ms', type: 'number', isOptional: true },
       ...tenantScoped,
     ],
   },
   {
-    name: "shots",
+    name: 'shots',
     columns: [
-      { name: "server_id", type: "string", isOptional: true, isIndexed: true },
-      { name: "session_id", type: "string", isIndexed: true },
-      { name: "monotonic_seq", type: "number" },
-      { name: "device_clock_ns", type: "number" },
-      { name: "server_clock_ns", type: "number" },
-      { name: "shot_kind", type: "string" },
+      { name: 'server_id', type: 'string', isOptional: true, isIndexed: true },
+      { name: 'session_id', type: 'string', isIndexed: true },
+      { name: 'monotonic_seq', type: 'number' },
+      { name: 'device_clock_ns', type: 'number' },
+      { name: 'server_clock_ns', type: 'number' },
+      { name: 'shot_kind', type: 'string' },
       ...tenantScoped,
     ],
   },
   {
-    name: "shot_events",
+    name: 'shot_events',
     columns: [
-      { name: "server_id", type: "string", isOptional: true, isIndexed: true },
-      { name: "shot_id", type: "string", isIndexed: true },
-      { name: "event_kind", type: "string", isIndexed: true },
-      { name: "monotonic_seq", type: "number" },
-      { name: "payload", type: "json" },
-      { name: "produced_at", type: "number" },
+      { name: 'server_id', type: 'string', isOptional: true, isIndexed: true },
+      { name: 'shot_id', type: 'string', isIndexed: true },
+      { name: 'event_kind', type: 'string', isIndexed: true },
+      { name: 'monotonic_seq', type: 'number' },
+      { name: 'payload', type: 'json' },
+      { name: 'produced_at', type: 'number' },
       ...tenantScoped,
     ],
   },
   {
-    name: "consent_records",
+    name: 'consent_records',
     columns: [
-      { name: "server_id", type: "string", isOptional: true, isIndexed: true },
-      { name: "user_id", type: "string", isIndexed: true },
-      { name: "purpose", type: "string" },
-      { name: "purpose_version", type: "string" },
-      { name: "granted", type: "boolean" },
-      { name: "granted_at", type: "number" },
-      { name: "revoked_at", type: "number", isOptional: true },
-      { name: "processing_basis", type: "string" },
-      { name: "joint_controller_org_ids", type: "json", isOptional: true },
-      { name: "joint_controller_agreement_ref", type: "string", isOptional: true },
+      { name: 'server_id', type: 'string', isOptional: true, isIndexed: true },
+      { name: 'user_id', type: 'string', isIndexed: true },
+      { name: 'purpose', type: 'string' },
+      { name: 'purpose_version', type: 'string' },
+      { name: 'granted', type: 'boolean' },
+      { name: 'granted_at', type: 'number' },
+      { name: 'revoked_at', type: 'number', isOptional: true },
+      { name: 'processing_basis', type: 'string' },
+      { name: 'joint_controller_org_ids', type: 'json', isOptional: true },
+      { name: 'joint_controller_agreement_ref', type: 'string', isOptional: true },
       ...tenantScoped,
     ],
   },
@@ -132,5 +132,5 @@ export function columnsForTable(tableName: string): string[] {
  *  tables that need server-authoritative merges (e.g., consent revocations
  *  must be CRDT-merged once Sprint 17 ships withdrawal flow). */
 export function pushableTables(): string[] {
-  return TABLES.filter((t) => t.name !== "consent_records").map((t) => t.name);
+  return TABLES.filter((t) => t.name !== 'consent_records').map((t) => t.name);
 }
