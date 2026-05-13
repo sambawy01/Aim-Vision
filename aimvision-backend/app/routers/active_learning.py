@@ -33,6 +33,7 @@ from ..schemas.active_learning import (
     ActiveLearningLabelIn,
 )
 from ..services.auth import Principal
+from ..services.authz import require_role
 
 router = APIRouter(prefix="/active-learning", tags=["active-learning"])
 
@@ -108,7 +109,9 @@ async def list_items(
 @router.post("/items/{item_id}/claim", response_model=ActiveLearningItemOut)
 async def claim_item(
     item_id: str,
-    principal: Principal = Depends(current_principal),
+    # Only coaches and above may claim items for labelling. Athletes can
+    # see their own session metadata but they are not annotators.
+    principal: Principal = Depends(require_role("coach")),
     session: AsyncSession = Depends(db_session),
 ) -> ActiveLearningItemOut:
     item = await _load_item(item_id, principal, session)
@@ -128,7 +131,7 @@ async def claim_item(
 async def label_item(
     item_id: str,
     payload: ActiveLearningLabelIn,
-    principal: Principal = Depends(current_principal),
+    principal: Principal = Depends(require_role("coach")),
     session: AsyncSession = Depends(db_session),
 ) -> ActiveLearningItemOut:
     item = await _load_item(item_id, principal, session)
