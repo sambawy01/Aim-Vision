@@ -16,19 +16,26 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from app.db import get_app_engine
 from app.models import OrgKind, Session
 from app.models.tenancy import Org
+from app.services.auth import Principal, issue_token
 
 
-async def _signup_and_login(client: AsyncClient, email: str) -> tuple[str, str]:
-    """Returns (bearer_token, user_id). Solo tenant is implicit."""
+async def _signup_and_login(
+    client: AsyncClient, email: str, *, role: str = "coach"
+) -> tuple[str, str]:
+    """Returns (bearer_token, user_id). The token is minted with
+    `role=coach` by default so the annotator endpoints (gated on
+    require_role("coach")) accept it. Pass `role="athlete"` to exercise
+    the 403 path.
+
+    Solo tenant remains implicit on signup (`solo:<user_id>`)."""
     sr = await client.post(
         "/auth/signup",
         json={"email": email, "password": "p4ssw0rd!1234", "display_name": email.split("@")[0]},
     )
     assert sr.status_code == 201, sr.text
     user_id = sr.json()["id"]
-    lr = await client.post("/auth/login", json={"email": email, "password": "p4ssw0rd!1234"})
-    assert lr.status_code == 200, lr.text
-    return lr.json()["access_token"], user_id
+    token, _ = issue_token(Principal(user_id=user_id, tenant_id=f"solo:{user_id}", role=role))
+    return token, user_id
 
 
 async def _seed_session(user_id: str) -> str:
@@ -241,6 +248,41 @@ async def test_discard_cannot_undo_labelled_item(client: AsyncClient) -> None:
     disc = await client.post(f"/active-learning/items/{item_id}/discard", headers=h)
     assert disc.status_code == 409
     assert "training set" in disc.json()["error"]
+
+
+@pytest.mark.asyncio
+async def test_claim_requires_coach_role(client: AsyncClient) -> None:
+    """Athletes cannot claim items — the require_role("coach") gate 403s
+    them before they reach the row, even on their own tenant."""
+    coach_token, user_id = await _signup_and_login(client, "coach1@example.com")
+    sid = await _seed_session(user_id)
+    h_coach = {"Authorization": f"Bearer {coach_token}"}
+
+    r = await client.post(
+        "/active-learning/items",
+        headers=h_coach,
+        json={
+            "session_id": sid,
+            "model_name": "x",
+            "model_version": "v",
+            "prediction": {},
+            "confidence": 0.1,
+            "uncertainty_signal": "low_confidence",
+        },
+    )
+    item_id = r.json()["id"]
+
+    # Mint an athlete token for the SAME user + tenant. The role gate
+    # must fire before the tenant check so we know the gate works in
+    # isolation.
+    ath_token, _ = (
+        issue_token(Principal(user_id=user_id, tenant_id=f"solo:{user_id}", role="athlete"))[0],
+        user_id,
+    )
+    h_ath = {"Authorization": f"Bearer {ath_token}"}
+    claim = await client.post(f"/active-learning/items/{item_id}/claim", headers=h_ath)
+    assert claim.status_code == 403, claim.text
+    assert "coach" in claim.json()["error"]
 
 
 @pytest.mark.asyncio
