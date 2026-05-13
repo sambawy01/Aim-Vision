@@ -1,11 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTenancy } from '@/hooks/useTenancy';
+import { useAuthStore } from '@/state/authStore';
 import { LocaleSwitcher } from './LocaleSwitcher';
 
 export function AppShell() {
   const { t } = useTranslation();
   const { current, available, switchTo } = useTenancy();
+  const isFedAdmin = useAuthStore((s) => s.principal?.role === 'fed_admin');
 
   return (
     <div className="min-h-screen bg-surface text-text flex flex-col">
@@ -50,6 +52,13 @@ export function AppShell() {
                 {t('nav.checkin')}
               </NavLink>
             </li>
+            {isFedAdmin ? (
+              <li>
+                <NavLink to="/app/federation" className={navClass}>
+                  {t('nav.federation')}
+                </NavLink>
+              </li>
+            ) : null}
             <li>
               <NavLink to="/app/settings" className={navClass}>
                 {t('nav.settings')}

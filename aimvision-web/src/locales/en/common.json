@@ -17,7 +17,43 @@
     "athletes": "Athletes",
     "sessions": "Sessions",
     "checkin": "Check-in",
+    "federation": "Federation",
     "settings": "Settings"
+  },
+  "federation": {
+    "title": "Federation overview",
+    "subtitle": "Cross-club performance and talent cohorts",
+    "notAllowed": "This view is only available to federation administrators.",
+    "errors": {
+      "overview": "Could not load federation overview"
+    },
+    "metrics": {
+      "athletes": "Athletes",
+      "clubs": "Active clubs",
+      "sessionsLast30d": "Sessions (30d)",
+      "engagement": "Sessions / athlete (30d)"
+    },
+    "clubs": {
+      "title": "Member clubs",
+      "empty": "No clubs registered yet",
+      "name": "Club",
+      "athletes": "Athletes",
+      "coaches": "Coaches",
+      "lastSession": "Last session",
+      "status": "Status",
+      "statusLabel": {
+        "active": "Active",
+        "paused": "Paused",
+        "pending_setup": "Setup pending"
+      }
+    },
+    "cohorts": {
+      "title": "Talent cohorts",
+      "empty": "No talent cohorts defined",
+      "athletesCount": "{{count}} athletes",
+      "athletesCount_one": "{{count}} athlete",
+      "medianSessions": "Median sessions / athlete (30d)"
+    }
   },
   "athletes": {
     "title": "Athletes",

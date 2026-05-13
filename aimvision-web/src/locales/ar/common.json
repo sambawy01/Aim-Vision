@@ -17,7 +17,43 @@
     "athletes": "الرياضيون",
     "sessions": "الجلسات",
     "checkin": "تسجيل الحضور",
+    "federation": "الاتحاد",
     "settings": "الإعدادات"
+  },
+  "federation": {
+    "title": "نظرة عامة على الاتحاد",
+    "subtitle": "أداء الأندية ومجموعات المواهب",
+    "notAllowed": "هذه الواجهة متاحة فقط لمسؤولي الاتحاد.",
+    "errors": {
+      "overview": "تعذر تحميل نظرة الاتحاد العامة"
+    },
+    "metrics": {
+      "athletes": "الرياضيون",
+      "clubs": "الأندية النشطة",
+      "sessionsLast30d": "الجلسات (30 يوماً)",
+      "engagement": "الجلسات لكل رياضي (30 يوماً)"
+    },
+    "clubs": {
+      "title": "الأندية الأعضاء",
+      "empty": "لا توجد أندية مسجلة بعد",
+      "name": "النادي",
+      "athletes": "الرياضيون",
+      "coaches": "المدربون",
+      "lastSession": "آخر جلسة",
+      "status": "الحالة",
+      "statusLabel": {
+        "active": "نشط",
+        "paused": "متوقف مؤقتاً",
+        "pending_setup": "بانتظار الإعداد"
+      }
+    },
+    "cohorts": {
+      "title": "مجموعات المواهب",
+      "empty": "لم يتم تعريف مجموعات مواهب",
+      "athletesCount": "{{count}} رياضيون",
+      "athletesCount_one": "{{count}} رياضي",
+      "medianSessions": "متوسط الجلسات لكل رياضي (30 يوماً)"
+    }
   },
   "athletes": {
     "title": "الرياضيون",
