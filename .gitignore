@@ -100,3 +100,8 @@ kubeconfig
 *.mobileprovision
 *-secret.yaml
 .secrets/
+.gstack/
+
+# --- Tooling caches ---
+.expo/
+**/.expo/
