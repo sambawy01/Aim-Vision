@@ -22,23 +22,41 @@ Repo layout (monorepo for now; can split into separate GitHub repos when team sc
 
 Phase 0 status: docs + scaffolding code shipped. Real implementation begins as the team comes online — see [`docs/AIMVISION_V2_Sprint_Plan.md`](docs/AIMVISION_V2_Sprint_Plan.md).
 
-## Where the last session left off (2026-05-06)
+## Where the last session left off (2026-05-13)
 
-CI status across the 7 child workflows + orchestrator:
+All CI green on `main` across all 7 child workflows + orchestrator at HEAD. 7 PRs landed in the most recent session, taking Sprint 4 / 5 / 6 work as far as possible without hardware (Hero 13) or training-GPU dependencies.
 
-| Workflow | Status | Notes |
+### Sprint 4 / 5 / 6 progress this cycle
+
+| PR | Sub-repo | Slice |
 |---|---|---|
-| `backend-ci` | green | RLS test passes via `aimvision_app` NOBYPASSRLS role |
-| `web-ci` | green | typecheck + vitest + build all pass |
-| `ml-ci` | green | 53 unit tests, ruff/mypy clean |
-| `security` | green | trivy 0.35.0 + semgrep + cargo-audit (advisory) |
-| `aimvision-camera-core CI` | unknown — verify | tokio `test-util` feature added in 2ebf216; was running on commit 484bfee when session ended. `cargo fmt` and `cargo clippy` are intentionally `continue-on-error: true` until first Rust eng. cleans up |
-| `mobile-ci` | red | `expo` ESLint preset references `@typescript-eslint/ban-types` which v8 removed. Fix next session: pin `@typescript-eslint/parser` and `@typescript-eslint/eslint-plugin` to `^7.18.0` in `aimvision-mobile/package.json` |
-| `CI` (orchestrator) | red | bubbles up from mobile + camera-core results |
+| #33 | backend | S4 EPIC 4.3 federation schema v2 — CoachProfile, joint-controller ConsentRecord (GDPR Art. 26), camera_clock_offset_ms, ShotEvent table, federation_admin role enum value, migration 0004 + RLS |
+| #34 | mobile  | S5 EPIC 5.2 WatermelonDB sync engine scaffold — pure-TS schema, conflict policy, pull/push protocol, engine state machine. 18 unit tests, no native install yet |
+| #35 | ml      | S6 EPIC 6.1 classical audio shot detector (spectral-flux onset, adaptive threshold, impulsivity gate, min-gap) + synthetic eval harness with pink-noise + muzzle-blast + clay-impact sources. 8 tests |
+| #36 | backend | S6 EPIC 6.5 active learning queue — `active_learning_items` table, 5 REST endpoints, RLS policy, 7 integration tests |
+| #37 | ml      | S6 EPIC 6.2 pose evaluation harness — PCK@0.5/0.2 + COCO-style OKS, COCO sigmas spot-checked, synthetic shooter-stance generator. 9 tests |
+| #38 | web     | S4 EPIC 4.5 federation dashboard scaffold — `/app/federation` route gated on `fed_admin`, overview card + club table + cohort grid, full EN/AR i18n, 4 vitest cases |
+| #39 | backend | S4 EPIC 4.3 role-based authorization — `services/authz.py` with hierarchy + `require_role()` FastAPI dep + cross-tenant guard, wired into active-learning claim/label. 15 authz tests + 1 AL 403-path test |
 
-**First action next session:** `gh run list --repo sambawy01/Aim-Vision --branch main --limit 8`. If camera-core is now green, push the mobile @typescript-eslint v7 pin. If both are red, drill into the camera-core test step output via `gh run view <id> --repo sambawy01/Aim-Vision --log-failed`.
+### What's still queued (autonomous, no hardware needed)
 
-**Local toolchain available:** Python 3.14 (CI uses 3.12), node 22, gh, git, pre-commit (in `/tmp/precommit-venv/bin/pre-commit`). NOT available: cargo, helm, prettier, shellcheck, shfmt. Rustup install via curl was denied by the harness — verify Rust changes via CI, not locally.
+- S5 EPIC 5.4 multi-camera sync — ChArUco calibration math scaffold (testable with synthetic boards)
+- S6 diagnostic head eval gates extension
+- Backend `/v1/federation/overview` and `/v1/federation/clubs` handlers (so PR #38's frontend lights up)
+- WatermelonDB native install on mobile — gated on RN 0.76 Hermes/Fabric verification
+
+### Hardware-/GPU-gated (out of scope until external dep lands)
+
+- Real Hero 13 integration (S4 EPIC 4.1 hardware path)
+- First Egypt range capture (S5 EPIC 5.5)
+- RTMPose-x training (S6 EPIC 6.2 — the eval harness from #37 is ready for it)
+- DeepSeek 14B fine-tuning (S6 EPIC 6.6+)
+
+**First action next session:** `gh run list --repo sambawy01/Aim-Vision --branch main --limit 5` to confirm main is still green. Then pick the next slice from the queued list above.
+
+**Local toolchain available:** Python 3.14 (CI uses 3.12), node 22, pnpm, gh, git, pre-commit (in `/tmp/precommit-venv/bin/pre-commit`), per-repo `.venv` (use `aimvision-backend/.venv/bin/python` and `aimvision-ml/.venv/bin/python` for pytest/ruff/mypy — system Python lacks deps). NOT available: cargo, helm, shellcheck, shfmt. Rustup install via curl was denied by the harness — verify Rust changes via CI, not locally.
+
+**Workflow rule (carried from earlier sessions):** the auto-mode classifier blocks direct pushes to `main`. Always create a feature branch + PR.
 
 ## Owner
 
