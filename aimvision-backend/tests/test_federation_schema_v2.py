@@ -62,9 +62,7 @@ async def test_coach_profile_round_trips(db_schema: None) -> None:
                 user_id="user1",
                 tenant_id="org:fed1",
                 bio="20-year national-team coach.",
-                certifications=[
-                    {"issuer": "ISSF", "level": "national", "issued_at": "2018-06-01"}
-                ],
+                certifications=[{"issuer": "ISSF", "level": "national", "issued_at": "2018-06-01"}],
                 specializations=["trap", "doubles_trap"],
                 accepting_clients=True,
             )
@@ -224,12 +222,16 @@ async def test_shot_events_are_append_only_ordered(db_schema: None) -> None:
 
     async with sm() as s, s.begin():
         events = (
-            await s.execute(
-                select(ShotEvent)
-                .where(ShotEvent.shot_id == "shot1")
-                .order_by(ShotEvent.monotonic_seq)
+            (
+                await s.execute(
+                    select(ShotEvent)
+                    .where(ShotEvent.shot_id == "shot1")
+                    .order_by(ShotEvent.monotonic_seq)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert [e.event_kind for e in events] == [
             "audio.shot_detected",
             "score.hit",

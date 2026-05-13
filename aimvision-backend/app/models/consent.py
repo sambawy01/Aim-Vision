@@ -37,16 +37,12 @@ class ConsentRecord(Base, TimestampMixin, TenantScopedMixin):
     # because not every processing relies on consent (e.g. legitimate-interest
     # for security telemetry). Values: "consent", "contract",
     # "legal_obligation", "vital_interests", "public_task", "legitimate_interests".
-    processing_basis: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="consent"
-    )
+    processing_basis: Mapped[str] = mapped_column(String(32), nullable=False, default="consent")
 
     # Art. 26 joint-controller payload. JSON list of org IDs; an empty list
     # means single-controller processing under `tenant_id`.
     joint_controller_org_ids: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
-    joint_controller_agreement_ref: Mapped[str | None] = mapped_column(
-        String(1024), nullable=True
-    )
+    joint_controller_agreement_ref: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
     # Forward-link to a future WithdrawalRequest (Sprint 17 right-to-erasure).
     # Nullable now; populated when a row is the cause/target of a withdrawal.

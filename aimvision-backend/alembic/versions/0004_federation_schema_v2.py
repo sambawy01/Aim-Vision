@@ -45,17 +45,13 @@ def upgrade() -> None:
         sa.Column("bio", sa.Text, nullable=True),
         sa.Column("certifications", sa.JSON, nullable=True),
         sa.Column("specializations", sa.JSON, nullable=True),
-        sa.Column(
-            "accepting_clients", sa.Boolean, nullable=False, server_default=sa.true()
-        ),
+        sa.Column("accepting_clients", sa.Boolean, nullable=False, server_default=sa.true()),
         sa.Column("tenant_id", sa.String(64), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint("user_id", "tenant_id", name="uq_coach_profile_user_tenant"),
     )
-    op.create_index(
-        "ix_coach_profiles_tenant_id", "coach_profiles", ["tenant_id"]
-    )
+    op.create_index("ix_coach_profiles_tenant_id", "coach_profiles", ["tenant_id"])
 
     # 3. consent_records: joint-controller payload + processing-basis discriminator +
     #    forward link to a withdrawal request (Sprint 17).
@@ -107,9 +103,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_shot_events_tenant_id", "shot_events", ["tenant_id"])
     op.create_index("ix_shot_events_shot_id", "shot_events", ["shot_id"])
-    op.create_index(
-        "ix_shot_events_kind_seq", "shot_events", ["event_kind", "monotonic_seq"]
-    )
+    op.create_index("ix_shot_events_kind_seq", "shot_events", ["event_kind", "monotonic_seq"])
 
     # 6. RLS for the two new tables. Mirrors the policy pattern from
     #    0003_rls_policies for the tenant-scoped tables.
