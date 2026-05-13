@@ -10,6 +10,7 @@ import { AthleteDetailRoute } from './app/athletes/[id]';
 import { SessionListRoute } from './app/sessions/list';
 import { SessionDetailRoute } from './app/sessions/[id]';
 import { CheckinScanRoute } from './app/checkin/scan';
+import { FederationDashboardRoute } from './app/federation/dashboard';
 import { SettingsRoute } from './app/settings';
 
 function RequireAuth({ children }: { children: JSX.Element }): JSX.Element {
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
           { path: 'sessions', element: <SessionListRoute /> },
           { path: 'sessions/:id', element: <SessionDetailRoute /> },
           { path: 'checkin', element: <CheckinScanRoute /> },
+          { path: 'federation', element: <FederationDashboardRoute /> },
           { path: 'settings', element: <SettingsRoute /> },
         ],
       },
