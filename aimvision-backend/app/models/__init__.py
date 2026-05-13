@@ -1,5 +1,6 @@
 """SQLAlchemy ORM models for AIMVISION."""
 
+from .active_learning import ActiveLearningItem, ActiveLearningStatus, UncertaintySignal
 from .annotation import Annotation, AnnotationVisibility
 from .audit import AuditEvent
 from .base import Base
@@ -19,6 +20,8 @@ from .tenancy import (
 
 __all__ = [
     "Account",
+    "ActiveLearningItem",
+    "ActiveLearningStatus",
     "Annotation",
     "AnnotationVisibility",
     "AthleteProfile",
@@ -35,5 +38,6 @@ __all__ = [
     "Session",
     "Shot",
     "ShotEvent",
+    "UncertaintySignal",
     "User",
 ]
