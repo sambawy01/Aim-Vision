@@ -26,11 +26,36 @@ export default function App(): React.ReactElement | null {
     let mounted = true;
     let telemetry: TelemetryHandle | null = null;
     (async () => {
-      initSentry();
-      telemetry = startTelemetrySubscribers();
-      initOtel();
-      await initI18n();
-      await Promise.all([hydrate(), initStatsig()]);
+      try {
+        initSentry();
+      } catch (err) {
+        console.warn('initSentry failed; continuing', err);
+      }
+      try {
+        telemetry = startTelemetrySubscribers();
+      } catch (err) {
+        console.warn('telemetry subscribers failed; continuing', err);
+      }
+      try {
+        initOtel();
+      } catch (err) {
+        console.warn('initOtel failed; continuing', err);
+      }
+      try {
+        await initI18n();
+      } catch (err) {
+        console.warn('initI18n failed; continuing with defaults', err);
+      }
+      // Auth hydrate + Statsig init failures must not gate the UI. The
+      // app should render in a logged-out state if storage is unavailable
+      // (e.g. web preview without expo-secure-store polyfill) or the
+      // flag SDK is offline.
+      const results = await Promise.allSettled([hydrate(), initStatsig()]);
+      for (const r of results) {
+        if (r.status === 'rejected') {
+          console.warn('non-fatal init rejection', r.reason);
+        }
+      }
       if (mounted) setReady(true);
     })();
     return () => {

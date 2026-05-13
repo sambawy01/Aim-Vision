@@ -1,6 +1,9 @@
 import React from 'react';
 import { Text, type TextProps, type TextStyle, StyleSheet } from 'react-native';
-import { useRangeMode } from '../RangeMode';
+// Import the provider directly — going through `../RangeMode/index.ts`
+// would pull in `RangeButton`, which uses this component, creating a
+// require cycle that leaves `useRangeMode` undefined on first paint.
+import { useRangeMode } from '../RangeMode/RangeModeProvider';
 import type { Colors } from '../../theme/tokens';
 
 export interface AccessibleTextProps extends TextProps {
