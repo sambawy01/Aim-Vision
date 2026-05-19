@@ -4,6 +4,7 @@ from .active_learning import ActiveLearningItem, ActiveLearningStatus, Uncertain
 from .annotation import Annotation, AnnotationVisibility
 from .audit import AuditEvent
 from .base import Base
+from .camera_calibration import CameraCalibration
 from .consent import ConsentRecord
 from .session import Recording, RecordingSourceKind, Session, Shot, ShotEvent
 from .tenancy import (
@@ -27,6 +28,7 @@ __all__ = [
     "AthleteProfile",
     "AuditEvent",
     "Base",
+    "CameraCalibration",
     "CoachProfile",
     "Cohort",
     "ConsentRecord",
