@@ -32,8 +32,12 @@ dependencies = [
 [project.optional-dependencies]
 # Inference runtime: ONNX export validation, on-CPU integration smoke tests.
 # CI installs this. Lightweight (no GPU images required).
+# `onnx` is the graph-authoring lib (distinct from the `onnxruntime`
+# executor): the diagnostic-head export path emits ONNX graphs, and the
+# inference tests author tiny graphs without pulling in torch.
 infer = [
     "onnxruntime>=1.17",
+    "onnx>=1.16",
 ]
 # OpenCV — for ChArUco / ArUco detection in the camera-calibration
 # pipeline (multi-camera-sync-spec.md §4). `opencv-python-headless`
