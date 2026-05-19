@@ -151,9 +151,9 @@ def test_per_atom_failure_isolates_the_blocking_atom() -> None:
 
     result = evaluate_diagnostic_head(probs, labels)
     assert not result.passed
-    assert any(
-        "head_lift" in note for note in result.failure_notes
-    ), f"expected head_lift in failure_notes; got {result.failure_notes}"
+    assert any("head_lift" in note for note in result.failure_notes), (
+        f"expected head_lift in failure_notes; got {result.failure_notes}"
+    )
     # The HEAD_EYE branch should fail too (mean ECE pulled up by the
     # one atom), but other branches should not.
     assert any(
@@ -163,9 +163,9 @@ def test_per_atom_failure_isolates_the_blocking_atom() -> None:
     # Mount/Stance, Swing/Lead, Follow-through, Meta atoms remain
     # well-calibrated, so the failure list shouldn't mention them.
     for branch_value in ("mount_stance", "swing_lead", "follow_through", "meta"):
-        assert not any(
-            f"branch {branch_value}" in note for note in result.failure_notes
-        ), f"{branch_value} should not appear in failures: {result.failure_notes}"
+        assert not any(f"branch {branch_value}" in note for note in result.failure_notes), (
+            f"{branch_value} should not appear in failures: {result.failure_notes}"
+        )
 
 
 def test_branch_macro_f1_floor_blocks_under_performing_branch() -> None:
