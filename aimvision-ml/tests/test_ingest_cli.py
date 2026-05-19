@@ -158,6 +158,53 @@ def test_finalize_session_defaults_no_partial(fake_client: type[_FakeClient]) ->
     assert inst.calls[0][1][1].partial_session is False
 
 
+def test_run_post_session_command_detects_and_posts(
+    fake_client: type[_FakeClient], tmp_path: Any
+) -> None:
+    """run-post-session reads a WAV, runs the real detector, and POSTs
+    each detected shot + finalizes. Uses a synthesized clip written to
+    a WAV file."""
+    import numpy as np
+    from scipy.io import wavfile
+
+    from aimvision_ml.eval.synth_audio import synth_clip
+
+    clip = synth_clip(duration_s=3.0, n_shots=2, n_clay=0, rng=np.random.default_rng(3))
+    wav_path = tmp_path / "session.wav"
+    # Write int16 PCM so the CLI's integer-normalization path is exercised.
+    pcm_i16 = np.clip(clip.pcm * 32767.0, -32768, 32767).astype(np.int16)
+    wavfile.write(str(wav_path), clip.sample_rate, pcm_i16)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "ingest",
+            "run-post-session",
+            "--backend-url",
+            "http://api.example.com",
+            "--token",
+            "tok",
+            "--session-id",
+            "sess-cli",
+            "--audio",
+            str(wav_path),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    out = json.loads(result.output)
+    assert out["session_id"] == "sess-cli"
+    assert out["shots_detected"] >= 1
+    assert out["shots_posted"] == out["shots_detected"]
+    assert out["partial_session"] is True  # no model → audio-only
+
+    inst = fake_client.instances[-1]
+    post_shots = [c for c in inst.calls if c[0] == "post_shot"]
+    finalize = [c for c in inst.calls if c[0] == "patch_session_end"]
+    assert len(post_shots) == out["shots_detected"]
+    assert len(finalize) == 1
+
+
 def test_backend_error_becomes_click_exception(monkeypatch: pytest.MonkeyPatch) -> None:
     """A BackendError surfaces as a non-zero exit + a clean message,
     not a traceback."""

@@ -17,13 +17,16 @@ from .backend_client import (
     ShotEventPayload,
     ShotPayload,
 )
+from .post_session import PostSessionResult, run_post_session
 
 __all__ = [
     "AlignmentPayload",
     "BackendClient",
     "BackendError",
     "CalibrationPayload",
+    "PostSessionResult",
     "SessionEndPayload",
     "ShotEventPayload",
     "ShotPayload",
+    "run_post_session",
 ]
