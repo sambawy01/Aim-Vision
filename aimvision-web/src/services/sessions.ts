@@ -106,3 +106,34 @@ export async function createSession(input: CreateSessionInput): Promise<Session>
   });
   return toSession(wire);
 }
+
+/** Wire shape matches the backend's ProcessSessionOut DTO. */
+interface ProcessSessionWire {
+  session_id: string;
+  workflow_id: string;
+  task_queue: string;
+}
+
+export interface ProcessSessionResult {
+  sessionId: string;
+  workflowId: string;
+  taskQueue: string;
+}
+
+export async function processSession(
+  id: string,
+  partialSession = false,
+): Promise<ProcessSessionResult> {
+  const wire = await fetchJson<ProcessSessionWire>(
+    `/sessions/${encodeURIComponent(id)}/process`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ partial_session: partialSession }),
+    },
+  );
+  return {
+    sessionId: wire.session_id,
+    workflowId: wire.workflow_id,
+    taskQueue: wire.task_queue,
+  };
+}

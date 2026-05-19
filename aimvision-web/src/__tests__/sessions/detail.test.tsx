@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 
@@ -13,6 +14,7 @@ vi.mock('@/services/sessions', async () => {
     ...actual,
     getSession: vi.fn(),
     getSessionSummary: vi.fn(),
+    processSession: vi.fn(),
   };
 });
 
@@ -68,8 +70,14 @@ const SUMMARY: SessionSummary = {
 };
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.mocked(sessionService.getSession).mockResolvedValue(SESSION);
   vi.mocked(sessionService.getSessionSummary).mockResolvedValue(SUMMARY);
+  vi.mocked(sessionService.processSession).mockResolvedValue({
+    sessionId: 'sess-1',
+    workflowId: 'process-session-sess-1-abcd1234',
+    taskQueue: 'aimvision-post-session',
+  });
 });
 
 describe('SessionDetailRoute', () => {
@@ -127,5 +135,34 @@ describe('SessionDetailRoute', () => {
 
     renderRoute();
     expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+
+  it('triggers the post-session pipeline and shows the workflow id', async () => {
+    const user = userEvent.setup();
+    renderRoute();
+
+    const btn = await screen.findByRole('button', { name: /run post-session pipeline/i });
+    await user.click(btn);
+
+    await waitFor(() => {
+      expect(sessionService.processSession).toHaveBeenCalledWith('sess-1');
+    });
+    // The returned workflow id renders in a status region.
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'process-session-sess-1-abcd1234',
+    );
+  });
+
+  it('shows an error when the pipeline trigger fails', async () => {
+    const user = userEvent.setup();
+    vi.mocked(sessionService.processSession).mockRejectedValueOnce(new Error('boom'));
+    renderRoute();
+
+    const btn = await screen.findByRole('button', { name: /run post-session pipeline/i });
+    await user.click(btn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/could not start the pipeline/i)).toBeInTheDocument();
+    });
   });
 });
