@@ -86,6 +86,15 @@
         {
           "username": "aimvision"
         }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "AIMVISION uses the camera to record your shooting sessions for coaching review.",
+          "enableMicrophonePermission": true,
+          "microphonePermissionText": "AIMVISION uses the microphone to detect shot events and align footage with audio cross-correlation.",
+          "enableLocation": false
+        }
       ]
     ],
     "updates": {
