@@ -3,6 +3,7 @@
 from .athletes import AthleteOut
 from .audit import AuditEventOut
 from .camera_calibration import CalibrationHealthOut, CameraCalibrationIn, CameraCalibrationOut
+from .cohorts import CohortOut
 from .consent import ConsentGrantIn, ConsentOut, ConsentRevokeIn
 from .federation import (
     ClubMembershipOut,
@@ -44,6 +45,7 @@ __all__ = [
     "CameraCalibrationOut",
     "ClubMembershipOut",
     "ClubStatus",
+    "CohortOut",
     "ConsentGrantIn",
     "ConsentOut",
     "ConsentRevokeIn",
