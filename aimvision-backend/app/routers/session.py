@@ -15,6 +15,7 @@ from ..models import CameraCalibration, Recording, RecordingSourceKind, Role
 from ..models.base import new_uuid
 from ..models.session import Session as SessionModel
 from ..models.session import Shot, ShotEvent
+from ..models.tenancy import Org, User
 from ..schemas.camera_calibration import (
     RECALIBRATION_TRIGGER_RATIO,
     CalibrationHealthOut,
@@ -24,6 +25,7 @@ from ..schemas.camera_calibration import (
 from ..schemas.session import (
     AlignmentIn,
     RecordingOut,
+    SessionCreateIn,
     SessionEndIn,
     SessionOut,
     SessionSummaryOut,
@@ -37,6 +39,65 @@ from ..services.authz import require_role
 from ..services.storage import Storage, get_storage
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+
+
+@router.post("", response_model=SessionOut, status_code=status.HTTP_201_CREATED)
+async def create_session(
+    payload: SessionCreateIn,
+    principal: Principal = Depends(require_role(Role.coach.value)),
+    db: AsyncSession = Depends(db_session),
+) -> SessionOut:
+    """Start a coaching session for an athlete.
+
+    Coach role gate; federation_admin inherits. Two existence
+    checks before insert:
+
+    - `org_id` must exist AND its `tenant_id` must match the
+      caller's principal. Cross-tenant or unknown org → 404 (not
+      403, to avoid leaking existence of orgs in other tenants).
+    - `athlete_user_id` must exist as a User row. Users are not
+      tenant-scoped (the same user can hold multiple memberships),
+      so we only check existence here; the role gate is what
+      stops the coach from creating sessions for users they have
+      no relationship to.
+
+    `started_at` defaults to `now(UTC)` so the mobile happy path
+    can omit it; supplying a value lets offline-captured sessions
+    backfill the real start time.
+    """
+    org = (
+        (
+            await db.execute(
+                select(Org).where(
+                    Org.id == payload.org_id,
+                    Org.tenant_id == principal.tenant_id,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if org is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="org not found")
+
+    athlete = (
+        (await db.execute(select(User).where(User.id == payload.athlete_user_id))).scalars().first()
+    )
+    if athlete is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="athlete not found")
+
+    row = SessionModel(
+        id=new_uuid(),
+        tenant_id=principal.tenant_id,
+        org_id=payload.org_id,
+        athlete_user_id=payload.athlete_user_id,
+        discipline=payload.discipline,
+        started_at=payload.started_at or datetime.now(UTC),
+    )
+    db.add(row)
+    await db.flush()
+    await db.refresh(row)
+    return SessionOut.model_validate(row)
 
 
 @router.get("", response_model=list[SessionOut])
