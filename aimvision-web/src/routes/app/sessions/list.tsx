@@ -34,7 +34,8 @@ export function SessionListRoute() {
               >
                 <span className="font-medium">{s.id}</span>
                 <span className="text-sm text-text-muted">
-                  {s.shotCount} shots · {s.startedAt}
+                  {s.discipline} · {s.startedAt}
+                  {s.partialSession ? ` · ${t('sessions.partialBadge')}` : ''}
                 </span>
               </Link>
             </li>

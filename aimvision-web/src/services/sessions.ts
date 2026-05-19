@@ -1,17 +1,87 @@
 import { fetchJson } from './api';
 
+/** Wire shape matches the backend's SessionOut DTO (snake_case). */
+interface SessionWire {
+  id: string;
+  org_id: string;
+  athlete_user_id: string;
+  discipline: string;
+  started_at: string;
+  ended_at: string | null;
+  partial_session: boolean;
+}
+
+/** Wire shape matches the backend's SessionSummaryOut DTO. */
+interface SessionSummaryWire {
+  session_id: string;
+  recording_count: number;
+  shot_count: number;
+  calibration_count: number;
+  alignment_complete: boolean;
+  calibration_complete: boolean;
+  ended_at: string | null;
+  partial_session: boolean;
+}
+
 export interface Session {
   id: string;
+  orgId: string;
   athleteId: string;
+  discipline: string;
   startedAt: string;
   endedAt: string | null;
+  partialSession: boolean;
+}
+
+export interface SessionSummary {
+  sessionId: string;
+  recordingCount: number;
   shotCount: number;
+  calibrationCount: number;
+  alignmentComplete: boolean;
+  calibrationComplete: boolean;
+  endedAt: string | null;
+  partialSession: boolean;
+}
+
+function toSession(wire: SessionWire): Session {
+  return {
+    id: wire.id,
+    orgId: wire.org_id,
+    athleteId: wire.athlete_user_id,
+    discipline: wire.discipline,
+    startedAt: wire.started_at,
+    endedAt: wire.ended_at,
+    partialSession: wire.partial_session,
+  };
+}
+
+function toSummary(wire: SessionSummaryWire): SessionSummary {
+  return {
+    sessionId: wire.session_id,
+    recordingCount: wire.recording_count,
+    shotCount: wire.shot_count,
+    calibrationCount: wire.calibration_count,
+    alignmentComplete: wire.alignment_complete,
+    calibrationComplete: wire.calibration_complete,
+    endedAt: wire.ended_at,
+    partialSession: wire.partial_session,
+  };
 }
 
 export async function listSessions(): Promise<Session[]> {
-  return fetchJson<Session[]>('/v1/sessions');
+  const wire = await fetchJson<SessionWire[]>('/sessions');
+  return wire.map(toSession);
 }
 
 export async function getSession(id: string): Promise<Session> {
-  return fetchJson<Session>(`/v1/sessions/${encodeURIComponent(id)}`);
+  const wire = await fetchJson<SessionWire>(`/sessions/${encodeURIComponent(id)}`);
+  return toSession(wire);
+}
+
+export async function getSessionSummary(id: string): Promise<SessionSummary> {
+  const wire = await fetchJson<SessionSummaryWire>(
+    `/sessions/${encodeURIComponent(id)}/summary`,
+  );
+  return toSummary(wire);
 }

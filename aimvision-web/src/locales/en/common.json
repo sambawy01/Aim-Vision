@@ -61,7 +61,23 @@
   },
   "sessions": {
     "title": "Sessions",
-    "empty": "No sessions yet"
+    "empty": "No sessions yet",
+    "partialBadge": "Partial",
+    "partialBadgeAria": "Session had incomplete diagnostic coverage",
+    "detail": {
+      "athlete": "Athlete",
+      "discipline": "Discipline",
+      "started": "Started",
+      "ended": "Ended"
+    },
+    "summary": {
+      "heading": "Post-session summary",
+      "recordings": "Recordings",
+      "shots": "Shots",
+      "calibrations": "Calibrations",
+      "alignment": "Alignment",
+      "calibration": "Calibration"
+    }
   },
   "checkin": {
     "title": "QR Check-in",
