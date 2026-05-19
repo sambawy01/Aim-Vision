@@ -30,6 +30,16 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     ip_hash_salt: str = "dev-salt-rotate-daily"
 
+    # Local-fs storage backend root. Recording uploads land under
+    # {storage_base_dir}/{tenant_id}/{session_id}/{recording_id}.mp4.
+    # Slice 2 ships local-fs only; S3 / object-storage backends land
+    # in a later slice via the Storage protocol in services/storage.py.
+    storage_base_dir: str = "/tmp/aimvision-recordings"
+    # Per-recording upload size ceiling, bytes. The router rejects any
+    # request whose content length exceeds this; defensive against
+    # mis-configured clients filling the disk.
+    max_recording_upload_bytes: int = 4 * 1024 * 1024 * 1024  # 4 GiB
+
     @property
     def is_postgres(self) -> bool:
         return self.database_url.startswith(("postgresql://", "postgresql+asyncpg://"))

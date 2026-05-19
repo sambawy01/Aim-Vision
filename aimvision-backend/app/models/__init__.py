@@ -5,7 +5,7 @@ from .annotation import Annotation, AnnotationVisibility
 from .audit import AuditEvent
 from .base import Base
 from .consent import ConsentRecord
-from .session import Recording, Session, Shot, ShotEvent
+from .session import Recording, RecordingSourceKind, Session, Shot, ShotEvent
 from .tenancy import (
     Account,
     AthleteProfile,
@@ -34,6 +34,7 @@ __all__ = [
     "Org",
     "OrgKind",
     "Recording",
+    "RecordingSourceKind",
     "Role",
     "Session",
     "Shot",

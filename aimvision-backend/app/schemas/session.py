@@ -27,6 +27,9 @@ class RecordingOut(BaseModel):
     sha256: str | None
     duration_ms: int | None
     upload_state: str
+    # ADR-0009: phone_dev tagged separately so report aggregations
+    # can filter dev-mode captures out of customer-facing rollups.
+    source_kind: str
 
 
 class ShotOut(BaseModel):
