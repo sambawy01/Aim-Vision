@@ -4,6 +4,7 @@ import {
   Camera,
   useCameraDevice,
   useCameraPermission,
+  useFrameProcessor,
   useMicrophonePermission,
 } from 'react-native-vision-camera';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -16,6 +17,8 @@ import {
   INITIAL_RECORDING_STATE,
   recordingReducer,
 } from '../../capture/phoneRecordingState';
+import { formatFps, formatResolution } from '../../capture/frameStats';
+import { useFrameStats } from '../../capture/useFrameStats';
 
 /**
  * Sprint 4 dev-mode phone capture screen — ADR-0009 slice 1.
@@ -37,6 +40,22 @@ export function CapturePhoneScreen(): React.ReactElement {
   const cameraPerm = useCameraPermission();
   const micPerm = useMicrophonePermission();
   const cameraRef = useRef<Camera>(null);
+
+  // Frame-processor pipeline (ADR-0009 slice 3a). The worklet runs on the
+  // camera thread per Vision Camera v4 + worklets-core; it writes through
+  // the shared values, the screen polls them via `useFrameStats`.
+  const { stats: frameStats, sharedValues } = useFrameStats();
+  const frameProcessor = useFrameProcessor(
+    (frame) => {
+      'worklet';
+      sharedValues.frameCount.value = sharedValues.frameCount.value + 1;
+      sharedValues.lastTimestampNs.value = frame.timestamp;
+      sharedValues.lastWidth.value = frame.width;
+      sharedValues.lastHeight.value = frame.height;
+      sharedValues.lastPixelFormat.value = frame.pixelFormat;
+    },
+    [sharedValues],
+  );
 
   // Reflect the OS permission state into the state machine on every
   // change. Both camera AND microphone must be granted before we treat
@@ -126,6 +145,7 @@ export function CapturePhoneScreen(): React.ReactElement {
             isActive={true}
             video={true}
             audio={true}
+            frameProcessor={frameProcessor}
           />
         </View>
       ) : null}
@@ -135,6 +155,19 @@ export function CapturePhoneScreen(): React.ReactElement {
           {renderStatusLabel(state, t)}
         </AccessibleText>
       </View>
+
+      {state.permissionGranted ? (
+        <View style={styles.statsRow} testID="capture-phone-frame-stats">
+          <AccessibleText variant="bodySmall" color="textMuted">
+            {t('capturePhone.stats.label', {
+              fps: formatFps(frameStats.fps),
+              count: frameStats.frameCount,
+              resolution: formatResolution(frameStats.resolution),
+              format: frameStats.pixelFormat ?? '—',
+            })}
+          </AccessibleText>
+        </View>
+      ) : null}
 
       <View style={styles.actions}>
         {state.status === 'unknown' || state.status === 'permission-denied' ? (
@@ -239,6 +272,12 @@ function makeStyles(theme: Theme) {
     },
     statusRow: {
       paddingVertical: theme.spacing.sm,
+    },
+    statsRow: {
+      paddingVertical: theme.spacing.xs,
+      paddingHorizontal: theme.spacing.sm,
+      borderRadius: theme.radii.sm,
+      backgroundColor: theme.colors.surface,
     },
     actions: {
       gap: theme.spacing.md,

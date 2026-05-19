@@ -1,0 +1,22 @@
+[package]
+name = "aimvision-camera-phone"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Dev-mode phone camera backend (ADR-0009). Accepts frames pushed in from a native worklet shim and exposes them via the CameraMedia trait."
+
+[lints.rust]
+# Slice 3a is pure safe Rust. The `unsafe` blocks for the `extern \"C\"` push
+# API land in slice 3c with their own audit; toggle this back to `allow` then.
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[dependencies]
+aimvision-camera-traits = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
