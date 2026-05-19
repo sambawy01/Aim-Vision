@@ -12,6 +12,8 @@ from .federation import (
 )
 from .session import (
     AlignmentIn,
+    ProcessSessionIn,
+    ProcessSessionOut,
     RecordingOut,
     SessionCreateIn,
     SessionEndIn,
@@ -49,6 +51,8 @@ __all__ = [
     "LoginIn",
     "LoginOut",
     "PrincipalOut",
+    "ProcessSessionIn",
+    "ProcessSessionOut",
     "RecordingOut",
     "SessionCreateIn",
     "SessionEndIn",
