@@ -53,9 +53,11 @@ The architecture is a two-layer hybrid: coarse alignment from `!MSYNC`, fine ali
 A 12-gauge muzzle event is a sharp, broadband impulse — rise time ~0.3 ms, peak-to-trough ~3 ms. This is a near-ideal cross-correlation target.
 
 - Pipeline: per-camera audio stream → 48 kHz mono PCM → bandpass 200 Hz–8 kHz → cross-correlate windowed segments around each detected shot.
-- Output: per-camera, per-shot offset in samples (resolution: 1/48 kHz = **20.83 µs**, well under the sub-ms target).
+- Output: per-camera, per-shot offset in samples (resolution: 1/48 kHz = **20.83 µs**, refined further by parabolic sub-sample interpolation around the discrete xcorr peak — typical recoverable resolution **< 1 µs** under noise-free conditions, **< 20 µs** at 30 dB SNR).
 - "Free" cost — the shot detector already runs on the audio path for shot detection; the xcorr computation is incremental.
 - Required: the muzzle blast must reach all cameras. At a 5 m baseline between cameras, propagation delay is 5/343 ≈ 14.6 ms — this is the _signal_ we measure, not error. We back out the geometry from the calibrated camera positions (§4).
+
+**Implementation:** `aimvision_ml.inference.audio_xcorr` (Python, in `aimvision-ml/`). Public surface: `cross_correlate_shot(a, b, sample_rate_hz)` for one shot pair, `align_camera_pair(a_pcm, b_pcm, shot_times_in_a_s, sample_rate_hz)` for the multi-shot driver that medians per-shot offsets. Confidence is the normalized cross-correlation coefficient in [0, 1]; the pair-level driver returns the median over confident shots only, so a single bad shot (echo, missed shot) can't drag the session offset. 12 unit tests cover bandpass behaviour, integer + fractional-sample offset recovery via parabolic interpolation, noise tolerance, search-window guard, and median-vs-outlier robustness. Hardware-verified calibration arrives in Sprint 5 EPIC 5.5 (first Egypt range capture).
 
 ### 3.3 Drift compensation
 
