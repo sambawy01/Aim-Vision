@@ -13,11 +13,12 @@ See:
 
 ## Crates
 
-| Crate                     | Purpose                                                                                                                                              |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `aimvision-camera-traits` | Pure interface crate. No implementations. The trait split per ADR-0003: `CameraControl`, `CameraTransport`, `CameraMedia`, `TimeSource`.             |
-| `aimvision-camera-mock`   | Fixture-driven mock implementation. Parses YAML fault scripts and replays them deterministically. Powers CI before real hardware lands in Sprint 17. |
-| `aimvision-camera-state`  | Connection state machine + single-in-flight command queue with 2 s watchdog and jittered exponential backoff.                                        |
+| Crate                     | Purpose                                                                                                                                                                                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aimvision-camera-traits` | Pure interface crate. No implementations. The trait split per ADR-0003: `CameraControl`, `CameraTransport`, `CameraMedia`, `TimeSource`.                                                                                                     |
+| `aimvision-camera-mock`   | Fixture-driven mock implementation. Parses YAML fault scripts and replays them deterministically. Powers CI before real hardware lands in Sprint 17.                                                                                         |
+| `aimvision-camera-phone`  | Dev-mode phone backend ([ADR-0009](../docs/adr/0009-phone-capture-dev-backend.md)). Accepts frames pushed in from a `react-native-vision-camera` worklet shim. Slice 3a lands the safe-Rust push API; slice 3c adds the `extern "C"` bridge. |
+| `aimvision-camera-state`  | Connection state machine + single-in-flight command queue with 2 s watchdog and jittered exponential backoff.                                                                                                                                |
 
 ## Quickstart
 

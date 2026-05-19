@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/aimvision-camera-traits",
     "crates/aimvision-camera-mock",
+    "crates/aimvision-camera-phone",
     "crates/aimvision-camera-state",
 ]
 
@@ -25,6 +26,7 @@ uuid = { version = "1", features = ["v4", "v7", "serde"] }
 # Internal crates
 aimvision-camera-traits = { path = "crates/aimvision-camera-traits" }
 aimvision-camera-mock = { path = "crates/aimvision-camera-mock" }
+aimvision-camera-phone = { path = "crates/aimvision-camera-phone" }
 aimvision-camera-state = { path = "crates/aimvision-camera-state" }
 
 [profile.release]
