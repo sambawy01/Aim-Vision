@@ -16,7 +16,7 @@ repository = "https://github.com/aimvision/aimvision-camera-core"
 
 [workspace.dependencies]
 tokio = { version = "1.40", features = ["full", "test-util"] }
-thiserror = "1"
+thiserror = "2"
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
