@@ -5,7 +5,16 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import JSON, BigInteger, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -80,9 +89,17 @@ class Recording(Base, TimestampMixin, TenantScopedMixin):
 
 
 class Shot(Base, TimestampMixin, TenantScopedMixin):
-    """An immutable shot event (ADR-0006: append-only)."""
+    """An immutable shot event (ADR-0006: append-only).
+
+    (session_id, monotonic_seq) is unique — the audio shot detector
+    and any other ingest path is required to produce a strictly
+    monotonic sequence within a session, and at-least-once retries
+    of the same (session_id, monotonic_seq) tuple are idempotent at
+    both the API and the DB layer.
+    """
 
     __tablename__ = "shots"
+    __table_args__ = (Index("uq_shots_session_seq", "session_id", "monotonic_seq", unique=True),)
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=new_uuid)
     session_id: Mapped[str] = mapped_column(

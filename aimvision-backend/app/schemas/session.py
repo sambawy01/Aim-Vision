@@ -63,10 +63,45 @@ class AlignmentIn(BaseModel):
     )
 
 
+class ShotIn(BaseModel):
+    """Payload for POST /sessions/{sid}/shots.
+
+    The producer (audio shot detector, on-device camera-core, or the
+    post-session Temporal worker) supplies the device-side timestamps
+    plus the monotonic sequence number. The server stamps
+    `server_clock_ns` at receipt. `shot_kind` defaults to "single"
+    per the trap/skeet convention; "double" / "pair" are reserved
+    for future doubles disciplines.
+    """
+
+    monotonic_seq: int = Field(
+        ...,
+        ge=0,
+        description=(
+            "Producer-side strictly-increasing sequence number within "
+            "the session. (session_id, monotonic_seq) is the natural "
+            "key; resubmits are idempotent."
+        ),
+    )
+    device_clock_ns: int = Field(
+        ...,
+        ge=0,
+        description="Producer's monotonic clock in nanoseconds at the detected shot.",
+    )
+    shot_kind: str = Field(
+        default="single",
+        max_length=32,
+        description='"single" / "double" / "pair" — see Shot.shot_kind.',
+    )
+
+
 class ShotOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     session_id: str
     monotonic_seq: int
+    device_clock_ns: int
+    server_clock_ns: int
     shot_kind: str
+    created_at: datetime
