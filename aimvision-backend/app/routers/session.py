@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
@@ -24,6 +24,7 @@ from ..schemas.session import (
     AlignmentIn,
     RecordingOut,
     SessionOut,
+    SessionSummaryOut,
     ShotEventIn,
     ShotEventOut,
     ShotIn,
@@ -67,6 +68,83 @@ async def get_session(
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="session not found")
     return SessionOut.model_validate(row)
+
+
+@router.get("/{session_id}/summary", response_model=SessionSummaryOut)
+async def get_session_summary(
+    session_id: str,
+    principal: Principal = Depends(current_principal),
+    db: AsyncSession = Depends(db_session),
+) -> SessionSummaryOut:
+    """Rolled-up readiness view over a session.
+
+    Returns the recording / shot / calibration row counts and two
+    booleans the post-session UI uses to decide what to show:
+
+    - `alignment_complete` — every recording has both
+      `session_clock_offset_ns` and `session_clock_offset_confidence`
+      set, OR the session has at most one recording (a single
+      recording is trivially aligned because alignment is relative
+      to a master).
+    - `calibration_complete` — every recording has at least one
+      `camera_calibrations` row.
+
+    A second 404 path is shaped like the other session-scoped
+    endpoints: missing or cross-tenant returns 404, never 403.
+    """
+    parent = (
+        (
+            await db.execute(
+                select(SessionModel).where(
+                    SessionModel.id == session_id,
+                    SessionModel.tenant_id == principal.tenant_id,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if parent is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="session not found")
+
+    # Recording rollup: count + how many have alignment populated.
+    rec_stmt = select(
+        func.count(Recording.id),
+        func.count(Recording.session_clock_offset_ns),
+    ).where(Recording.session_id == session_id)
+    recording_count, aligned_count = (await db.execute(rec_stmt)).one()
+
+    # Shot rollup: row count.
+    shot_count_q = select(func.count(Shot.id)).where(Shot.session_id == session_id)
+    shot_count = (await db.execute(shot_count_q)).scalar_one()
+
+    # Calibration rollup: row count + how many distinct recordings
+    # have at least one calibration row.
+    cal_total_q = select(func.count(CameraCalibration.id)).where(
+        CameraCalibration.session_id == session_id
+    )
+    calibration_count = (await db.execute(cal_total_q)).scalar_one()
+    distinct_cal_recordings_q = select(
+        func.count(func.distinct(CameraCalibration.recording_id))
+    ).where(CameraCalibration.session_id == session_id)
+    distinct_cal_recordings = (await db.execute(distinct_cal_recordings_q)).scalar_one()
+
+    # Alignment is complete iff there are 0 recordings (vacuously
+    # true, the session never recorded anything), 1 recording
+    # (trivially aligned, it IS the master), or all recordings have
+    # the offset field set.
+    alignment_complete = True if recording_count <= 1 else aligned_count == recording_count
+
+    calibration_complete = recording_count > 0 and distinct_cal_recordings == recording_count
+
+    return SessionSummaryOut(
+        session_id=session_id,
+        recording_count=int(recording_count),
+        shot_count=int(shot_count),
+        calibration_count=int(calibration_count),
+        alignment_complete=alignment_complete,
+        calibration_complete=calibration_complete,
+    )
 
 
 @router.get(

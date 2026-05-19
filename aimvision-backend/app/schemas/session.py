@@ -18,6 +18,31 @@ class SessionOut(BaseModel):
     ended_at: datetime | None
 
 
+class SessionSummaryOut(BaseModel):
+    """Rolled-up readiness view over a session. Consumed by the
+    post-session UI to decide whether to show the report or a "still
+    processing" placeholder.
+
+    Booleans are computed conservatively: `alignment_complete` is True
+    only when *every* recording in the session has both alignment
+    fields set OR the session has at most one recording (alignment is
+    relative to a master recording, so a single recording is trivially
+    aligned). `calibration_complete` is True when *every* recording
+    has at least one calibration row.
+
+    `recording_count` and `shot_count` are surfaced for the dashboard
+    even before processing finishes — operators want to know "how big
+    was this session?" right after the upload completes.
+    """
+
+    session_id: str
+    recording_count: int
+    shot_count: int
+    calibration_count: int
+    alignment_complete: bool
+    calibration_complete: bool
+
+
 class RecordingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
