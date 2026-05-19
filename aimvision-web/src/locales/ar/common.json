@@ -61,7 +61,23 @@
   },
   "sessions": {
     "title": "الجلسات",
-    "empty": "لا توجد جلسات بعد"
+    "empty": "لا توجد جلسات بعد",
+    "partialBadge": "جزئية",
+    "partialBadgeAria": "تغطية تشخيصية غير مكتملة لهذه الجلسة",
+    "detail": {
+      "athlete": "الرياضي",
+      "discipline": "الفرع",
+      "started": "بدأت",
+      "ended": "انتهت"
+    },
+    "summary": {
+      "heading": "ملخص ما بعد الجلسة",
+      "recordings": "التسجيلات",
+      "shots": "الطلقات",
+      "calibrations": "المعايرات",
+      "alignment": "المزامنة",
+      "calibration": "المعايرة"
+    }
   },
   "checkin": {
     "title": "تسجيل الحضور عبر رمز QR",
