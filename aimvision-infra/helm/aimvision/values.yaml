@@ -385,6 +385,50 @@ ollama:
         - ALL
 
 # -----------------------------------------------------------------------------
+# Temporal — post-session pipeline orchestrator (ADR-0007).
+# Disabled by default; the dev overlay enables it. Runs the single-binary
+# `temporalio/auto-setup` image (frontend+history+matching+worker in one pod,
+# auto-schema). Production cloud should split the services — see the note in
+# templates/temporal-deployment.yaml.
+# -----------------------------------------------------------------------------
+temporal:
+  enabled: false
+  image:
+    repository: temporalio/auto-setup
+    tag: "1.25.2"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 7233
+  # Temporal uses its own Postgres databases. Defaults point at the CNPG
+  # cluster this chart provisions; the operator must create the `temporal`
+  # and `temporal_visibility` databases (or let auto-setup create them with
+  # a superuser). Override host/existingSecret to use an external instance.
+  database:
+    driver: "postgres12"
+    host: ""  # empty → defaults to the in-chart CNPG service name
+    port: 5432
+    name: temporal
+    visibilityName: temporal_visibility
+    existingSecret: aimvision-pg-superuser
+    userKey: username
+    passwordKey: password
+  resources:
+    requests:
+      cpu: "250m"
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+
+# -----------------------------------------------------------------------------
 # Secrets management — choose ONE of `sealedSecrets` or `externalSecrets`.
 # Cloud overlay typically uses ExternalSecrets (pulling from GCP/AWS Secret
 # Manager). On-prem overlay uses SealedSecrets, since the appliance is

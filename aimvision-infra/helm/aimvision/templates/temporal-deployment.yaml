@@ -1,0 +1,88 @@
+{{- if .Values.temporal.enabled -}}
+{{- /*
+Temporal server — the post-session pipeline orchestrator (ADR-0007).
+
+This deployment runs the single-binary `temporalio/auto-setup` image,
+which bundles the frontend / history / matching / worker services and
+auto-creates the namespace + schema. That's appropriate for dev and
+the federation on-prem appliance (small footprint, ADR-0005 parity).
+
+PRODUCTION NOTE: a high-traffic cloud deployment should run the four
+Temporal services as separate Deployments against the CNPG Postgres
+(values.temporal.persistence), not auto-setup with its embedded
+defaults. This template intentionally keeps the simple topology and
+gates the heavier split behind a future values flag — auto-setup is
+the documented dev/on-prem path, not the cloud-scale one.
+
+The Temporal server uses its OWN Postgres database. By default it
+points at the CNPG cluster this chart provisions (a dedicated
+`temporal` + `temporal_visibility` database); override
+values.temporal.database.* to use an external instance.
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aimvision.temporal.fullname" . }}
+  labels:
+    {{- include "aimvision.labels" . | nindent 4 }}
+    app.kubernetes.io/component: temporal
+spec:
+  replicas: 1
+  strategy:
+    # auto-setup runs schema migrations on boot; a second pod racing the
+    # first would conflict, so never run two at once.
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "aimvision.temporal.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "aimvision.temporal.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "aimvision.serviceAccountName" . }}
+      {{- include "aimvision.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        {{- toYaml .Values.temporal.podSecurityContext | nindent 8 }}
+      containers:
+        - name: temporal
+          image: {{ include "aimvision.image" (dict "image" .Values.temporal.image "global" .Values.global) | quote }}
+          imagePullPolicy: {{ .Values.temporal.image.pullPolicy }}
+          env:
+            - name: DB
+              value: {{ .Values.temporal.database.driver | quote }}
+            - name: DB_PORT
+              value: {{ .Values.temporal.database.port | quote }}
+            - name: POSTGRES_SEEDS
+              value: {{ .Values.temporal.database.host | default (include "aimvision.cnpg.fullname" .) | quote }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.temporal.database.existingSecret | quote }}
+                  key: {{ .Values.temporal.database.userKey | quote }}
+            - name: POSTGRES_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.temporal.database.existingSecret | quote }}
+                  key: {{ .Values.temporal.database.passwordKey | quote }}
+            - name: DBNAME
+              value: {{ .Values.temporal.database.name | quote }}
+            - name: VISIBILITY_DBNAME
+              value: {{ .Values.temporal.database.visibilityName | quote }}
+          ports:
+            - name: grpc
+              containerPort: 7233
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.temporal.resources | nindent 12 }}
+          readinessProbe:
+            tcpSocket:
+              port: grpc
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: grpc
+            initialDelaySeconds: 30
+            periodSeconds: 20
+{{- end }}

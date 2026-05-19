@@ -64,6 +64,10 @@ Component-specific full names (deployment / service / configmap names share thes
 {{- printf "%s-ollama" (include "aimvision.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
+{{- define "aimvision.temporal.fullname" -}}
+{{- printf "%s-temporal" (include "aimvision.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
 {{- define "aimvision.cnpg.fullname" -}}
 {{- default (printf "%s-pg" (include "aimvision.fullname" .)) .Values.cnpg.clusterName | trunc 63 | trimSuffix "-" }}
 {{- end }}
@@ -134,6 +138,11 @@ app.kubernetes.io/component: minio
 {{- define "aimvision.ollama.selectorLabels" -}}
 {{ include "aimvision.selectorLabels" . }}
 app.kubernetes.io/component: ollama
+{{- end }}
+
+{{- define "aimvision.temporal.selectorLabels" -}}
+{{ include "aimvision.selectorLabels" . }}
+app.kubernetes.io/component: temporal
 {{- end }}
 
 {{/*
