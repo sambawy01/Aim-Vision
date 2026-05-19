@@ -8,15 +8,17 @@ backend without writing Python. The two commands shipped here —
 inference, so they're useful as smoke-tests of the backend's
 ingest path against a live deployment.
 
-The alignment / calibration / diagnostic ingest commands will land
-once the corresponding ML inference is runnable end-to-end
-(currently gated on hardware + GPU data).
+The `run-post-session` command runs the *real* spectral-flux shot
+detector over a WAV file and pushes detected shots to the backend —
+the genuine end-to-end ingest path (the input audio is the only
+thing supplied externally).
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
 
 import click
 
@@ -26,6 +28,7 @@ from .backend_client import (
     SessionEndPayload,
     ShotPayload,
 )
+from .post_session import run_post_session
 
 
 def _run(coro: object) -> object:
@@ -118,6 +121,77 @@ def finalize_session_cmd(
 
     try:
         result = _run(_go())
+    except BackendError as e:
+        raise click.ClickException(f"backend error {e.status_code}: {e.detail}") from e
+    click.echo(json.dumps(result, indent=2))
+
+
+@ingest.command("run-post-session")
+@_backend_url
+@_token
+@click.option("--session-id", required=True)
+@click.option(
+    "--audio",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="WAV file of the session audio to run shot detection over.",
+)
+@click.option(
+    "--diagnostic-model",
+    default=None,
+    type=click.Path(exists=False, dir_okay=False, path_type=Path),
+    help="Optional ONNX diagnostic-head model. Skipped if absent (audio-only).",
+)
+def run_post_session_cmd(
+    backend_url: str,
+    token: str,
+    session_id: str,
+    audio: Path,
+    diagnostic_model: Path | None,
+) -> None:
+    """Run the real post-session pipeline over a WAV file.
+
+    Detects shots with the spectral-flux onset detector, POSTs each to
+    the backend, optionally runs the diagnostic head (when a model is
+    given), and finalizes the session. With no model, the session is
+    finalized as `partial` (audio-only).
+    """
+    import numpy as np
+    from scipy.io import wavfile
+
+    from aimvision_ml.inference.diagnostic_onnx import DiagnosticOnnxModel
+
+    sample_rate, raw = wavfile.read(str(audio))
+    # Normalize integer PCM to float32 in [-1, 1]; pass float through.
+    if np.issubdtype(raw.dtype, np.integer):
+        max_val = float(np.iinfo(raw.dtype).max)
+        pcm = (raw.astype(np.float32) / max_val).astype(np.float32)
+    else:
+        pcm = raw.astype(np.float32)
+    if pcm.ndim > 1:  # stereo → mono
+        pcm = pcm.mean(axis=1).astype(np.float32)
+
+    diag = DiagnosticOnnxModel.load_or_none(diagnostic_model)
+
+    async def _run_pipeline() -> dict[str, object]:
+        async with BackendClient(backend_url, token) as client:
+            result = await run_post_session(
+                client,
+                session_id,
+                pcm,
+                int(sample_rate),
+                diagnostic_model=diag,
+            )
+            return {
+                "session_id": result.session_id,
+                "shots_detected": result.shots_detected,
+                "shots_posted": result.shots_posted,
+                "diagnostic_events_posted": result.diagnostic_events_posted,
+                "partial_session": result.partial_session,
+            }
+
+    try:
+        result = _run(_run_pipeline())
     except BackendError as e:
         raise click.ClickException(f"backend error {e.status_code}: {e.detail}") from e
     click.echo(json.dumps(result, indent=2))
