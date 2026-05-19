@@ -15,7 +15,7 @@ import { create } from 'zustand';
 export interface Principal {
   userId: string;
   tenantId: string;
-  role: 'athlete' | 'coach' | 'club_admin' | 'fed_admin' | 'system_admin';
+  role: 'athlete' | 'coach' | 'club_admin' | 'federation_admin' | 'system_admin';
   displayName: string;
 }
 

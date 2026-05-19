@@ -7,7 +7,7 @@ import { LocaleSwitcher } from './LocaleSwitcher';
 export function AppShell() {
   const { t } = useTranslation();
   const { current, available, switchTo } = useTenancy();
-  const isFedAdmin = useAuthStore((s) => s.principal?.role === 'fed_admin');
+  const isFedAdmin = useAuthStore((s) => s.principal?.role === 'federation_admin');
 
   return (
     <div className="min-h-screen bg-surface text-text flex flex-col">

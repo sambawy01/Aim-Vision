@@ -74,7 +74,7 @@ beforeEach(() => {
 });
 
 describe('FederationDashboardRoute', () => {
-  it('blocks non-fed_admin principals with an empty-state explanation', async () => {
+  it('blocks non-federation_admin principals with an empty-state explanation', async () => {
     useAuthStore.getState().setSession('token', {
       userId: 'u1',
       tenantId: 'org:club1',
@@ -88,11 +88,11 @@ describe('FederationDashboardRoute', () => {
     expect(fedService.getFederationOverview).not.toHaveBeenCalled();
   });
 
-  it('renders headline metrics for a fed_admin', async () => {
+  it('renders headline metrics for a federation_admin', async () => {
     useAuthStore.getState().setSession('token', {
       userId: 'u1',
       tenantId: 'fed:egypt',
-      role: 'fed_admin',
+      role: 'federation_admin',
       displayName: 'Fed Admin',
     });
     renderRoute();
@@ -108,7 +108,7 @@ describe('FederationDashboardRoute', () => {
     useAuthStore.getState().setSession('token', {
       userId: 'u1',
       tenantId: 'fed:egypt',
-      role: 'fed_admin',
+      role: 'federation_admin',
       displayName: 'Fed Admin',
     });
     renderRoute();
@@ -125,7 +125,7 @@ describe('FederationDashboardRoute', () => {
     useAuthStore.getState().setSession('token', {
       userId: 'u1',
       tenantId: 'fed:egypt',
-      role: 'fed_admin',
+      role: 'federation_admin',
       displayName: 'Fed Admin',
     });
     renderRoute();

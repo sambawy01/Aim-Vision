@@ -17,7 +17,7 @@ from .config import get_settings
 from .db import dispose_engines, init_engines
 from .middleware.audit import AuditMiddleware
 from .middleware.tenant_context import TenantContextMiddleware
-from .routers import active_learning, auth, consent, health, session
+from .routers import active_learning, auth, consent, federation, health, session
 
 logger = logging.getLogger("aimvision")
 
@@ -59,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(consent.router)
     app.include_router(session.router)
     app.include_router(active_learning.router)
+    app.include_router(federation.router)
 
     @app.exception_handler(StarletteHTTPException)
     async def http_exc_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:

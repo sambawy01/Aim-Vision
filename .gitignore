@@ -32,6 +32,8 @@ dist/
 build/
 .tox/
 .uv-cache/
+# pytest sqlite scratch (conftest.py creates this under aimvision-backend/)
+_aimvision_test.db
 
 # --- Node / RN / Web (aimvision-mobile, aimvision-web) ---
 node_modules/
