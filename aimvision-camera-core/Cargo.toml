@@ -4,6 +4,7 @@ members = [
     "crates/aimvision-camera-traits",
     "crates/aimvision-camera-mock",
     "crates/aimvision-camera-phone",
+    "crates/aimvision-camera-phone-jni",
     "crates/aimvision-camera-state",
 ]
 
@@ -27,6 +28,7 @@ uuid = { version = "1", features = ["v4", "v7", "serde"] }
 aimvision-camera-traits = { path = "crates/aimvision-camera-traits" }
 aimvision-camera-mock = { path = "crates/aimvision-camera-mock" }
 aimvision-camera-phone = { path = "crates/aimvision-camera-phone" }
+aimvision-camera-phone-jni = { path = "crates/aimvision-camera-phone-jni" }
 aimvision-camera-state = { path = "crates/aimvision-camera-state" }
 
 [profile.release]

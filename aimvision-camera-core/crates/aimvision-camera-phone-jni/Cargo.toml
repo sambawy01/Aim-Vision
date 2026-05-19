@@ -1,0 +1,34 @@
+[package]
+name = "aimvision-camera-phone-jni"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "JNI shim for the aimvision-camera-phone C ABI. Builds as libaimvision_camera_phone_jni.so for loading from Kotlin via System.loadLibrary."
+
+[lib]
+# `cdylib` is what `System.loadLibrary` looks for; `rlib` is omitted on
+# purpose — no other workspace member should depend on the JNI surface.
+crate-type = ["cdylib"]
+
+[lints.rust]
+# JNI is inherently `unsafe extern "system"`. The crate is the unsafe
+# boundary; downstream Rust code does not depend on it. We keep
+# `unsafe_code = "allow"` at crate level rather than per-function
+# annotations because every export is an FFI entry and the noise/value
+# ratio of granular annotations is poor.
+unsafe_code = "allow"
+# JNI's `Java_<pkg>_<class>_<method>` symbol names violate snake_case.
+non_snake_case = "allow"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+# JNI export functions all take `JNIEnv` + `JClass` as the first two args
+# whether or not we use them — silence that.
+needless_pass_by_value = "allow"
+
+[dependencies]
+aimvision-camera-phone = { workspace = true }
+# `jni` 0.21 is the current stable line; supports cross-compile to all
+# Android targets and compiles on the host without an NDK present.
+jni = "0.21"

@@ -8,14 +8,16 @@
  *
  * # Why this is a singleton with a `loadLibrary` try/catch
  *
- * The Rust crate ships as `libaimvision_camera_phone.so`. JNI requires
- * `Java_<package>_<class>_<method>`-named exports, which the bare C ABI
- * does NOT have — so a small JNI C-shim (`libaimvision_camera_phone_jni.so`)
- * is required between Kotlin and the C ABI. That shim is a follow-up
- * sub-slice (3c-android-jni); until it lands, `System.loadLibrary`
- * raises `UnsatisfiedLinkError` and the bridge reports unavailable —
- * the Vision Camera plugin falls back to the metadata-only path from
- * slice 3b, matching the iOS dlsym fallback in `AVPhoneFrameSinkBridge.swift`.
+ * The Rust crate ships as `libaimvision_camera_phone.so` (its plain C
+ * ABI). JNI requires `Java_<package>_<class>_<method>`-named exports,
+ * which the bare C ABI does NOT have — so a small JNI shim
+ * (`libaimvision_camera_phone_jni.so`, built by the
+ * `aimvision-camera-phone-jni` Rust crate) sits between Kotlin and the
+ * C ABI. When the dev hasn't yet cross-compiled + bundled that .so into
+ * `android/app/src/main/jniLibs/<abi>/`, `System.loadLibrary` raises
+ * `UnsatisfiedLinkError` and the bridge reports unavailable — the
+ * Vision Camera plugin falls back to the metadata-only path from slice
+ * 3b, matching the iOS dlsym fallback in `AVPhoneFrameSinkBridge.swift`.
  *
  * # External function naming
  *
@@ -116,8 +118,14 @@ object AVPhoneFrameSinkBridge {
     @JvmStatic
     private external fun nativeNew(id: String, frameCapacity: Long, audioCapacity: Long): Long
 
+    // `nativeFree` is implemented by the JNI shim but currently
+    // unreferenced from Kotlin — the bridge intentionally leaks the
+    // PhoneCamera handle for the lifetime of the process (the OS
+    // reclaims on exit). Keep the declaration so a future "stop the
+    // bridge cleanly on app teardown" path doesn't have to revisit the
+    // shim signature.
     @JvmStatic
-    @Suppress("UnusedPrivateMember")
+    @Suppress("UnusedPrivateMember", "unused")
     private external fun nativeFree(handle: Long)
 
     @JvmStatic
