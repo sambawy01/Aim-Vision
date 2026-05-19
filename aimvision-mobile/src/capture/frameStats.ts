@@ -26,6 +26,11 @@ export interface FrameStats {
   /** Wall-clock ms at which the last frame was observed. Useful for
    * detecting a stalled pipeline ("haven't seen a frame in N seconds"). */
   lastFrameWallMs: number | null;
+  /** Where the most recent frame metadata came from. Slice 3a alone
+   * always reports `"js-worklet"`. Slice 3b's native plugin (once
+   * `expo prebuild` has built it) reports `"native-ios"` /
+   * `"native-android"`. `null` until the first frame is observed. */
+  sourceTag: string | null;
 }
 
 export const EMPTY_FRAME_STATS: FrameStats = {
@@ -34,6 +39,7 @@ export const EMPTY_FRAME_STATS: FrameStats = {
   resolution: null,
   pixelFormat: null,
   lastFrameWallMs: null,
+  sourceTag: null,
 };
 
 /** Rolling-window FPS estimator from a delta between two cumulative

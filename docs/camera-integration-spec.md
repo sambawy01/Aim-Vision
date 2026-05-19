@@ -703,14 +703,14 @@ The phone-as-camera roadmap entry in §16.1 marks the V2 PWA tier, but [ADR-0009
 
 ### 17.2 Slice plan
 
-| Slice | What lands                                                                                                                                                                               |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Vision Camera dep + Expo plugin; `CapturePhoneScreen`; recording state machine; ADR-0009. No upload, no frame processor.                                                                 |
-| 2     | `POST /sessions/{id}/recording` backend ingest; `Recording.source_kind` discriminator.                                                                                                   |
-| 3a    | `useFrameProcessor` worklet + worklets-core shared values; live fps/count/resolution banner; new `aimvision-camera-phone` Rust crate with safe-Rust push API + ring-buffer backpressure. |
-| 3b    | Native Swift/Kotlin frame processor plugin via Expo config plugin; receives raw CMSampleBuffer / ImageProxy.                                                                             |
-| 3c    | `extern "C"` bridge: native plugin → `PhoneCamera::push_frame` in `aimvision-camera-phone`. End-to-end zero-copy data path.                                                              |
-| 4     | Dual-phone capture; audio cross-correlation alignment per [multi-camera-sync-spec](multi-camera-sync-spec.md).                                                                           |
+| Slice | What lands                                                                                                                                                                                 |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1     | Vision Camera dep + Expo plugin; `CapturePhoneScreen`; recording state machine; ADR-0009. No upload, no frame processor.                                                                   |
+| 2     | `POST /sessions/{id}/recording` backend ingest; `Recording.source_kind` discriminator.                                                                                                     |
+| 3a    | `useFrameProcessor` worklet + worklets-core shared values; live fps/count/resolution banner; new `aimvision-camera-phone` Rust crate with safe-Rust push API + ring-buffer backpressure.   |
+| 3b    | Native Swift/Kotlin frame-processor plugin via Expo config plugin; receives raw CMSampleBuffer / ImageProxy; metadata-only callback today with graceful fallback to slice 3a's JS worklet. |
+| 3c    | `extern "C"` bridge: native plugin → `PhoneCamera::push_frame` in `aimvision-camera-phone`. End-to-end zero-copy data path.                                                                |
+| 4     | Dual-phone capture; audio cross-correlation alignment per [multi-camera-sync-spec](multi-camera-sync-spec.md).                                                                             |
 
 ### 17.3 Hard line
 

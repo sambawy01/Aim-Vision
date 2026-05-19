@@ -37,6 +37,10 @@ export interface FrameSharedValues {
    * to `string` for storage so the worklet doesn't carry the type
    * dependency. */
   lastPixelFormat: ISharedValue<string>;
+  /** Where the most recent frame metadata came from. The worklet writes
+   * `"native-ios"` / `"native-android"` (slice 3b native plugin) or
+   * `"js-worklet"` (slice 3a fallback). Empty string = no frame yet. */
+  lastSourceTag: ISharedValue<string>;
 }
 
 export interface UseFrameStatsResult {
@@ -50,6 +54,7 @@ export function useFrameStats(pollMs = 500): UseFrameStatsResult {
   const lastWidth = useSharedValue(0);
   const lastHeight = useSharedValue(0);
   const lastPixelFormat = useSharedValue('');
+  const lastSourceTag = useSharedValue('');
 
   const [stats, setStats] = useState<FrameStats>(EMPTY_FRAME_STATS);
   // Track the previous sample so we can compute fps over the poll window.
@@ -67,6 +72,7 @@ export function useFrameStats(pollMs = 500): UseFrameStatsResult {
       const width = lastWidth.value;
       const height = lastHeight.value;
       const format = lastPixelFormat.value;
+      const source = lastSourceTag.value;
 
       setStats({
         frameCount: count,
@@ -74,13 +80,14 @@ export function useFrameStats(pollMs = 500): UseFrameStatsResult {
         resolution: width > 0 && height > 0 ? { width, height } : null,
         pixelFormat: format !== '' ? format : null,
         lastFrameWallMs: count > 0 ? nowMs : null,
+        sourceTag: source !== '' ? source : null,
       });
 
       prevCountRef.current = count;
       prevSampleWallMsRef.current = nowMs;
     }, pollMs);
     return () => clearInterval(id);
-  }, [pollMs, frameCount, lastWidth, lastHeight, lastPixelFormat]);
+  }, [pollMs, frameCount, lastWidth, lastHeight, lastPixelFormat, lastSourceTag]);
 
   return {
     stats,
@@ -90,6 +97,7 @@ export function useFrameStats(pollMs = 500): UseFrameStatsResult {
       lastWidth,
       lastHeight,
       lastPixelFormat,
+      lastSourceTag,
     },
   };
 }

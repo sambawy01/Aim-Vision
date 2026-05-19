@@ -6,6 +6,7 @@ import {
   useCameraPermission,
   useFrameProcessor,
   useMicrophonePermission,
+  VisionCameraProxy,
 } from 'react-native-vision-camera';
 import { useTranslation } from '../../hooks/useTranslation';
 import { AccessibleText } from '../../components/a11y/AccessibleText';
@@ -41,10 +42,23 @@ export function CapturePhoneScreen(): React.ReactElement {
   const micPerm = useMicrophonePermission();
   const cameraRef = useRef<Camera>(null);
 
-  // Frame-processor pipeline (ADR-0009 slice 3a). The worklet runs on the
-  // camera thread per Vision Camera v4 + worklets-core; it writes through
-  // the shared values, the screen polls them via `useFrameStats`.
+  // Frame-processor pipeline (ADR-0009 slice 3a + 3b). The worklet runs on
+  // the camera thread per Vision Camera v4 + worklets-core; it writes
+  // through the shared values, the screen polls them via `useFrameStats`.
+  //
+  // Slice 3b adds a native plugin call: when the `avPhoneFrameSink`
+  // native plugin is registered (after `expo prebuild` has copied the
+  // Swift/Kotlin sources via `plugins/phone-frame-sink/`), the worklet
+  // invokes it per-frame and writes the native-reported source into
+  // `lastSourceTag` so the on-screen banner can show "native-ios" /
+  // "native-android" vs. the slice-3a JS fallback "js-worklet". If the
+  // plugin isn't registered (i.e. before prebuild, or in a future build
+  // that opts out), the worklet keeps doing slice-3a metadata.
   const { stats: frameStats, sharedValues } = useFrameStats();
+  const nativeFrameSink = useMemo(
+    () => VisionCameraProxy.initFrameProcessorPlugin('avPhoneFrameSink', {}),
+    [],
+  );
   const frameProcessor = useFrameProcessor(
     (frame) => {
       'worklet';
@@ -53,8 +67,17 @@ export function CapturePhoneScreen(): React.ReactElement {
       sharedValues.lastWidth.value = frame.width;
       sharedValues.lastHeight.value = frame.height;
       sharedValues.lastPixelFormat.value = frame.pixelFormat;
+
+      if (nativeFrameSink != null) {
+        const result = nativeFrameSink.call(frame);
+        if (result != null && typeof result === 'object' && 'source' in result) {
+          sharedValues.lastSourceTag.value = String(result.source);
+        }
+      } else {
+        sharedValues.lastSourceTag.value = 'js-worklet';
+      }
     },
-    [sharedValues],
+    [sharedValues, nativeFrameSink],
   );
 
   // Reflect the OS permission state into the state machine on every
@@ -164,6 +187,11 @@ export function CapturePhoneScreen(): React.ReactElement {
               count: frameStats.frameCount,
               resolution: formatResolution(frameStats.resolution),
               format: frameStats.pixelFormat ?? '—',
+            })}
+          </AccessibleText>
+          <AccessibleText variant="caption" color="textMuted">
+            {t('capturePhone.stats.source', {
+              source: frameStats.sourceTag ?? 'pending…',
             })}
           </AccessibleText>
         </View>
