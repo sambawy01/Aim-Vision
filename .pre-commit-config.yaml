@@ -73,9 +73,12 @@ repos:
         types_or: [javascript, jsx, ts, tsx, css, scss, json, markdown]
         additional_dependencies:
           - prettier@3.3.3
-        # Skip rendered Helm output and lock files.
+        # Skip rendered Helm output, lock files, and the auto-generated
+        # CLAUDE.md (prettier mangles `__init__.py` to `**init**.py` in the
+        # tracked-files list it regenerates from `scripts/update_context.py`).
         exclude: |
           (?x)^(
+            CLAUDE\.md|
             .*/package-lock\.json|
             .*/pnpm-lock\.yaml|
             .*/yarn\.lock|
