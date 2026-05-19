@@ -19,26 +19,26 @@ The deliberate choice is to **add a phone-camera backend behind the existing cam
 
 ## Decision
 
-**We add a phone capture path as a *development-mode* backend behind the same `Camera*` trait surface defined in ADR-0003. Hero 13 stays the production camera. Phone capture is never marketed, sold, or shown to a coach customer; it exists so the team can produce real range data while procurement closes.**
+**We add a phone capture path as a _development-mode_ backend behind the same `Camera*` trait surface defined in ADR-0003. Hero 13 stays the production camera. Phone capture is never marketed, sold, or shown to a coach customer; it exists so the team can produce real range data while procurement closes.**
 
 This is implemented in four slices, each landed as its own PR:
 
 1. **Slice 1 (this ADR's landing slice):** RN client `aimvision-mobile/` gets a `react-native-vision-camera` v4 integration: permissions, a `/app/capture/phone` screen with start/stop record-to-local-MP4 using Vision Camera's built-in `recordVideo`. No frame processor yet, no upload yet. A pure-TS recording state machine handles the lifecycle and is unit-testable without a device.
 2. **Slice 2:** Backend ingest — `POST /v1/sessions/{id}/recording` accepting a multipart MP4 upload, mapped onto the existing `Recording.upload_state` lifecycle. Triggers the same post-session Temporal workflow as a Hero 13 recording would.
-3. **Slice 3:** Real-time frame processor — Vision Camera worklet pulls YUV frames on the worklet thread, hands them to a native Obj-C++/JNI shim, which crosses into `aimvision-camera-core` via the existing `extern "C"` media plane. A new backend crate `aimvision-camera-phone` becomes the *third* `CameraMedia` implementation alongside the mock and the (still pending) GoPro backend.
+3. **Slice 3:** Real-time frame processor — Vision Camera worklet pulls YUV frames on the worklet thread, hands them to a native Obj-C++/JNI shim, which crosses into `aimvision-camera-core` via the existing `extern "C"` media plane. A new backend crate `aimvision-camera-phone` becomes the _third_ `CameraMedia` implementation alongside the mock and the (still pending) GoPro backend.
 4. **Slice 4:** Dual-phone capture + audio cross-correlation for multi-camera alignment. No `!MSYNC` from phones, so alignment falls back entirely on the audio cross-correlation path already specified in [docs/multi-camera-sync-spec.md](../multi-camera-sync-spec.md).
 
 ### Constraints we accept
 
-| Capability | Hero 13 (product) | Phone (dev-mode) |
-|---|---|---|
-| Multi-camera sync via `!MSYNC` | Yes (sub-frame) | **No** — phones have no equivalent. Audio cross-correlation only, sub-frame accuracy unreliable. |
-| GoPro Labs streaming overlay | Yes | **No** |
-| HILIGHT / external trigger | Yes (BLE) | **No** in slice 1; possibly a software hilight tap in slice 3 |
-| Mount stability (chest, helmet, gunsight) | Designed for it | Phone tripod/clamp only; FOV limited |
-| Audio quality | Hero 13 mic array, decent low-end roll-off | Varies dramatically by phone; shot-detection thresholds must be re-calibrated per device |
-| Pose-estimation viability | Consistent FOV/resolution | Varies dramatically by phone; floor we set: 1080p30, Pixel 7 / iPhone 14 or newer |
-| ML model gate metrics | Recorded against Hero 13 footage | Phone capture is **not** an admissible training source for production model gates without explicit per-device calibration sign-off |
+| Capability                                | Hero 13 (product)                          | Phone (dev-mode)                                                                                                                   |
+| ----------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Multi-camera sync via `!MSYNC`            | Yes (sub-frame)                            | **No** — phones have no equivalent. Audio cross-correlation only, sub-frame accuracy unreliable.                                   |
+| GoPro Labs streaming overlay              | Yes                                        | **No**                                                                                                                             |
+| HILIGHT / external trigger                | Yes (BLE)                                  | **No** in slice 1; possibly a software hilight tap in slice 3                                                                      |
+| Mount stability (chest, helmet, gunsight) | Designed for it                            | Phone tripod/clamp only; FOV limited                                                                                               |
+| Audio quality                             | Hero 13 mic array, decent low-end roll-off | Varies dramatically by phone; shot-detection thresholds must be re-calibrated per device                                           |
+| Pose-estimation viability                 | Consistent FOV/resolution                  | Varies dramatically by phone; floor we set: 1080p30, Pixel 7 / iPhone 14 or newer                                                  |
+| ML model gate metrics                     | Recorded against Hero 13 footage           | Phone capture is **not** an admissible training source for production model gates without explicit per-device calibration sign-off |
 
 ### Constraints we enforce in code
 
@@ -53,7 +53,7 @@ This is implemented in four slices, each landed as its own PR:
 
 Recorded entirely with `react-native-vision-camera`'s built-in `recordVideo`, uploaded as a complete file, processed only post-session. Simpler, ships in ~2 days, exercises the post-session Temporal pipeline immediately.
 
-**Rejected as the *end-state*, accepted as the *first slice*.** Real-time frame processing is what the production Hero 13 path requires, and building it later means a parallel data path that diverges. Slices 1 and 2 in the decision above are exactly this alternative; we go further in slices 3–4 so the dev-mode capture exercises the production code path, not a sidetrack.
+**Rejected as the _end-state_, accepted as the _first slice_.** Real-time frame processing is what the production Hero 13 path requires, and building it later means a parallel data path that diverges. Slices 1 and 2 in the decision above are exactly this alternative; we go further in slices 3–4 so the dev-mode capture exercises the production code path, not a sidetrack.
 
 ### Alternative B: phone capture as the V1 product (drop Hero 13)
 

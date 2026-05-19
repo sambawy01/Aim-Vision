@@ -227,12 +227,8 @@ describe('phone recording state machine', () => {
     });
 
     it('isActivelyRecording is true only in recording', () => {
-      expect(
-        isActivelyRecording({ ...INITIAL_RECORDING_STATE, status: 'recording' }),
-      ).toBe(true);
-      expect(
-        isActivelyRecording({ ...INITIAL_RECORDING_STATE, status: 'stopping' }),
-      ).toBe(false);
+      expect(isActivelyRecording({ ...INITIAL_RECORDING_STATE, status: 'recording' })).toBe(true);
+      expect(isActivelyRecording({ ...INITIAL_RECORDING_STATE, status: 'stopping' })).toBe(false);
       expect(isActivelyRecording(INITIAL_RECORDING_STATE)).toBe(false);
     });
   });

@@ -196,10 +196,7 @@ export function CapturePhoneScreen(): React.ReactElement {
 
 type TFn = ReturnType<typeof useTranslation>['t'];
 
-function renderStatusLabel(
-  state: ReturnType<typeof recordingReducer>,
-  t: TFn,
-): string {
+function renderStatusLabel(state: ReturnType<typeof recordingReducer>, t: TFn): string {
   switch (state.status) {
     case 'unknown':
       return t('capturePhone.status.unknown');

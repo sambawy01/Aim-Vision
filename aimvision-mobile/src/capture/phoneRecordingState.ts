@@ -78,10 +78,7 @@ export const INITIAL_RECORDING_STATE: RecordingState = {
 /** Pure transition function. Illegal transitions return the state unchanged
  * so the screen never crashes on a stale callback; callers can detect a
  * no-op by reference equality (`next === prev`). */
-export function recordingReducer(
-  state: RecordingState,
-  event: RecordingEvent,
-): RecordingState {
+export function recordingReducer(state: RecordingState, event: RecordingEvent): RecordingState {
   switch (event.kind) {
     case 'request-permission': {
       // Only allowed from unknown or permission-denied. From any other
