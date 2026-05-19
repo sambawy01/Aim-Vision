@@ -350,15 +350,13 @@ mod tests {
         let h = make_cam("phone-0", 4, 4);
         // n_samples == 0 lets samples_ptr be NULL — degenerate but legal.
         // SAFETY: with n_samples = 0, samples_ptr is not dereferenced.
-        let evicted = unsafe {
-            aimvision_phone_camera_push_audio_chunk(h, ptr::null(), 0, 48_000, 1, 0)
-        };
+        let evicted =
+            unsafe { aimvision_phone_camera_push_audio_chunk(h, ptr::null(), 0, 48_000, 1, 0) };
         assert!(!evicted);
         // But a NULL ptr with n_samples > 0 must be rejected.
         // SAFETY: contract violation is detected before deref.
-        let rejected = unsafe {
-            aimvision_phone_camera_push_audio_chunk(h, ptr::null(), 4, 48_000, 1, 0)
-        };
+        let rejected =
+            unsafe { aimvision_phone_camera_push_audio_chunk(h, ptr::null(), 4, 48_000, 1, 0) };
         // The function returns false on the input-validation reject.
         // We can confirm nothing was queued by checking dropped_audio
         // stayed at 0 (since rejected pushes never reach the ring).
