@@ -100,19 +100,13 @@ export function injectPackageRegistration(mainApplication: string): string {
   } else {
     // No existing imports? Fall back to inserting right after the
     // `package` declaration.
-    next = next.replace(
-      /^(package\s+[^\n]+\n)/m,
-      `$1\n${importLine}\n`,
-    );
+    next = next.replace(/^(package\s+[^\n]+\n)/m, `$1\n${importLine}\n`);
   }
   // 2. Inject `packages.add(AVPhoneFrameSinkPackage())` into the
   //    getPackages() block. The canonical RN template uses
   //    `PackageList(this).packages` -> `val packages = ... .toMutableList()`
   //    so we add to the mutable list right before `return packages`.
-  next = next.replace(
-    /(return packages\b)/,
-    `packages.add(${ANDROID_PACKAGE_CLASS}())\n      $1`,
-  );
+  next = next.replace(/(return packages\b)/, `packages.add(${ANDROID_PACKAGE_CLASS}())\n      $1`);
   return next;
 }
 
@@ -124,7 +118,12 @@ export function injectPackageRegistration(mainApplication: string): string {
  * the rest of the Expo plugin ecosystem uses. */
 type XcodeProjectLike = {
   pbxGroupByName(name: string): unknown;
-  addPbxGroup(files: string[], name: string, path: string, sourceTree?: string): {
+  addPbxGroup(
+    files: string[],
+    name: string,
+    path: string,
+    sourceTree?: string,
+  ): {
     uuid: string;
   };
   getFirstProject(): { firstProject: { mainGroup: string } };
@@ -149,11 +148,7 @@ export function addIosSourcesToXcodeProject(
   // Slot the new group under the main project group.
   xcodeProject.addToPbxGroup(group, xcodeProject.getFirstProject().firstProject.mainGroup);
   for (const src of iosSources) {
-    xcodeProject.addSourceFile(
-      path.join(IOS_GROUP_NAME, src),
-      { target: undefined },
-      group.uuid,
-    );
+    xcodeProject.addSourceFile(path.join(IOS_GROUP_NAME, src), { target: undefined }, group.uuid);
   }
 }
 
@@ -176,10 +171,7 @@ const withPhoneFrameSink: ConfigPlugin = (config) => {
 
   // 2. Register iOS sources in the Xcode project (.pbxproj).
   config = withXcodeProject(config, (cfg) => {
-    addIosSourcesToXcodeProject(
-      cfg.modResults as unknown as XcodeProjectLike,
-      IOS_SOURCES,
-    );
+    addIosSourcesToXcodeProject(cfg.modResults as unknown as XcodeProjectLike, IOS_SOURCES);
     return cfg;
   });
 

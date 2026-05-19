@@ -104,9 +104,7 @@ describe('injectPackageRegistration', () => {
     ].join('\n');
 
     const after = injectPackageRegistration(before);
-    expect(after).toContain(
-      'import com.aimvision.app.phoneframesink.AVPhoneFrameSinkPackage',
-    );
+    expect(after).toContain('import com.aimvision.app.phoneframesink.AVPhoneFrameSinkPackage');
     expect(after).toContain('packages.add(AVPhoneFrameSinkPackage())');
     expect(after).toContain('return packages');
     // The packages.add line comes immediately before `return packages`.
@@ -148,9 +146,7 @@ describe('injectPackageRegistration', () => {
     ].join('\n');
 
     const after = injectPackageRegistration(before);
-    expect(after).toContain(
-      'import com.aimvision.app.phoneframesink.AVPhoneFrameSinkPackage',
-    );
+    expect(after).toContain('import com.aimvision.app.phoneframesink.AVPhoneFrameSinkPackage');
   });
 });
 
@@ -172,12 +168,7 @@ describe('addIosSourcesToXcodeProject', () => {
           calls.pbxGroupByName.push([name]);
           return groupExists ? { uuid: 'existing-uuid' } : undefined;
         },
-        addPbxGroup: (
-          files: string[],
-          name: string,
-          path: string,
-          sourceTree?: string,
-        ) => {
+        addPbxGroup: (files: string[], name: string, path: string, sourceTree?: string) => {
           calls.addPbxGroup.push([files, name, path, sourceTree]);
           groupExists = true;
           return { uuid: 'group-uuid' };
@@ -203,9 +194,7 @@ describe('addIosSourcesToXcodeProject', () => {
     expect(calls.addPbxGroup).toEqual([
       [['A.swift', 'B.m'], 'PhoneFrameSink', 'PhoneFrameSink', '"<group>"'],
     ]);
-    expect(calls.addToPbxGroup).toEqual([
-      [{ uuid: 'group-uuid' }, 'main-group-uuid'],
-    ]);
+    expect(calls.addToPbxGroup).toEqual([[{ uuid: 'group-uuid' }, 'main-group-uuid']]);
     expect(calls.addSourceFile).toHaveLength(2);
     expect(calls.addSourceFile[0][0]).toBe(path.join('PhoneFrameSink', 'A.swift'));
     expect(calls.addSourceFile[1][0]).toBe(path.join('PhoneFrameSink', 'B.m'));
