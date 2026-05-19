@@ -102,6 +102,8 @@ Geometric calibration of the multi-camera rig — the intrinsic and extrinsic pa
 
 Why Ceres bundle adjustment? OpenCV's `stereoCalibrate` is greedy and noise-sensitive; bundle adjustment jointly optimises intrinsics + extrinsics + 3D point cloud and converges to materially better extrinsics in practice (~30% reprojection-error reduction vs OpenCV-only).
 
+**Implementation scaffold:** `aimvision_ml.inference.camera_calibration` (Python, in `aimvision-ml/`) ships the math layer of step 3 above as a pure numpy + scipy bundle-adjustment solver. Public surface: `ChArUcoBoard` (3D corner geometry for the 12×9 spec board), `CameraIntrinsics` + `CameraExtrinsics` (matching the persistence schema in §4.5), `project_points` (pinhole + Brown-Conrady 5-parameter distortion, OpenCV-compatible coefficient layout), and `refine_calibration` (joint refinement via `scipy.optimize.least_squares` with Rodrigues 3-vector rotation parameterization). 12 synthetic-board tests cover projection sanity, distortion behavior, noise-free intrinsic recovery, noise-tolerant focal recovery (within 3% at 0.3 px corner noise), radial-distortion recovery, and input validation. **What's still pending: the ChArUco _detection_ step itself** — `cv2.aruco.detectMarkers` + `cv2.aruco.interpolateCornersCharuco` + `cv2.calibrateCameraCharucoExtended` for the initial seed. That step needs `opencv-python` which we'll add as an `aimvision-ml[vision]` extra in a follow-up sub-slice once the federation rig is bench-ready.
+
 ### 4.3 Expected error
 
 - **Reprojection error: 2–3 mm @ 5 m baseline** with the 12×9 ChArUco and 1080p capture.
