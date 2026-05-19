@@ -95,6 +95,9 @@ minio:
 ollama:
   enabled: false  # Dev loop typically stubs the LLM; flip on locally if you have a GPU.
 
+temporal:
+  enabled: true  # Exercise the post-session orchestrator locally (auto-setup, single pod).
+
 observability:
   serviceMonitor:
     enabled: false
