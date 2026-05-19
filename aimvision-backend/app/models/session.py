@@ -5,9 +5,11 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import (
     JSON,
     BigInteger,
+    Boolean,
     DateTime,
     Float,
     ForeignKey,
@@ -47,6 +49,16 @@ class Session(Base, TimestampMixin, TenantScopedMixin):
     discipline: Mapped[str] = mapped_column(String(64), nullable=False, default="trap")
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Degraded-mode flag per docs/ml-architecture.md: True iff the
+    # post-session report has incomplete diagnostic coverage (e.g.
+    # GoPro died mid-session, some shots are audio-only). Default
+    # False so historical sessions keep their assumed-full semantics.
+    partial_session: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=sa.false(),
+    )
 
 
 class Recording(Base, TimestampMixin, TenantScopedMixin):
