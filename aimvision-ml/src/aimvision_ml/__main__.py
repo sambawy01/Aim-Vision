@@ -14,6 +14,7 @@ from rich.console import Console
 from rich.table import Table
 
 from aimvision_ml import __version__
+from aimvision_ml.ingest.cli import ingest
 
 _console = Console()
 
@@ -52,6 +53,9 @@ def status() -> None:
     for mod, extra, installed in _extras_status():
         table.add_row(mod, extra, "[green]yes[/green]" if installed else "[dim]no[/dim]")
     _console.print(table)
+
+
+cli.add_command(ingest)
 
 
 def main() -> None:
