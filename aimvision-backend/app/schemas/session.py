@@ -105,3 +105,60 @@ class ShotOut(BaseModel):
     server_clock_ns: int
     shot_kind: str
     created_at: datetime
+
+
+class ShotEventIn(BaseModel):
+    """Payload for POST /sessions/{sid}/shots/{shot_id}/events.
+
+    Per ADR-0006, ShotEvent is append-only. Multiple producers
+    (audio detector, pose pipeline, diagnostic head, coach UI)
+    write events to the same Shot. `event_kind` is a producer-
+    namespaced string (e.g. "audio.shot_detected", "score.hit",
+    "diagnostic.head_tilt"); `monotonic_seq` is per-producer and
+    `(shot_id, event_kind, monotonic_seq)` is unique end-to-end.
+
+    `payload` is free-form JSON whose schema is per-event-kind
+    and documented in the producing service.
+    """
+
+    event_kind: str = Field(
+        ...,
+        min_length=1,
+        max_length=64,
+        description=(
+            'Producer-namespaced event kind. Example: "audio.shot_detected", '
+            '"score.hit", "diagnostic.head_tilt".'
+        ),
+    )
+    monotonic_seq: int = Field(
+        ...,
+        ge=0,
+        description=(
+            "Producer-side strictly-increasing sequence number scoped to "
+            "(shot_id, event_kind). Resubmits are idempotent against the "
+            "uq_shot_events_shot_kind_seq index."
+        ),
+    )
+    payload: dict[str, object] = Field(
+        ...,
+        description=("Free-form JSON. Schema is per-event-kind and lives in the producer."),
+    )
+    produced_at: datetime = Field(
+        ...,
+        description=(
+            "Producer's timestamp when the event was generated. Distinct from "
+            "the row's `created_at` (DB insert time)."
+        ),
+    )
+
+
+class ShotEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    shot_id: str
+    event_kind: str
+    monotonic_seq: int
+    payload: dict[str, object]
+    produced_at: datetime
+    created_at: datetime

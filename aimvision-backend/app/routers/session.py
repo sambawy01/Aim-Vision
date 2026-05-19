@@ -13,14 +13,22 @@ from ..deps import current_principal, db_session
 from ..models import CameraCalibration, Recording, RecordingSourceKind, Role
 from ..models.base import new_uuid
 from ..models.session import Session as SessionModel
-from ..models.session import Shot
+from ..models.session import Shot, ShotEvent
 from ..schemas.camera_calibration import (
     RECALIBRATION_TRIGGER_RATIO,
     CalibrationHealthOut,
     CameraCalibrationIn,
     CameraCalibrationOut,
 )
-from ..schemas.session import AlignmentIn, RecordingOut, SessionOut, ShotIn, ShotOut
+from ..schemas.session import (
+    AlignmentIn,
+    RecordingOut,
+    SessionOut,
+    ShotEventIn,
+    ShotEventOut,
+    ShotIn,
+    ShotOut,
+)
 from ..services.auth import Principal
 from ..services.authz import require_role
 from ..services.storage import Storage, get_storage
@@ -517,3 +525,120 @@ async def list_shots(
         .all()
     )
     return [ShotOut.model_validate(r) for r in rows]
+
+
+async def _shot_in_tenant_or_404(
+    db: AsyncSession, principal: Principal, session_id: str, shot_id: str
+) -> Shot:
+    """Compound (shot_id, session_id, session.tenant_id) lookup used
+    by the ShotEvent ingest + list endpoints. Mirrors the calibration
+    + alignment helpers — 404 (never 403) on cross-tenant or missing
+    shot."""
+    stmt = (
+        select(Shot)
+        .join(SessionModel, Shot.session_id == SessionModel.id)
+        .where(
+            Shot.id == shot_id,
+            Shot.session_id == session_id,
+            SessionModel.tenant_id == principal.tenant_id,
+        )
+    )
+    row = (await db.execute(stmt)).scalars().first()
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="shot not found")
+    return row
+
+
+@router.post(
+    "/{session_id}/shots/{shot_id}/events",
+    response_model=ShotEventOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def append_shot_event(
+    session_id: str,
+    shot_id: str,
+    payload: ShotEventIn,
+    # ShotEvent producers are the audio detector, pose pipeline,
+    # diagnostic head, and coach UI annotations — all running as
+    # coach-tier service accounts (athletes don't write directly).
+    principal: Principal = Depends(require_role(Role.coach.value)),
+    db: AsyncSession = Depends(db_session),
+) -> ShotEventOut:
+    """Append a ShotEvent to a Shot, ADR-0006.
+
+    Idempotent on `(shot_id, event_kind, monotonic_seq)`: a resubmit
+    returns the existing row. This is the natural retry semantic
+    for at-least-once producers — the audio detector, pose pipeline,
+    etc. can each maintain their own per-(shot, kind) sequence and
+    safely retry without double-writing.
+
+    Note: `event_kind` is a producer-namespaced string. Producers
+    MUST namespace ("audio.shot_detected", "pose.frame_extracted",
+    "score.hit", ...) so multiple producers can append to the same
+    Shot without colliding sequences.
+    """
+    await _shot_in_tenant_or_404(db, principal, session_id, shot_id)
+
+    existing = (
+        (
+            await db.execute(
+                select(ShotEvent).where(
+                    ShotEvent.shot_id == shot_id,
+                    ShotEvent.event_kind == payload.event_kind,
+                    ShotEvent.monotonic_seq == payload.monotonic_seq,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if existing is not None:
+        return ShotEventOut.model_validate(existing)
+
+    row = ShotEvent(
+        id=new_uuid(),
+        tenant_id=principal.tenant_id,
+        shot_id=shot_id,
+        event_kind=payload.event_kind,
+        monotonic_seq=payload.monotonic_seq,
+        payload=payload.payload,
+        produced_at=payload.produced_at,
+    )
+    db.add(row)
+    await db.flush()
+    await db.refresh(row)
+    return ShotEventOut.model_validate(row)
+
+
+@router.get(
+    "/{session_id}/shots/{shot_id}/events",
+    response_model=list[ShotEventOut],
+)
+async def list_shot_events(
+    session_id: str,
+    shot_id: str,
+    principal: Principal = Depends(current_principal),
+    db: AsyncSession = Depends(db_session),
+) -> list[ShotEventOut]:
+    """List ShotEvents on a Shot, ordered by `produced_at` ASC.
+
+    Producer-side ordering — `produced_at` is when the event was
+    generated, distinct from the DB `created_at`. The two can
+    diverge when an event is replayed from a queue or backfilled.
+
+    Open to any authenticated principal in the tenant; matches the
+    read-side pattern of shots / recordings / calibrations.
+    """
+    await _shot_in_tenant_or_404(db, principal, session_id, shot_id)
+    rows = (
+        (
+            await db.execute(
+                select(ShotEvent)
+                .where(ShotEvent.shot_id == shot_id)
+                .order_by(ShotEvent.produced_at.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return [ShotEventOut.model_validate(r) for r in rows]
