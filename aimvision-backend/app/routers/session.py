@@ -1,15 +1,20 @@
-"""Session listing / read endpoints (scaffolds)."""
+"""Session listing / read endpoints + Recording upload (ADR-0009 slice 2)."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import get_settings
 from ..deps import current_principal, db_session
+from ..models import Recording, RecordingSourceKind, Role
+from ..models.base import new_uuid
 from ..models.session import Session as SessionModel
-from ..schemas.session import SessionOut
+from ..schemas.session import RecordingOut, SessionOut
 from ..services.auth import Principal
+from ..services.authz import require_role
+from ..services.storage import Storage, get_storage
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -45,3 +50,79 @@ async def get_session(
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="session not found")
     return SessionOut.model_validate(row)
+
+
+@router.post(
+    "/{session_id}/recording",
+    response_model=RecordingOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_recording(
+    session_id: str,
+    file: UploadFile = File(..., description="MP4 video payload"),
+    source_kind: RecordingSourceKind = Form(
+        default=RecordingSourceKind.hero13,
+        description="Which camera backend produced this file. Defaults to hero13.",
+    ),
+    duration_ms: int | None = Form(default=None, description="Optional duration hint"),
+    camera_clock_offset_ms: int | None = Form(
+        default=None,
+        description="Camera↔server clock skew at recording start, milliseconds",
+    ),
+    # require_role(coach) ensures only a coach (or higher) can ingest; the
+    # athlete tier can record on-device but the upload goes through
+    # `claimed-by-coach`. Adjusted in future slices when athletes upload directly.
+    principal: Principal = Depends(require_role(Role.coach.value)),
+    db: AsyncSession = Depends(db_session),
+    storage: Storage = Depends(get_storage),
+) -> RecordingOut:
+    """Ingest an MP4 recording for an existing session.
+
+    Slice 2 of ADR-0009. The file is streamed to the configured storage
+    backend (LocalFsStorage in V1; S3 in a later slice via the same
+    Storage protocol). Recording row is created with the computed
+    storage_uri, sha256, size, and the source_kind tag for downstream
+    aggregation filtering.
+    """
+    # Verify the parent session exists in the caller's tenant. We do
+    # the explicit tenant check on top of RLS so the SQLite test path
+    # also enforces isolation (RLS only fires on Postgres).
+    parent = (
+        (
+            await db.execute(
+                select(SessionModel).where(
+                    SessionModel.id == session_id,
+                    SessionModel.tenant_id == principal.tenant_id,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if parent is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="session not found")
+
+    recording_id = new_uuid()
+    stored = await storage.store_upload(
+        upload=file,
+        tenant_id=principal.tenant_id,
+        session_id=session_id,
+        recording_id=recording_id,
+        max_bytes=get_settings().max_recording_upload_bytes,
+    )
+
+    row = Recording(
+        id=recording_id,
+        session_id=session_id,
+        storage_uri=stored.storage_uri,
+        sha256=stored.sha256_hex,
+        duration_ms=duration_ms,
+        upload_state="uploaded",
+        camera_clock_offset_ms=camera_clock_offset_ms,
+        source_kind=source_kind,
+        tenant_id=principal.tenant_id,
+    )
+    db.add(row)
+    await db.flush()
+    await db.refresh(row)
+    return RecordingOut.model_validate(row)

@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
+import enum
 from datetime import datetime
 
 from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TenantScopedMixin, TimestampMixin, new_uuid
+
+
+class RecordingSourceKind(enum.StrEnum):
+    """Which camera backend produced this Recording. Per ADR-0009 the
+    `phone_dev` value flags internally-captured footage that must NOT
+    be admitted to production model gates without per-device
+    calibration sign-off."""
+
+    hero13 = "hero13"
+    phone_dev = "phone_dev"
+    mock = "mock"
 
 
 class Session(Base, TimestampMixin, TenantScopedMixin):
@@ -45,6 +58,14 @@ class Recording(Base, TimestampMixin, TenantScopedMixin):
     # alignment and audit. Sprint 4 EPIC 4.1 explicitly baked this into the
     # schema now — moved up from Sprint 17 per the Embedded review.
     camera_clock_offset_ms: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # Which camera backend produced this file. Per ADR-0009: phone_dev
+    # is dev-only and must be filtered out of production aggregates.
+    source_kind: Mapped[RecordingSourceKind] = mapped_column(
+        SAEnum(RecordingSourceKind, name="recording_source_kind"),
+        nullable=False,
+        default=RecordingSourceKind.hero13,
+        server_default="hero13",
+    )
 
 
 class Shot(Base, TimestampMixin, TenantScopedMixin):
