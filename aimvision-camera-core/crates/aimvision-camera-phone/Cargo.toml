@@ -6,10 +6,20 @@ rust-version.workspace = true
 license.workspace = true
 description = "Dev-mode phone camera backend (ADR-0009). Accepts frames pushed in from a native worklet shim and exposes them via the CameraMedia trait."
 
+[lib]
+# Slice 3c: build static + dynamic libraries so the phone-frame-sink native
+# plugin (iOS Swift, Android JNI shim) can link them into the app at
+# `expo prebuild`/`gradle assemble` time. `rlib` is kept so other Rust
+# workspace members can still depend on the crate normally.
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [lints.rust]
-# Slice 3a is pure safe Rust. The `unsafe` blocks for the `extern \"C\"` push
-# API land in slice 3c with their own audit; toggle this back to `allow` then.
-unsafe_code = "forbid"
+# Slice 3c lands the `extern "C"` media-plane bridge — the `ffi` module
+# is the only place `unsafe` is allowed. Crate-wide we keep `deny` so any
+# *new* unsafe block has to add an explicit `#[allow(unsafe_code)]` with
+# a SAFETY comment. Switching from `forbid` to `deny` is what lets the
+# `ffi` module's inner `#![allow]` override the lint.
+unsafe_code = "deny"
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }

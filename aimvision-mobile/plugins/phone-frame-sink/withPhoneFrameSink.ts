@@ -38,8 +38,23 @@ const IOS_GROUP_NAME = 'PhoneFrameSink';
 const ANDROID_PACKAGE = 'com.aimvision.app.phoneframesink';
 const ANDROID_PACKAGE_CLASS = 'AVPhoneFrameSinkPackage';
 
-const IOS_SOURCES = ['AVPhoneFrameSink.swift', 'AVPhoneFrameSink.m'] as const;
-const ANDROID_SOURCES = ['AVPhoneFrameSink.kt', 'AVPhoneFrameSinkPackage.kt'] as const;
+const IOS_SOURCES = [
+  'AVPhoneFrameSink.swift',
+  'AVPhoneFrameSink.m',
+  // Slice 3c — Swift bridge to the Rust C ABI in `aimvision-camera-phone`.
+  // `dlsym`-based; the file compiles even when the Rust static library
+  // isn't yet linked into the Xcode target, and the bridge reports
+  // unavailable at runtime in that case.
+  'AVPhoneFrameSinkBridge.swift',
+] as const;
+const ANDROID_SOURCES = [
+  'AVPhoneFrameSink.kt',
+  'AVPhoneFrameSinkPackage.kt',
+  // Slice 3c — Kotlin bridge with `System.loadLibrary` + `external fun`
+  // declarations. The JNI C shim itself is a follow-up sub-slice; until
+  // it ships the bridge reports unavailable at runtime.
+  'AVPhoneFrameSinkBridge.kt',
+] as const;
 
 /** Resolve the absolute path to a native source shipped alongside this
  * plugin. Exported for the unit test. */
