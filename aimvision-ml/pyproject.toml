@@ -31,6 +31,16 @@ dependencies = [
 infer = [
     "onnxruntime>=1.17",
 ]
+# OpenCV — for ChArUco / ArUco detection in the camera-calibration
+# pipeline (multi-camera-sync-spec.md §4). `opencv-python-headless`
+# avoids the GUI subsystem deps that the regular `opencv-python` wheel
+# pulls in (X11, GTK), which is exactly what we want in a CI image.
+# This extra is opt-in; the default ML container stays slim and the
+# pure-numpy bundle-adjustment scaffold from PR #51 continues to work
+# without it. Install with `uv sync --extra vision`.
+vision = [
+    "opencv-python-headless>=4.10",
+]
 # Lint, type, test. CI installs this.
 dev = [
     "ruff>=0.4",
