@@ -8,13 +8,7 @@ import {
   type ProcessSessionResult,
 } from '@/services/sessions';
 
-function ReadinessChip({
-  ok,
-  label,
-}: {
-  ok: boolean;
-  label: string;
-}): JSX.Element {
+function ReadinessChip({ ok, label }: { ok: boolean; label: string }): JSX.Element {
   return (
     <span
       className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
@@ -143,9 +137,7 @@ export function SessionDetailRoute() {
               disabled={processMutation.isPending}
               className="rounded bg-brand-accent text-white px-4 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
             >
-              {processMutation.isPending
-                ? t('common.loading')
-                : t('sessions.process.cta')}
+              {processMutation.isPending ? t('common.loading') : t('sessions.process.cta')}
             </button>
             {processMutation.isSuccess ? (
               <p className="text-sm text-success" role="status">

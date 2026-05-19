@@ -81,7 +81,10 @@ export function SessionCreateRoute(): JSX.Element {
       <h1 id="new-session-heading" className="text-2xl font-semibold">
         {t('sessions.new.title')}
       </h1>
-      <form onSubmit={onSubmit} className="space-y-4 border border-border rounded-lg bg-surface p-4">
+      <form
+        onSubmit={onSubmit}
+        className="space-y-4 border border-border rounded-lg bg-surface p-4"
+      >
         <div>
           <label htmlFor="athlete" className="block text-sm font-medium mb-1">
             {t('sessions.new.athlete')}
@@ -95,9 +98,7 @@ export function SessionCreateRoute(): JSX.Element {
             disabled={athletesQuery.isLoading}
           >
             <option value="" disabled>
-              {athletesQuery.isLoading
-                ? t('common.loading')
-                : t('sessions.new.athletePlaceholder')}
+              {athletesQuery.isLoading ? t('common.loading') : t('sessions.new.athletePlaceholder')}
             </option>
             {athletesQuery.data?.map((a) => (
               <option key={a.id} value={a.id}>
@@ -138,9 +139,7 @@ export function SessionCreateRoute(): JSX.Element {
             disabled={orgsQuery.isLoading}
           >
             <option value="" disabled>
-              {orgsQuery.isLoading
-                ? t('common.loading')
-                : t('sessions.new.orgPlaceholder')}
+              {orgsQuery.isLoading ? t('common.loading') : t('sessions.new.orgPlaceholder')}
             </option>
             {orgsQuery.data?.map((o) => (
               <option key={o.id} value={o.id}>

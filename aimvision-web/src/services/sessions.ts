@@ -80,9 +80,7 @@ export async function getSession(id: string): Promise<Session> {
 }
 
 export async function getSessionSummary(id: string): Promise<SessionSummary> {
-  const wire = await fetchJson<SessionSummaryWire>(
-    `/sessions/${encodeURIComponent(id)}/summary`,
-  );
+  const wire = await fetchJson<SessionSummaryWire>(`/sessions/${encodeURIComponent(id)}/summary`);
   return toSummary(wire);
 }
 
@@ -124,13 +122,10 @@ export async function processSession(
   id: string,
   partialSession = false,
 ): Promise<ProcessSessionResult> {
-  const wire = await fetchJson<ProcessSessionWire>(
-    `/sessions/${encodeURIComponent(id)}/process`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ partial_session: partialSession }),
-    },
-  );
+  const wire = await fetchJson<ProcessSessionWire>(`/sessions/${encodeURIComponent(id)}/process`, {
+    method: 'POST',
+    body: JSON.stringify({ partial_session: partialSession }),
+  });
   return {
     sessionId: wire.session_id,
     workflowId: wire.workflow_id,

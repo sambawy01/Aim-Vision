@@ -124,9 +124,7 @@ describe('SessionDetailRoute', () => {
     renderRoute();
     await waitFor(() => {
       // The badge uses the aria label for the partial-session announcement.
-      expect(
-        screen.getByLabelText(/incomplete diagnostic coverage/i),
-      ).toBeInTheDocument();
+      expect(screen.getByLabelText(/incomplete diagnostic coverage/i)).toBeInTheDocument();
     });
   });
 
@@ -148,9 +146,7 @@ describe('SessionDetailRoute', () => {
       expect(sessionService.processSession).toHaveBeenCalledWith('sess-1');
     });
     // The returned workflow id renders in a status region.
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'process-session-sess-1-abcd1234',
-    );
+    expect(await screen.findByRole('status')).toHaveTextContent('process-session-sess-1-abcd1234');
   });
 
   it('shows an error when the pipeline trigger fails', async () => {
