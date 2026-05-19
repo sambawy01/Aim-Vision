@@ -1,5 +1,6 @@
 """Pydantic v2 DTOs for the AIMVISION API surface."""
 
+from .athletes import AthleteOut
 from .audit import AuditEventOut
 from .camera_calibration import CalibrationHealthOut, CameraCalibrationIn, CameraCalibrationOut
 from .consent import ConsentGrantIn, ConsentOut, ConsentRevokeIn
@@ -33,6 +34,7 @@ from .tenancy import (
 
 __all__ = [
     "AlignmentIn",
+    "AthleteOut",
     "AuditEventOut",
     "CalibrationHealthOut",
     "CameraCalibrationIn",
