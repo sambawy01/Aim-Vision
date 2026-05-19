@@ -68,12 +68,11 @@
       "athlete": "Athlete",
       "athletePlaceholder": "Select an athlete…",
       "discipline": "Discipline",
-      "orgId": "Org ID",
-      "orgIdPlaceholder": "org-abc123",
-      "orgIdHint": "Until the org-picker lands, paste your organisation id from Settings.",
+      "org": "Organisation",
+      "orgPlaceholder": "Select an organisation…",
       "submit": "Start session",
       "errors": {
-        "required": "Athlete and Org ID are required.",
+        "required": "Athlete and organisation are required.",
         "serverWithStatus": "Could not create session (status {{status}})."
       }
     },

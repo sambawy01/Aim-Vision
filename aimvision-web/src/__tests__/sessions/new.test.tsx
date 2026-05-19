@@ -7,6 +7,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { initI18n } from '@/config/i18n';
 import { SessionCreateRoute } from '@/routes/app/sessions/new';
 import type { Athlete } from '@/services/athletes';
+import type { Org } from '@/services/orgs';
 import type { Session } from '@/services/sessions';
 
 vi.mock('@/services/athletes', async () => {
@@ -14,6 +15,14 @@ vi.mock('@/services/athletes', async () => {
   return {
     ...actual,
     listAthletes: vi.fn(),
+  };
+});
+
+vi.mock('@/services/orgs', async () => {
+  const actual = await vi.importActual('@/services/orgs');
+  return {
+    ...actual,
+    listOrgs: vi.fn(),
   };
 });
 
@@ -26,6 +35,7 @@ vi.mock('@/services/sessions', async () => {
 });
 
 import * as athletesService from '@/services/athletes';
+import * as orgsService from '@/services/orgs';
 import * as sessionsService from '@/services/sessions';
 
 beforeAll(() => {
@@ -57,6 +67,11 @@ const ATHLETES: Athlete[] = [
   { id: 'ath-2', displayName: 'Bob Athlete', email: 'bob@example.com', joinedAt: '2026-02-01' },
 ];
 
+const ORGS: Org[] = [
+  { id: 'org-1', name: 'Cairo Club', kind: 'club', tenantId: 'org:c1', federationId: null },
+  { id: 'org-2', name: 'Alex Marina', kind: 'club', tenantId: 'org:c2', federationId: null },
+];
+
 const CREATED: Session = {
   id: 'sess-NEW',
   orgId: 'org-1',
@@ -70,6 +85,7 @@ const CREATED: Session = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(athletesService.listAthletes).mockResolvedValue(ATHLETES);
+  vi.mocked(orgsService.listOrgs).mockResolvedValue(ORGS);
   vi.mocked(sessionsService.createSession).mockResolvedValue(CREATED);
 });
 
@@ -85,7 +101,7 @@ describe('SessionCreateRoute', () => {
 
     await user.selectOptions(screen.getByLabelText(/athlete/i), 'ath-1');
     await user.selectOptions(screen.getByLabelText(/discipline/i), 'skeet');
-    await user.type(screen.getByLabelText(/org id/i), 'org-1');
+    await user.selectOptions(screen.getByLabelText(/organisation/i), 'org-1');
     await user.click(screen.getByRole('button', { name: /start session/i }));
 
     expect(await screen.findByTestId('detail-page')).toBeInTheDocument();
@@ -125,7 +141,7 @@ describe('SessionCreateRoute', () => {
       expect(screen.getByRole('option', { name: 'Anna Athlete' })).toBeInTheDocument();
     });
     await user.selectOptions(screen.getByLabelText(/athlete/i), 'ath-1');
-    await user.type(screen.getByLabelText(/org id/i), 'org-bad');
+    await user.selectOptions(screen.getByLabelText(/organisation/i), 'org-1');
     await user.click(screen.getByRole('button', { name: /start session/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/422/);

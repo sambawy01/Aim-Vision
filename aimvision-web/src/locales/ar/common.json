@@ -68,12 +68,11 @@
       "athlete": "الرياضي",
       "athletePlaceholder": "اختر رياضياً…",
       "discipline": "الفرع",
-      "orgId": "معرف المؤسسة",
-      "orgIdPlaceholder": "org-abc123",
-      "orgIdHint": "حتى يتم إضافة منتقي المؤسسات، الصق معرف مؤسستك من الإعدادات.",
+      "org": "المؤسسة",
+      "orgPlaceholder": "اختر مؤسسة…",
       "submit": "بدء الجلسة",
       "errors": {
-        "required": "الرياضي ومعرف المؤسسة حقول مطلوبة.",
+        "required": "الرياضي والمؤسسة حقلان مطلوبان.",
         "serverWithStatus": "تعذّر إنشاء الجلسة (رمز الاستجابة {{status}})."
       }
     },
