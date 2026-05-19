@@ -11,7 +11,12 @@ from ..deps import current_principal, db_session
 from ..models import CameraCalibration, Recording, RecordingSourceKind, Role
 from ..models.base import new_uuid
 from ..models.session import Session as SessionModel
-from ..schemas.camera_calibration import CameraCalibrationIn, CameraCalibrationOut
+from ..schemas.camera_calibration import (
+    RECALIBRATION_TRIGGER_RATIO,
+    CalibrationHealthOut,
+    CameraCalibrationIn,
+    CameraCalibrationOut,
+)
 from ..schemas.session import AlignmentIn, RecordingOut, SessionOut
 from ..services.auth import Principal
 from ..services.authz import require_role
@@ -343,3 +348,63 @@ async def get_recording_calibration(
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no calibration for this recording")
     return CameraCalibrationOut.model_validate(row)
+
+
+@router.get(
+    "/{session_id}/recording/{recording_id}/calibration/health",
+    response_model=CalibrationHealthOut,
+)
+async def get_recording_calibration_health(
+    session_id: str,
+    recording_id: str,
+    principal: Principal = Depends(current_principal),
+    db: AsyncSession = Depends(db_session),
+) -> CalibrationHealthOut:
+    """Multi-camera-sync-spec.md §4.4 mid-session recalibration trigger.
+
+    Returns the baseline (oldest) and latest calibration's reprojection
+    error and the ratio between them. When the ratio crosses the
+    `RECALIBRATION_TRIGGER_RATIO` threshold the operator should be
+    prompted to re-run calibration before the next string.
+
+    With only one calibration row, baseline == latest, ratio is 1.0,
+    and `recalibration_recommended` is False. 404 when no calibration
+    has been written for the recording (or the recording is not in
+    the caller's tenant).
+    """
+    await _recording_in_tenant_or_404(db, principal, session_id, recording_id)
+
+    rows_q = (
+        select(CameraCalibration)
+        .where(
+            CameraCalibration.recording_id == recording_id,
+            CameraCalibration.session_id == session_id,
+        )
+        .order_by(CameraCalibration.calibration_ts_ns.asc())
+    )
+    rows = (await db.execute(rows_q)).scalars().all()
+    if not rows:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no calibration for this recording")
+
+    baseline = rows[0]
+    latest = rows[-1]
+    # Guard against pathological 0.0 baseline (would imply a perfect
+    # reprojection, which is implausible from real bundle adjustment
+    # but trivially expressible in tests). Treat as ratio=1.0 so we
+    # never divide by zero and never spuriously trigger.
+    if baseline.reprojection_error_px_p95 <= 0.0:
+        ratio = 1.0
+    else:
+        ratio = latest.reprojection_error_px_p95 / baseline.reprojection_error_px_p95
+
+    return CalibrationHealthOut(
+        recording_id=recording_id,
+        baseline_calibration_id=baseline.id,
+        latest_calibration_id=latest.id,
+        baseline_error_px_p95=baseline.reprojection_error_px_p95,
+        latest_error_px_p95=latest.reprojection_error_px_p95,
+        baseline_calibration_ts_ns=baseline.calibration_ts_ns,
+        latest_calibration_ts_ns=latest.calibration_ts_ns,
+        ratio_to_baseline=ratio,
+        recalibration_recommended=ratio >= RECALIBRATION_TRIGGER_RATIO,
+    )
