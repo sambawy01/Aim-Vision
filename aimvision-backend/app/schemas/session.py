@@ -7,6 +7,47 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class SessionCreateIn(BaseModel):
+    """Payload for POST /sessions.
+
+    The coach starts a session for an athlete inside their org.
+    `org_id` is required because a coach can belong to multiple
+    orgs (a club coach can also be a federation coach); the caller
+    disambiguates rather than us guessing. The org must be in the
+    caller's tenant — cross-tenant org ids return 404, not 403.
+
+    `started_at` is optional; when omitted, the server stamps
+    `now()` at create time. Letting the client supply a past
+    timestamp lets the mobile app backfill sessions captured while
+    offline.
+    """
+
+    athlete_user_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=64,
+        description="The shooting athlete. Must exist as a User row.",
+    )
+    org_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=64,
+        description="The organisation under which the session is held. Must be in caller's tenant.",
+    )
+    discipline: str = Field(
+        default="trap",
+        max_length=64,
+        description='Shooting discipline. "trap" / "skeet" / "sporting" etc.',
+    )
+    started_at: datetime | None = Field(
+        default=None,
+        description=(
+            "When the session was started. Defaults to server `now()` if not "
+            "supplied — the offline-backfill case overrides this."
+        ),
+    )
+
+
 class SessionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
