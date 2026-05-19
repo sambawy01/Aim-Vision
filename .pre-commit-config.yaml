@@ -55,7 +55,11 @@ repos:
   # Python — ruff (lint + format) for aimvision-backend and aimvision-ml
   # ---------------------------------------------------------------------------
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.4
+    # Pin to match the project's uv-locked ruff (aimvision-{backend,ml})
+    # so the pre-commit hook and CI's `uv run ruff format` never disagree
+    # on whitespace. Bumping this is a small one-shot reformat that lands
+    # alongside the bump.
+    rev: v0.15.12
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
