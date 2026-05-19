@@ -317,3 +317,141 @@ def test_custom_gate_thresholds_change_pass_fail() -> None:
         ),
     )
     assert loose.passed
+
+
+# ----------------------- bias-axis audit tests ----------------------
+
+
+def _well_calibrated_dataset(
+    n_samples: int, rng: np.random.Generator
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build matched (probs, labels) where probs ≈ labels — every
+    threshold passes, so the only failure surface is the bias audit."""
+    atoms = all_categories()
+    labels = rng.integers(0, 2, size=(n_samples, len(atoms))).astype(np.int64)
+    probs = labels.astype(np.float64) * 0.98 + 0.01
+    return probs, labels
+
+
+def test_bias_audit_passes_when_buckets_perform_equally() -> None:
+    """Two lighting buckets, same prediction quality in both → axis gap
+    is zero → no failed_axes."""
+    rng = np.random.default_rng(10)
+    probs, labels = _well_calibrated_dataset(200, rng)
+    # Half "bright_outdoor", half "overcast" — both perfectly calibrated.
+    metadata = [{"lighting": "bright_outdoor" if i < 100 else "overcast"} for i in range(200)]
+    result = evaluate_diagnostic_head(probs, labels, metadata=metadata)
+    assert result.passed
+    assert result.failed_axes == ()
+
+
+def test_bias_audit_fails_on_lopsided_lighting_accuracy() -> None:
+    """One lighting bucket gets noise-quality predictions while the
+    other stays perfect. The macro-F1 spread across the two buckets
+    should blow past the 0.05 gap threshold and the audit must flag
+    `lighting` in failed_axes."""
+    rng = np.random.default_rng(11)
+    atoms = all_categories()
+    n_samples = 400
+    labels = rng.integers(0, 2, size=(n_samples, len(atoms))).astype(np.int64)
+    probs = labels.astype(np.float64) * 0.98 + 0.01
+    # The second half of the dataset gets noise predictions — F1 ~0 on
+    # those, F1 ~1 on the first half, total gap ≈ 1.0.
+    probs[n_samples // 2 :] = rng.uniform(0.0, 1.0, size=(n_samples // 2, len(atoms)))
+    metadata = [
+        {"lighting": "bright_outdoor" if i < n_samples // 2 else "overcast"}
+        for i in range(n_samples)
+    ]
+    result = evaluate_diagnostic_head(probs, labels, metadata=metadata)
+    assert not result.passed
+    assert any(axis.startswith("lighting") for axis in result.failed_axes), (
+        f"expected lighting in failed_axes; got {result.failed_axes}"
+    )
+    # The failure also surfaces in the human-readable failure_notes,
+    # prefixed with "bias axis ..." so the registry's promotion message
+    # can route it.
+    assert any("bias axis lighting" in note for note in result.failure_notes)
+
+
+def test_bias_audit_skipped_when_metadata_omitted() -> None:
+    """Without metadata, the gate doesn't run the audit and
+    failed_axes stays empty — silent about bias, not vacuously
+    passing."""
+    rng = np.random.default_rng(12)
+    probs, labels = _well_calibrated_dataset(200, rng)
+    result = evaluate_diagnostic_head(probs, labels)  # no metadata
+    assert result.passed
+    assert result.failed_axes == ()
+
+
+def test_bias_audit_excludes_tiny_buckets() -> None:
+    """A single sample in a bucket would yield a noisy F1 estimate; the
+    `bias_axis_min_bucket_size` floor (default 30) must exclude it
+    before the gap is computed. Build a dataset where 199 samples are
+    in bucket A and 1 sample is in bucket B; even if B's lone sample
+    has degenerate F1, the audit must NOT flag the axis."""
+    rng = np.random.default_rng(13)
+    probs, labels = _well_calibrated_dataset(200, rng)
+    metadata: list[dict[str, object]] = [{"lighting": "bright_outdoor"}] * 199
+    # One outlier sample in a different bucket — far below the default
+    # min_bucket_size of 30, should be excluded entirely.
+    metadata.append({"lighting": "rare_indoor_dim"})
+    # Wreck the outlier's prediction to make sure its F1 is bad in isolation.
+    probs[-1] = 0.5
+    result = evaluate_diagnostic_head(probs, labels, metadata=metadata)
+    # No axis with 2+ qualifying buckets → no failed_axes regardless of
+    # whether the outlier was well or poorly predicted.
+    assert result.failed_axes == ()
+
+
+def test_bias_audit_metadata_length_mismatch_raises() -> None:
+    """A wrong-length metadata array is a programmer error; we surface
+    it loudly instead of silently bucketing only the prefix or running
+    out of bounds."""
+    rng = np.random.default_rng(14)
+    probs, labels = _well_calibrated_dataset(50, rng)
+    metadata = [{"lighting": "bright_outdoor"}] * 10  # off by 40
+
+    with pytest.raises(ValueError, match="metadata length"):
+        evaluate_diagnostic_head(probs, labels, metadata=metadata)
+
+
+def test_bias_audit_threshold_is_configurable() -> None:
+    """A 0.04 gap should pass the default (0.05) but fail a stricter
+    (0.01) threshold."""
+    rng = np.random.default_rng(15)
+    atoms = all_categories()
+    n_samples = 400
+    labels = rng.integers(0, 2, size=(n_samples, len(atoms))).astype(np.int64)
+    # Build two buckets with slightly different F1 — bucket A perfect,
+    # bucket B has ~4% of predictions flipped.
+    probs = labels.astype(np.float64) * 0.98 + 0.01
+    flip_idx = (
+        rng.choice(
+            n_samples // 2,
+            size=int(0.04 * n_samples // 2),
+            replace=False,
+        )
+        + n_samples // 2
+    )
+    probs[flip_idx] = 1.0 - probs[flip_idx]
+    metadata = [
+        {"lighting": "bright_outdoor" if i < n_samples // 2 else "overcast"}
+        for i in range(n_samples)
+    ]
+
+    default_result = evaluate_diagnostic_head(probs, labels, metadata=metadata)
+    # The 4% flip rate is below the 0.05 default gap — should pass.
+    assert default_result.passed, f"unexpectedly failed: {default_result.failure_notes}"
+
+    strict_result = evaluate_diagnostic_head(
+        probs,
+        labels,
+        metadata=metadata,
+        gate_thresholds=DiagnosticGateThresholds(
+            bias_axis_macro_f1_gap_max=0.01,
+        ),
+    )
+    # Same data, strict threshold → fails on the lighting axis.
+    assert not strict_result.passed
+    assert any(axis.startswith("lighting") for axis in strict_result.failed_axes)

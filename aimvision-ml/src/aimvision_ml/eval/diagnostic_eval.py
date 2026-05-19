@@ -39,11 +39,13 @@ metric definitions don't drift before the real ONNX model arrives.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 import numpy as np
 import numpy.typing as npt
 
+from aimvision_ml.eval.stratify import DEFAULT_STRATIFICATION_AXES, stratify
 from aimvision_ml.taxonomy import (
     BRANCH_OF,
     DEFAULT_ABSTENTION_THRESHOLDS,
@@ -190,6 +192,16 @@ class DiagnosticGateThresholds:
     drops below this floor."""
     overall_macro_f1_min: float = 0.55
     """Macro-F1 across all atoms; gate fails if total drops below this."""
+    bias_axis_macro_f1_gap_max: float = 0.05
+    """Max permitted spread of macro-F1 across buckets within a single
+    bias axis (station, lighting, body_type, skin_tone, ...). A gap > this
+    value fails the gate per ml-architecture.md §12. Matches the
+    single-task gate's `GateThresholds.bias_axis_macro_f1_gap_max`."""
+    bias_axis_min_bucket_size: int = 30
+    """Below this sample count, a bucket is excluded from the axis-gap
+    audit — a single-digit bucket gives noisy F1 estimates that would
+    fail the gate spuriously. The training-data sampler is expected to
+    surface this exclusion in the eval report."""
 
 
 DEFAULT_DIAGNOSTIC_THRESHOLDS = DiagnosticGateThresholds()
@@ -199,9 +211,12 @@ DEFAULT_DIAGNOSTIC_THRESHOLDS = DiagnosticGateThresholds()
 class DiagnosticHeadEvalResult:
     """Top-level multi-label gate result.
 
-    `failure_notes` lists exactly which atom/branch/total fails, so
-    the gate's "blocked promotion" message points at the specific
-    metric that's off. Empty list iff `passed` is True.
+    `failure_notes` lists exactly which atom/branch/axis fails, so the
+    gate's "blocked promotion" message points at the specific metric
+    that's off. Empty iff `passed` is True. `failed_axes` is the
+    subset of failure_notes attributable to the bias-axis audit; it's
+    surfaced separately because mitigating a bias gap usually means
+    rebalancing the training set, not retuning the model.
     """
 
     overall_macro_f1: float
@@ -209,6 +224,7 @@ class DiagnosticHeadEvalResult:
     branch_results: dict[Branch, BranchEvalResult] = field(default_factory=dict)
     passed: bool = False
     failure_notes: tuple[str, ...] = field(default_factory=tuple)
+    failed_axes: tuple[str, ...] = field(default_factory=tuple)
 
 
 def _validate_inputs(probs: FloatArray, labels: IntArray, atoms: list[DiagnosticCategory]) -> None:
@@ -240,6 +256,7 @@ def evaluate_diagnostic_head(
     atoms: list[DiagnosticCategory] | None = None,
     thresholds_per_atom: dict[DiagnosticCategory, float] | None = None,
     gate_thresholds: DiagnosticGateThresholds = DEFAULT_DIAGNOSTIC_THRESHOLDS,
+    metadata: Sequence[dict[str, object]] | None = None,
 ) -> DiagnosticHeadEvalResult:
     """Run the diagnostic-head promotion gate.
 
@@ -252,6 +269,14 @@ def evaluate_diagnostic_head(
     `DEFAULT_ABSTENTION_THRESHOLDS` for the F1 derivation (the F1 score
     depends on what threshold the prober uses). If omitted, the taxonomy
     defaults are used.
+
+    `metadata`, when supplied as a length-N sequence of dicts (one per
+    shot), enables the bias-axis audit: for each axis in
+    `DEFAULT_STRATIFICATION_AXES` (station, lighting, body_type, ...)
+    the gate computes the macro-F1 spread across buckets and fails if
+    the spread exceeds `bias_axis_macro_f1_gap_max`. Omitting metadata
+    skips the audit (the gate is silent about bias, not vacuously
+    passing) — pass it whenever you have it.
     """
     atoms_list = atoms or all_categories()
     probs_arr = np.asarray(probs, dtype=np.float64)
@@ -330,12 +355,55 @@ def evaluate_diagnostic_head(
             f"overall macro-F1 {overall_macro_f1:.3f} < {gate_thresholds.overall_macro_f1_min}"
         )
 
+    # Bias-axis audit. The macro-F1 per bucket is the mean across all
+    # atoms — same definition as `overall_macro_f1` but restricted to
+    # the bucket's sample indices. We surface the failed axes through
+    # both `failure_notes` (for the human-readable failure list) and
+    # the dedicated `failed_axes` tuple so the registry can route a
+    # bias-gap failure to the data team, not the model team.
+    failed_axes: list[str] = []
+    if metadata is not None:
+        if len(metadata) != probs_arr.shape[0]:
+            raise ValueError(
+                f"metadata length {len(metadata)} must match probs length {probs_arr.shape[0]}"
+            )
+        strata = stratify(metadata, axes=DEFAULT_STRATIFICATION_AXES)
+        per_axis_macro_f1: dict[str, list[float]] = {}
+        for s in strata:
+            if len(s.sample_indices) < gate_thresholds.bias_axis_min_bucket_size:
+                continue
+            idx = np.asarray(s.sample_indices, dtype=np.int64)
+            sub_probs = probs_arr[idx]
+            sub_labels = labels_arr[idx]
+            f1s = [
+                binary_f1(
+                    sub_probs[:, k],
+                    sub_labels[:, k],
+                    per_atom_thresholds.get(atom, 0.5),
+                )
+                for k, atom in enumerate(atoms_list)
+            ]
+            bucket_macro_f1 = float(np.mean(f1s))
+            per_axis_macro_f1.setdefault(s.axis, []).append(bucket_macro_f1)
+        for axis, f1s in per_axis_macro_f1.items():
+            # Need at least 2 buckets above the size floor to compute a
+            # gap. A single bucket means the axis is degenerate on this
+            # eval set — the data team should know, but we don't fail.
+            if len(f1s) < 2:
+                continue
+            gap = float(max(f1s) - min(f1s))
+            if gap > gate_thresholds.bias_axis_macro_f1_gap_max:
+                note = f"{axis} (gap={gap:.3f})"
+                failed_axes.append(note)
+                failure_notes.append(f"bias axis {note}")
+
     return DiagnosticHeadEvalResult(
         overall_macro_f1=overall_macro_f1,
         overall_mean_ece=overall_mean_ece,
         branch_results=branch_results,
         passed=not failure_notes,
         failure_notes=tuple(failure_notes),
+        failed_axes=tuple(failed_axes),
     )
 
 
