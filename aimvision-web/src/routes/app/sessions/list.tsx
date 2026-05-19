@@ -15,9 +15,17 @@ export function SessionListRoute() {
 
   return (
     <section aria-labelledby="sessions-heading">
-      <h1 id="sessions-heading" className="text-2xl font-semibold mb-4">
-        {t('sessions.title')}
-      </h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 id="sessions-heading" className="text-2xl font-semibold">
+          {t('sessions.title')}
+        </h1>
+        <Link
+          to="/app/sessions/new"
+          className="rounded bg-brand-accent text-white px-3 py-1.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        >
+          {t('sessions.newCta')}
+        </Link>
+      </div>
       {isLoading ? <p className="text-text-muted">{t('common.loading')}</p> : null}
       {isError ? (
         <p role="alert" className="text-danger">

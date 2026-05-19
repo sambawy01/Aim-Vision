@@ -62,6 +62,21 @@
   "sessions": {
     "title": "Sessions",
     "empty": "No sessions yet",
+    "newCta": "New session",
+    "new": {
+      "title": "Start new session",
+      "athlete": "Athlete",
+      "athletePlaceholder": "Select an athlete…",
+      "discipline": "Discipline",
+      "orgId": "Org ID",
+      "orgIdPlaceholder": "org-abc123",
+      "orgIdHint": "Until the org-picker lands, paste your organisation id from Settings.",
+      "submit": "Start session",
+      "errors": {
+        "required": "Athlete and Org ID are required.",
+        "serverWithStatus": "Could not create session (status {{status}})."
+      }
+    },
     "partialBadge": "Partial",
     "partialBadgeAria": "Session had incomplete diagnostic coverage",
     "detail": {

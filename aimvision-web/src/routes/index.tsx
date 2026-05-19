@@ -8,6 +8,7 @@ import { AppLayout } from './app/layout';
 import { AthleteListRoute } from './app/athletes/list';
 import { AthleteDetailRoute } from './app/athletes/[id]';
 import { SessionListRoute } from './app/sessions/list';
+import { SessionCreateRoute } from './app/sessions/new';
 import { SessionDetailRoute } from './app/sessions/[id]';
 import { CheckinScanRoute } from './app/checkin/scan';
 import { FederationDashboardRoute } from './app/federation/dashboard';
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
           { path: 'athletes', element: <AthleteListRoute /> },
           { path: 'athletes/:id', element: <AthleteDetailRoute /> },
           { path: 'sessions', element: <SessionListRoute /> },
+          { path: 'sessions/new', element: <SessionCreateRoute /> },
           { path: 'sessions/:id', element: <SessionDetailRoute /> },
           { path: 'checkin', element: <CheckinScanRoute /> },
           { path: 'federation', element: <FederationDashboardRoute /> },
