@@ -730,9 +730,22 @@ cargo build -p aimvision-camera-phone --release --target aarch64-apple-ios
 # ...), so as long as the static library is linked, the symbols are visible.
 ```
 
-**Android (JNI shim — follow-up sub-slice):**
+**Android (JNI shim via the `aimvision-camera-phone-jni` Rust crate):**
 
-The bare C ABI uses standard `extern "C"` symbol names, which JNI cannot call directly. A small JNI C shim (`libaimvision_camera_phone_jni.so`) translates the JNI `Java_*` entry points into C ABI calls. That shim is the next sub-slice (3c-followup). Until it ships, `System.loadLibrary("aimvision_camera_phone_jni")` raises `UnsatisfiedLinkError` and the Kotlin bridge reports unavailable — the plugin falls back to `native-android` (slice 3b) output.
+The bare C ABI uses standard `extern "C"` symbol names; JNI requires `Java_<package>_<class>_<method>`-named exports. The `aimvision-camera-phone-jni` workspace crate provides that translation layer in Rust (using the `jni` crate) and builds as `libaimvision_camera_phone_jni.so`:
+
+```bash
+cd aimvision-camera-core
+cargo build -p aimvision-camera-phone-jni --release --target aarch64-linux-android
+# Output: target/aarch64-linux-android/release/libaimvision_camera_phone_jni.so
+
+# Drop the .so into aimvision-mobile/android/app/src/main/jniLibs/arm64-v8a/
+# (and repeat for armeabi-v7a / x86_64 / x86 if you need to cover them).
+# The Kotlin bridge calls System.loadLibrary("aimvision_camera_phone_jni"),
+# which then resolves the JNI exports against the bundled .so.
+```
+
+Until the cross-compile + bundle is done, `System.loadLibrary` raises `UnsatisfiedLinkError` and the Kotlin bridge reports unavailable — the plugin falls back to `native-android` (slice 3b) output. The host-side `cargo build -p aimvision-camera-phone-jni` confirms the JNI symbols compile but does NOT produce a runnable .so for Android.
 
 ### 17.4 Hard line
 
