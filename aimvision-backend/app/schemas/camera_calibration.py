@@ -122,3 +122,42 @@ class CameraCalibrationOut(BaseModel):
     calibration_ts_ns: int
     created_at: datetime
     updated_at: datetime
+
+
+# Multi-camera-sync-spec.md §4.4: re-prompt the operator to recalibrate
+# when the latest reprojection error spikes past 2x the per-recording
+# baseline. The exact factor is exposed here so tests + downstream
+# clients agree on the threshold.
+RECALIBRATION_TRIGGER_RATIO = 2.0
+
+
+class CalibrationHealthOut(BaseModel):
+    """Derived health view over a recording's calibration history.
+
+    Implements the spec §4.4 mid-session recalibration trigger:
+    `recalibration_recommended` is True iff
+    `latest / baseline >= RECALIBRATION_TRIGGER_RATIO`. The baseline
+    is the *oldest* calibration for the recording (the first one the
+    operator captured); the latest is the most-recent row.
+
+    If only a single calibration exists, baseline == latest, the
+    ratio is 1.0, and `recalibration_recommended` is False.
+    """
+
+    recording_id: str
+    baseline_calibration_id: str
+    latest_calibration_id: str
+    baseline_error_px_p95: float
+    latest_error_px_p95: float
+    baseline_calibration_ts_ns: int
+    latest_calibration_ts_ns: int
+    ratio_to_baseline: float
+    recalibration_recommended: bool
+    recalibration_trigger_ratio: float = Field(
+        default=RECALIBRATION_TRIGGER_RATIO,
+        description=(
+            "Threshold the latest/baseline ratio is compared against. "
+            "Echoed so clients can render an operator-facing message "
+            "without hardcoding the spec value."
+        ),
+    )
