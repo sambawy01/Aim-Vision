@@ -85,3 +85,24 @@ export async function getSessionSummary(id: string): Promise<SessionSummary> {
   );
   return toSummary(wire);
 }
+
+export interface CreateSessionInput {
+  athleteUserId: string;
+  orgId: string;
+  discipline?: string;
+  startedAt?: string;
+}
+
+export async function createSession(input: CreateSessionInput): Promise<Session> {
+  const body: Record<string, unknown> = {
+    athlete_user_id: input.athleteUserId,
+    org_id: input.orgId,
+  };
+  if (input.discipline) body.discipline = input.discipline;
+  if (input.startedAt) body.started_at = input.startedAt;
+  const wire = await fetchJson<SessionWire>('/sessions', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return toSession(wire);
+}
