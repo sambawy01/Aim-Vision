@@ -703,16 +703,38 @@ The phone-as-camera roadmap entry in §16.1 marks the V2 PWA tier, but [ADR-0009
 
 ### 17.2 Slice plan
 
-| Slice | What lands                                                                                                                                                                                 |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1     | Vision Camera dep + Expo plugin; `CapturePhoneScreen`; recording state machine; ADR-0009. No upload, no frame processor.                                                                   |
-| 2     | `POST /sessions/{id}/recording` backend ingest; `Recording.source_kind` discriminator.                                                                                                     |
-| 3a    | `useFrameProcessor` worklet + worklets-core shared values; live fps/count/resolution banner; new `aimvision-camera-phone` Rust crate with safe-Rust push API + ring-buffer backpressure.   |
-| 3b    | Native Swift/Kotlin frame-processor plugin via Expo config plugin; receives raw CMSampleBuffer / ImageProxy; metadata-only callback today with graceful fallback to slice 3a's JS worklet. |
-| 3c    | `extern "C"` bridge: native plugin → `PhoneCamera::push_frame` in `aimvision-camera-phone`. End-to-end zero-copy data path.                                                                |
-| 4     | Dual-phone capture; audio cross-correlation alignment per [multi-camera-sync-spec](multi-camera-sync-spec.md).                                                                             |
+| Slice | What lands                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Vision Camera dep + Expo plugin; `CapturePhoneScreen`; recording state machine; ADR-0009. No upload, no frame processor.                                                                                                                                                                                                                                                                                                                                   |
+| 2     | `POST /sessions/{id}/recording` backend ingest; `Recording.source_kind` discriminator.                                                                                                                                                                                                                                                                                                                                                                     |
+| 3a    | `useFrameProcessor` worklet + worklets-core shared values; live fps/count/resolution banner; new `aimvision-camera-phone` Rust crate with safe-Rust push API + ring-buffer backpressure.                                                                                                                                                                                                                                                                   |
+| 3b    | Native Swift/Kotlin frame-processor plugin via Expo config plugin; receives raw CMSampleBuffer / ImageProxy; metadata-only callback today with graceful fallback to slice 3a's JS worklet.                                                                                                                                                                                                                                                                 |
+| 3c    | `extern "C"` bridge contract: `aimvision-camera-phone` exposes a C ABI (`src/ffi.rs` + `include/aimvision_camera_phone.h`); iOS Swift bridge resolves it via `dlsym`, Android Kotlin bridge declares JNI externs awaiting a follow-up C shim. Plugin's `source` tag flips to `native-ios-rust` / `native-android-rust` when the bridge is live. End-to-end pixel-data zero-copy via real IOSurface / AHardwareBuffer handles is the 3c-followup sub-slice. |
+| 4     | Dual-phone capture; audio cross-correlation alignment per [multi-camera-sync-spec](multi-camera-sync-spec.md).                                                                                                                                                                                                                                                                                                                                             |
 
-### 17.3 Hard line
+### 17.3 Building the Rust C-ABI library (slice 3c)
+
+The mobile bridge fails soft when the Rust library isn't bundled, so the plugin keeps running with metadata-only output. To activate the Rust path:
+
+**iOS (static library, linked into the Xcode target):**
+
+```bash
+# Build for the iOS device target. Repeat for `aarch64-apple-ios-sim` and
+# `x86_64-apple-ios` if you need simulator support too.
+cd aimvision-camera-core
+cargo build -p aimvision-camera-phone --release --target aarch64-apple-ios
+# Output: target/aarch64-apple-ios/release/libaimvision_camera_phone.a
+
+# Drop the .a into the AIMVISION Xcode target's "Link Binary With Libraries"
+# (Build Phases). The Swift bridge resolves the C ABI via dlsym(RTLD_DEFAULT,
+# ...), so as long as the static library is linked, the symbols are visible.
+```
+
+**Android (JNI shim — follow-up sub-slice):**
+
+The bare C ABI uses standard `extern "C"` symbol names, which JNI cannot call directly. A small JNI C shim (`libaimvision_camera_phone_jni.so`) translates the JNI `Java_*` entry points into C ABI calls. That shim is the next sub-slice (3c-followup). Until it ships, `System.loadLibrary("aimvision_camera_phone_jni")` raises `UnsatisfiedLinkError` and the Kotlin bridge reports unavailable — the plugin falls back to `native-android` (slice 3b) output.
+
+### 17.4 Hard line
 
 Phone capture is **never** marketed, sold, or shown to a customer. Hero 13 is the product spec; the phone backend is a dev convenience that disappears (or moves to a separate `…-phone-dev` crate) at the Phase 2 re-evaluation gate from ADR-0003. When the two backends disagree on a contract, Hero 13 wins.
 

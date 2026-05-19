@@ -8,10 +8,12 @@
 //! native shim layer on top of `react-native-vision-camera` will call from
 //! the worklet thread once per camera frame.
 //!
-//! This slice (3a) lands only the safe-Rust push API and the
-//! [`CameraMedia`] impl. The `extern "C"` wrapper that lets Swift/Kotlin
-//! call this from JNI / Obj-C++ lands in slice 3c — see ADR-0009 §17.2 for
-//! the full split.
+//! Slice 3a landed only the safe-Rust push API and the [`CameraMedia`]
+//! impl. Slice 3c (this crate's current state) adds the [`ffi`] module:
+//! a hand-written `extern "C"` C ABI that the native frame-processor
+//! plugin in `aimvision-mobile/plugins/phone-frame-sink/{ios,android}`
+//! calls from the Vision Camera worklet thread. See ADR-0009 §17.3c and
+//! the C header at `include/aimvision_camera_phone.h`.
 //!
 //! # Threading model
 //!
@@ -31,6 +33,7 @@
 
 #![warn(missing_docs)]
 
+pub mod ffi;
 pub mod phone_camera;
 
 pub use phone_camera::{PhoneCamera, PhoneCameraStats};
