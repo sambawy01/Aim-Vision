@@ -91,6 +91,11 @@
       "calibrations": "Calibrations",
       "alignment": "Alignment",
       "calibration": "Calibration"
+    },
+    "process": {
+      "cta": "Run post-session pipeline",
+      "enqueued": "Pipeline enqueued —",
+      "error": "Could not start the pipeline."
     }
   },
   "checkin": {

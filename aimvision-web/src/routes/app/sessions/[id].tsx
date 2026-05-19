@@ -1,15 +1,14 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQueries } from '@tanstack/react-query';
+import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getSession, getSessionSummary } from '@/services/sessions';
+import {
+  getSession,
+  getSessionSummary,
+  processSession,
+  type ProcessSessionResult,
+} from '@/services/sessions';
 
-function ReadinessChip({
-  ok,
-  label,
-}: {
-  ok: boolean;
-  label: string;
-}): JSX.Element {
+function ReadinessChip({ ok, label }: { ok: boolean; label: string }): JSX.Element {
   return (
     <span
       className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
@@ -46,6 +45,17 @@ export function SessionDetailRoute() {
     ],
   });
   const [detail, summary] = results;
+
+  const queryClient = useQueryClient();
+  const processMutation = useMutation<ProcessSessionResult, unknown, void>({
+    mutationFn: () => processSession(id),
+    onSuccess: () => {
+      // The pipeline will eventually mutate the summary (alignment,
+      // calibration, shots). Refetch so the readiness chips reflect
+      // progress once the worker commits.
+      void queryClient.invalidateQueries({ queryKey: ['sessions', 'summary', id] });
+    },
+  });
 
   const isLoading = detail.isLoading || summary.isLoading;
   const isError = detail.isError || summary.isError;
@@ -118,6 +128,28 @@ export function SessionDetailRoute() {
               ok={summary.data.calibrationComplete}
               label={t('sessions.summary.calibration')}
             />
+          </div>
+
+          <div className="pt-2 border-t border-border space-y-2">
+            <button
+              type="button"
+              onClick={() => processMutation.mutate()}
+              disabled={processMutation.isPending}
+              className="rounded bg-brand-accent text-white px-4 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+            >
+              {processMutation.isPending ? t('common.loading') : t('sessions.process.cta')}
+            </button>
+            {processMutation.isSuccess ? (
+              <p className="text-sm text-success" role="status">
+                {t('sessions.process.enqueued')}{' '}
+                <code className="font-mono text-xs">{processMutation.data.workflowId}</code>
+              </p>
+            ) : null}
+            {processMutation.isError ? (
+              <p className="text-sm text-danger" role="alert">
+                {t('sessions.process.error')}
+              </p>
+            ) : null}
           </div>
         </section>
       ) : null}
