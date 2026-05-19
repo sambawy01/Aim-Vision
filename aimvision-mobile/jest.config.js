@@ -55,6 +55,17 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  testMatch: ['<rootDir>/src/**/__tests__/**/*.test.(ts|tsx)'],
-  collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/**/__tests__/**'],
+  testMatch: [
+    '<rootDir>/src/**/__tests__/**/*.test.(ts|tsx)',
+    // Expo config plugins live outside src/ so they can be picked up by
+    // `expo prebuild` from their canonical location. Their unit tests
+    // run from `plugins/**/__tests__`.
+    '<rootDir>/plugins/**/__tests__/**/*.test.(ts|tsx)',
+  ],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    'plugins/**/*.{ts,tsx}',
+    '!**/*.d.ts',
+    '!**/__tests__/**',
+  ],
 };

@@ -108,7 +108,8 @@
     },
     "noCamera": "لا توجد كاميرا خلفية متاحة على هذا الجهاز.",
     "stats": {
-      "label": "{{fps}} إطار/ث · {{count}} إطار · {{resolution}} · {{format}}"
+      "label": "{{fps}} إطار/ث · {{count}} إطار · {{resolution}} · {{format}}",
+      "source": "مصدر الإطار: {{source}}"
     }
   }
 }

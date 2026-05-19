@@ -108,7 +108,8 @@
     },
     "noCamera": "No back-facing camera available on this device.",
     "stats": {
-      "label": "{{fps}} fps · {{count}} frames · {{resolution}} · {{format}}"
+      "label": "{{fps}} fps · {{count}} frames · {{resolution}} · {{format}}",
+      "source": "frame source: {{source}}"
     }
   }
 }

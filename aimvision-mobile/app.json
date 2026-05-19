@@ -95,7 +95,8 @@
           "microphonePermissionText": "AIMVISION uses the microphone to detect shot events and align footage with audio cross-correlation.",
           "enableLocation": false
         }
-      ]
+      ],
+      "./plugins/phone-frame-sink/withPhoneFrameSink"
     ],
     "updates": {
       "url": "https://u.expo.dev/REPLACE_WITH_EAS_PROJECT_ID",
