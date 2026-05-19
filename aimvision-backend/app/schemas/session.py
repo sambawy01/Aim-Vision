@@ -16,6 +16,28 @@ class SessionOut(BaseModel):
     discipline: str
     started_at: datetime
     ended_at: datetime | None
+    # Degraded-mode flag per docs/ml-architecture.md.
+    partial_session: bool = False
+
+
+class SessionEndIn(BaseModel):
+    """Payload for PATCH /sessions/{sid}/end.
+
+    `partial_session` is optional — coaches and the post-session
+    worker both end sessions. Coaches usually pass partial=False
+    (the session was instrumented normally); the worker flips
+    partial=True when its degraded-mode handler fired during
+    processing.
+    """
+
+    partial_session: bool = Field(
+        default=False,
+        description=(
+            "True iff the session had incomplete diagnostic coverage "
+            "(e.g. GoPro died mid-session, audio-only fallback). The "
+            "post-session report renders a 'partial' badge."
+        ),
+    )
 
 
 class SessionSummaryOut(BaseModel):
@@ -41,6 +63,8 @@ class SessionSummaryOut(BaseModel):
     calibration_count: int
     alignment_complete: bool
     calibration_complete: bool
+    ended_at: datetime | None = None
+    partial_session: bool = False
 
 
 class RecordingOut(BaseModel):

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import func, select
@@ -23,6 +24,7 @@ from ..schemas.camera_calibration import (
 from ..schemas.session import (
     AlignmentIn,
     RecordingOut,
+    SessionEndIn,
     SessionOut,
     SessionSummaryOut,
     ShotEventIn,
@@ -67,6 +69,48 @@ async def get_session(
     row = result.scalars().first()
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="session not found")
+    return SessionOut.model_validate(row)
+
+
+@router.patch("/{session_id}/end", response_model=SessionOut)
+async def end_session(
+    session_id: str,
+    payload: SessionEndIn,
+    # Coach or the post-session worker (coach-tier service account)
+    # both end sessions; federation_admin inherits.
+    principal: Principal = Depends(require_role(Role.coach.value)),
+    db: AsyncSession = Depends(db_session),
+) -> SessionOut:
+    """Mark a session as ended and optionally as partial.
+
+    Sets `ended_at` to the current wall-clock if it wasn't already
+    set; subsequent calls are idempotent on `ended_at` (the original
+    end time is preserved). `partial_session` is overwritten on each
+    call — the post-session worker can flip it on after the fact
+    when its degraded-mode handler triggers.
+
+    Tenant scoping: 404 (not 403) on cross-tenant or missing.
+    """
+    row = (
+        (
+            await db.execute(
+                select(SessionModel).where(
+                    SessionModel.id == session_id,
+                    SessionModel.tenant_id == principal.tenant_id,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="session not found")
+
+    if row.ended_at is None:
+        row.ended_at = datetime.now(UTC)
+    row.partial_session = payload.partial_session
+    await db.flush()
+    await db.refresh(row)
     return SessionOut.model_validate(row)
 
 
@@ -144,6 +188,8 @@ async def get_session_summary(
         calibration_count=int(calibration_count),
         alignment_complete=alignment_complete,
         calibration_complete=calibration_complete,
+        ended_at=parent.ended_at,
+        partial_session=parent.partial_session,
     )
 
 

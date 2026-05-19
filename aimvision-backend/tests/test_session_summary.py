@@ -140,6 +140,8 @@ async def test_summary_empty_session_is_vacuously_complete(client: AsyncClient) 
         "calibration_count": 0,
         "alignment_complete": True,
         "calibration_complete": False,
+        "ended_at": None,
+        "partial_session": False,
     }
 
 
