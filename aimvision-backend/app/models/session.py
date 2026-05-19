@@ -120,9 +120,22 @@ class ShotEvent(Base, TimestampMixin, TenantScopedMixin):
     `event_kind` keeps the wire format open: "audio.shot_detected",
     "pose.frame_extracted", "score.hit", "score.miss", "diagnostic.head_tilt",
     "annotation.coach_note", ... Producers MUST namespace their events.
+
+    (shot_id, event_kind, monotonic_seq) is unique — each producer keeps its
+    own monotonic sequence, and at-least-once retries are idempotent at both
+    the API and the DB layer.
     """
 
     __tablename__ = "shot_events"
+    __table_args__ = (
+        Index(
+            "uq_shot_events_shot_kind_seq",
+            "shot_id",
+            "event_kind",
+            "monotonic_seq",
+            unique=True,
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=new_uuid)
     shot_id: Mapped[str] = mapped_column(

@@ -9,7 +9,15 @@ from .federation import (
     FederationOverviewOut,
     TalentCohortOut,
 )
-from .session import AlignmentIn, RecordingOut, SessionOut, ShotIn, ShotOut
+from .session import (
+    AlignmentIn,
+    RecordingOut,
+    SessionOut,
+    ShotEventIn,
+    ShotEventOut,
+    ShotIn,
+    ShotOut,
+)
 from .tenancy import (
     HealthOut,
     LoginIn,
@@ -38,6 +46,8 @@ __all__ = [
     "PrincipalOut",
     "RecordingOut",
     "SessionOut",
+    "ShotEventIn",
+    "ShotEventOut",
     "ShotIn",
     "ShotOut",
     "SignupIn",
