@@ -11,7 +11,7 @@ from ..deps import current_principal, db_session
 from ..models import Recording, RecordingSourceKind, Role
 from ..models.base import new_uuid
 from ..models.session import Session as SessionModel
-from ..schemas.session import RecordingOut, SessionOut
+from ..schemas.session import AlignmentIn, RecordingOut, SessionOut
 from ..services.auth import Principal
 from ..services.authz import require_role
 from ..services.storage import Storage, get_storage
@@ -123,6 +123,53 @@ async def upload_recording(
         tenant_id=principal.tenant_id,
     )
     db.add(row)
+    await db.flush()
+    await db.refresh(row)
+    return RecordingOut.model_validate(row)
+
+
+@router.patch(
+    "/{session_id}/recording/{recording_id}/alignment",
+    response_model=RecordingOut,
+)
+async def update_recording_alignment(
+    session_id: str,
+    recording_id: str,
+    payload: AlignmentIn,
+    # The Temporal worker that computes alignment runs as a coach-tier
+    # service account; this is also the role a coach uses for manual
+    # recalibration. Federation admin inherits via the role hierarchy.
+    principal: Principal = Depends(require_role(Role.coach.value)),
+    db: AsyncSession = Depends(db_session),
+) -> RecordingOut:
+    """Set the audio-xcorr alignment fields on a recording.
+
+    ADR-0009 slice 4: after the post-session pipeline runs
+    `aimvision_ml.inference.audio_xcorr.align_camera_pair`, the median
+    offset + confidence land here. The two fields are written
+    atomically per the API contract (the schema admits either or
+    neither, never one without the other).
+
+    Tenant scoping is enforced by joining recordings → sessions and
+    checking the session's tenant_id matches the caller's principal.
+    Postgres RLS layers on the same constraint; this explicit check
+    is what makes the SQLite test path safe.
+    """
+    stmt = (
+        select(Recording)
+        .join(SessionModel, Recording.session_id == SessionModel.id)
+        .where(
+            Recording.id == recording_id,
+            Recording.session_id == session_id,
+            SessionModel.tenant_id == principal.tenant_id,
+        )
+    )
+    row = (await db.execute(stmt)).scalars().first()
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="recording not found")
+
+    row.session_clock_offset_ns = payload.session_clock_offset_ns
+    row.session_clock_offset_confidence = payload.session_clock_offset_confidence
     await db.flush()
     await db.refresh(row)
     return RecordingOut.model_validate(row)

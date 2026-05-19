@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, BigInteger, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -66,6 +66,17 @@ class Recording(Base, TimestampMixin, TenantScopedMixin):
         default=RecordingSourceKind.hero13,
         server_default="hero13",
     )
+    # Multi-camera alignment offset (ADR-0009 slice 4). Signed nanoseconds
+    # relative to the session's master recording, computed by audio
+    # cross-correlation (see aimvision_ml.inference.audio_xcorr). NULL =
+    # master OR not yet aligned. Written by the post-session Temporal
+    # worker via the alignment PATCH endpoint; never by upload.
+    session_clock_offset_ns: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # Normalized cross-correlation coefficient confidence in [0, 1] —
+    # the median pair-alignment confidence from audio_xcorr.PairAlignment.
+    # The two alignment fields are set together by the API; reading one
+    # without the other is a downstream bug.
+    session_clock_offset_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class Shot(Base, TimestampMixin, TenantScopedMixin):
