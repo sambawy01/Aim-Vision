@@ -52,6 +52,78 @@ async def get_session(
     return SessionOut.model_validate(row)
 
 
+@router.get(
+    "/{session_id}/recording",
+    response_model=list[RecordingOut],
+)
+async def list_recordings(
+    session_id: str,
+    principal: Principal = Depends(current_principal),
+    db: AsyncSession = Depends(db_session),
+) -> list[RecordingOut]:
+    """List recordings under a session in the caller's tenant.
+
+    Tenant scoping enforced via Session.tenant_id; a recording in
+    another tenant returns an empty list (the session lookup fails
+    first, 404). No role gate — any authenticated principal in the
+    tenant can list, matching the pattern of GET /sessions/{id}.
+    """
+    parent = (
+        (
+            await db.execute(
+                select(SessionModel).where(
+                    SessionModel.id == session_id,
+                    SessionModel.tenant_id == principal.tenant_id,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if parent is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="session not found")
+    rows = (
+        (
+            await db.execute(
+                select(Recording)
+                .where(Recording.session_id == session_id)
+                .order_by(Recording.created_at.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return [RecordingOut.model_validate(r) for r in rows]
+
+
+@router.get(
+    "/{session_id}/recording/{recording_id}",
+    response_model=RecordingOut,
+)
+async def get_recording(
+    session_id: str,
+    recording_id: str,
+    principal: Principal = Depends(current_principal),
+    db: AsyncSession = Depends(db_session),
+) -> RecordingOut:
+    """Single recording by id. Returns 404 on cross-tenant access or
+    a session-id mismatch (the same compound where-clause as the
+    PATCH alignment endpoint, for consistent error semantics)."""
+    stmt = (
+        select(Recording)
+        .join(SessionModel, Recording.session_id == SessionModel.id)
+        .where(
+            Recording.id == recording_id,
+            Recording.session_id == session_id,
+            SessionModel.tenant_id == principal.tenant_id,
+        )
+    )
+    row = (await db.execute(stmt)).scalars().first()
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="recording not found")
+    return RecordingOut.model_validate(row)
+
+
 @router.post(
     "/{session_id}/recording",
     response_model=RecordingOut,
