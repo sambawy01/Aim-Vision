@@ -14,8 +14,8 @@ command -v helm >/dev/null 2>&1 || {
   exit 1
 }
 
-VALUES_FILES=(
-  "helm/aimvision/values.yaml"
+BASE_VALUES="helm/aimvision/values.yaml"
+OVERLAYS=(
   "helm/aimvision/values-cloud.yaml"
   "helm/aimvision/values-onprem.yaml"
   "helm/aimvision/values-dev.yaml"
@@ -25,11 +25,11 @@ VALUES_FILES=(
 echo "==> helm lint (base)"
 helm lint "${CHART_DIR}" --strict
 
-for overlay in helm/aimvision/values-cloud.yaml helm/aimvision/values-onprem.yaml helm/aimvision/values-dev.yaml; do
+for overlay in "${OVERLAYS[@]}"; do
   echo "==> helm lint (base + ${overlay})"
   helm lint "${CHART_DIR}" \
     --strict \
-    -f "helm/aimvision/values.yaml" \
+    -f "${BASE_VALUES}" \
     -f "${overlay}"
 done
 
