@@ -61,6 +61,37 @@ class SessionOut(BaseModel):
     partial_session: bool = False
 
 
+class ProcessSessionIn(BaseModel):
+    """Payload for POST /sessions/{sid}/process.
+
+    The coach or post-upload hook triggers the post-session
+    pipeline. `partial_session` lets the trigger pre-flag a session
+    where the upstream knows capture was degraded (one of the
+    recordings is phone_dev, a GoPro disconnected, etc); the
+    workflow's finalize_session activity will set the same flag on
+    the row when it commits. Optional — default False.
+    """
+
+    partial_session: bool = Field(
+        default=False,
+        description=(
+            "True iff the trigger source knows the session ran in degraded "
+            "mode. Threaded through the workflow to its finalize_session "
+            "activity."
+        ),
+    )
+
+
+class ProcessSessionOut(BaseModel):
+    """Response for POST /sessions/{sid}/process. Returns the
+    Temporal workflow id + task queue so callers can poll Temporal
+    Web UI / status APIs without re-deriving the convention."""
+
+    session_id: str
+    workflow_id: str
+    task_queue: str
+
+
 class SessionEndIn(BaseModel):
     """Payload for PATCH /sessions/{sid}/end.
 

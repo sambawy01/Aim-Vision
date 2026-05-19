@@ -24,6 +24,8 @@ from ..schemas.camera_calibration import (
 )
 from ..schemas.session import (
     AlignmentIn,
+    ProcessSessionIn,
+    ProcessSessionOut,
     RecordingOut,
     SessionCreateIn,
     SessionEndIn,
@@ -37,6 +39,7 @@ from ..schemas.session import (
 from ..services.auth import Principal
 from ..services.authz import require_role
 from ..services.storage import Storage, get_storage
+from ..services.workflows import WorkflowsClient, get_workflows_client
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -173,6 +176,61 @@ async def end_session(
     await db.flush()
     await db.refresh(row)
     return SessionOut.model_validate(row)
+
+
+@router.post(
+    "/{session_id}/process",
+    response_model=ProcessSessionOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def trigger_process_session(
+    session_id: str,
+    payload: ProcessSessionIn,
+    # The Temporal worker, the upload-finalizer hook, and the coach
+    # all kick off the post-session pipeline through this endpoint.
+    # Coach role gate; federation_admin inherits.
+    principal: Principal = Depends(require_role(Role.coach.value)),
+    db: AsyncSession = Depends(db_session),
+    workflows: WorkflowsClient = Depends(get_workflows_client),
+) -> ProcessSessionOut:
+    """Enqueue the ProcessSession workflow for this session.
+
+    Per ADR-0007 the actual pipeline runs on Temporal (see
+    `app.workflows.process_session.ProcessSessionWorkflow`). This
+    endpoint is the API surface that lets the mobile / coach UI /
+    upload-finalizer kick a run. Returns 202 Accepted + the Temporal
+    workflow id; callers poll the run via the Temporal Web UI or
+    (future) `GET /sessions/{sid}/process/{workflow_id}` status
+    endpoint.
+
+    Tenant scoping is on top of RLS for the SQLite test path; 404
+    (not 403) on cross-tenant or missing.
+    """
+    row = (
+        (
+            await db.execute(
+                select(SessionModel).where(
+                    SessionModel.id == session_id,
+                    SessionModel.tenant_id == principal.tenant_id,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="session not found")
+
+    handle = await workflows.start_process_session(
+        session_id=session_id,
+        partial_session=payload.partial_session,
+        tenant_id=principal.tenant_id,
+    )
+    return ProcessSessionOut(
+        session_id=session_id,
+        workflow_id=handle.workflow_id,
+        task_queue=handle.task_queue,
+    )
 
 
 @router.get("/{session_id}/summary", response_model=SessionSummaryOut)
