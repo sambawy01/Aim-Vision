@@ -24,6 +24,7 @@ from .routers import (
     consent,
     federation,
     health,
+    orgs,
     session,
 )
 
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(consent.router)
     app.include_router(athletes.router)
+    app.include_router(orgs.router)
     app.include_router(session.router)
     app.include_router(active_learning.router)
     app.include_router(federation.router)

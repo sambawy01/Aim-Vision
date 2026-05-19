@@ -10,6 +10,7 @@ from .federation import (
     FederationOverviewOut,
     TalentCohortOut,
 )
+from .orgs import OrgOut
 from .session import (
     AlignmentIn,
     ProcessSessionIn,
@@ -50,6 +51,7 @@ __all__ = [
     "HealthOut",
     "LoginIn",
     "LoginOut",
+    "OrgOut",
     "PrincipalOut",
     "ProcessSessionIn",
     "ProcessSessionOut",

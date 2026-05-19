@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { listAthletes, type Athlete } from '@/services/athletes';
+import { listOrgs, type Org } from '@/services/orgs';
 import { createSession } from '@/services/sessions';
 import { ApiError } from '@/services/api';
 
@@ -11,15 +12,13 @@ const DISCIPLINES = ['trap', 'skeet', 'sporting'] as const;
 type Discipline = (typeof DISCIPLINES)[number];
 
 /**
- * /app/sessions/new — coach picks an athlete + discipline, server
- * stamps started_at. On success the coach lands on the new session's
- * detail page so they can immediately upload recordings.
+ * /app/sessions/new — coach picks an athlete + org + discipline,
+ * server stamps started_at. On success the coach lands on the new
+ * session's detail page so they can immediately upload recordings.
  *
- * The `org_id` field is exposed today as a manual input because the
- * tenancy store carries `tenantId` but not `orgId`. A future slice
- * will add an org-picker derived from the principal's memberships;
- * until then the coach pastes the org id from settings. Solo-tier
- * users can use their tenant id as the org id by convention.
+ * Both pickers (athlete + org) hit dedicated backend endpoints —
+ * GET /athletes (PR #67) and GET /orgs — and are tenant-scoped on
+ * the server side. The coach never types an id by hand.
  */
 export function SessionCreateRoute(): JSX.Element {
   const { t } = useTranslation();
@@ -33,6 +32,13 @@ export function SessionCreateRoute(): JSX.Element {
   const athletesQuery = useQuery<Athlete[]>({
     queryKey: ['athletes', 'list'],
     queryFn: listAthletes,
+    initialData: [],
+    retry: false,
+  });
+
+  const orgsQuery = useQuery<Org[]>({
+    queryKey: ['orgs', 'list'],
+    queryFn: listOrgs,
     initialData: [],
     retry: false,
   });
@@ -121,18 +127,27 @@ export function SessionCreateRoute(): JSX.Element {
 
         <div>
           <label htmlFor="orgId" className="block text-sm font-medium mb-1">
-            {t('sessions.new.orgId')}
+            {t('sessions.new.org')}
           </label>
-          <input
+          <select
             id="orgId"
-            type="text"
             required
             value={orgId}
             onChange={(e) => setOrgId(e.target.value)}
-            placeholder={t('sessions.new.orgIdPlaceholder')}
-            className="block w-full rounded border border-border bg-surface px-3 py-2 font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          />
-          <p className="text-xs text-text-muted mt-1">{t('sessions.new.orgIdHint')}</p>
+            className="block w-full rounded border border-border bg-surface px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            disabled={orgsQuery.isLoading}
+          >
+            <option value="" disabled>
+              {orgsQuery.isLoading
+                ? t('common.loading')
+                : t('sessions.new.orgPlaceholder')}
+            </option>
+            {orgsQuery.data?.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name} ({o.kind})
+              </option>
+            ))}
+          </select>
         </div>
 
         {error ? (
