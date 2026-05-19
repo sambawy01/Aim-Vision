@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,13 +13,14 @@ from ..deps import current_principal, db_session
 from ..models import CameraCalibration, Recording, RecordingSourceKind, Role
 from ..models.base import new_uuid
 from ..models.session import Session as SessionModel
+from ..models.session import Shot
 from ..schemas.camera_calibration import (
     RECALIBRATION_TRIGGER_RATIO,
     CalibrationHealthOut,
     CameraCalibrationIn,
     CameraCalibrationOut,
 )
-from ..schemas.session import AlignmentIn, RecordingOut, SessionOut
+from ..schemas.session import AlignmentIn, RecordingOut, SessionOut, ShotIn, ShotOut
 from ..services.auth import Principal
 from ..services.authz import require_role
 from ..services.storage import Storage, get_storage
@@ -408,3 +411,109 @@ async def get_recording_calibration_health(
         ratio_to_baseline=ratio,
         recalibration_recommended=ratio >= RECALIBRATION_TRIGGER_RATIO,
     )
+
+
+async def _session_in_tenant_or_404(
+    db: AsyncSession, principal: Principal, session_id: str
+) -> SessionModel:
+    """Compound (session_id, session.tenant_id) lookup used by the
+    shot ingest + list endpoints. Returns 404 for both missing and
+    cross-tenant ids — never 403, to avoid leaking existence."""
+    row = (
+        (
+            await db.execute(
+                select(SessionModel).where(
+                    SessionModel.id == session_id,
+                    SessionModel.tenant_id == principal.tenant_id,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="session not found")
+    return row
+
+
+@router.post(
+    "/{session_id}/shots",
+    response_model=ShotOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def ingest_shot(
+    session_id: str,
+    payload: ShotIn,
+    # Shot ingest is driven by the audio shot detector and the
+    # post-session Temporal worker (coach-tier service account).
+    # Athletes do not POST shots directly; the detector running in
+    # the mobile capture stack POSTs on their behalf.
+    principal: Principal = Depends(require_role(Role.coach.value)),
+    db: AsyncSession = Depends(db_session),
+) -> ShotOut:
+    """Append-only Shot ingest, ADR-0006.
+
+    Idempotent on `(session_id, monotonic_seq)`: a resubmit returns
+    the existing row with 201 Created semantics rather than a 409.
+    The audio detector retries on transient network failure, and
+    treating that as create-or-return-existing is the simplest
+    contract the detector can honour. The DB-level unique index
+    (migration 0009) backstops the race.
+
+    The server stamps `server_clock_ns` at receipt; the producer's
+    `device_clock_ns` is preserved for the post-session aligner.
+    """
+    await _session_in_tenant_or_404(db, principal, session_id)
+
+    existing = (
+        (
+            await db.execute(
+                select(Shot).where(
+                    Shot.session_id == session_id,
+                    Shot.monotonic_seq == payload.monotonic_seq,
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if existing is not None:
+        return ShotOut.model_validate(existing)
+
+    row = Shot(
+        id=new_uuid(),
+        tenant_id=principal.tenant_id,
+        session_id=session_id,
+        monotonic_seq=payload.monotonic_seq,
+        device_clock_ns=payload.device_clock_ns,
+        server_clock_ns=time.time_ns(),
+        shot_kind=payload.shot_kind,
+    )
+    db.add(row)
+    await db.flush()
+    await db.refresh(row)
+    return ShotOut.model_validate(row)
+
+
+@router.get("/{session_id}/shots", response_model=list[ShotOut])
+async def list_shots(
+    session_id: str,
+    principal: Principal = Depends(current_principal),
+    db: AsyncSession = Depends(db_session),
+) -> list[ShotOut]:
+    """Shots in a session ordered by `monotonic_seq` ascending.
+
+    Open to any authenticated principal in the tenant — matches the
+    read-side pattern of the recording + calibration endpoints.
+    """
+    await _session_in_tenant_or_404(db, principal, session_id)
+    rows = (
+        (
+            await db.execute(
+                select(Shot).where(Shot.session_id == session_id).order_by(Shot.monotonic_seq.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return [ShotOut.model_validate(r) for r in rows]
