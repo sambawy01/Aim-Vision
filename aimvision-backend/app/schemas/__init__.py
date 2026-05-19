@@ -2,6 +2,12 @@
 
 from .audit import AuditEventOut
 from .consent import ConsentGrantIn, ConsentOut, ConsentRevokeIn
+from .federation import (
+    ClubMembershipOut,
+    ClubStatus,
+    FederationOverviewOut,
+    TalentCohortOut,
+)
 from .session import RecordingOut, SessionOut, ShotOut
 from .tenancy import (
     HealthOut,
@@ -15,9 +21,12 @@ from .tenancy import (
 
 __all__ = [
     "AuditEventOut",
+    "ClubMembershipOut",
+    "ClubStatus",
     "ConsentGrantIn",
     "ConsentOut",
     "ConsentRevokeIn",
+    "FederationOverviewOut",
     "HealthOut",
     "LoginIn",
     "LoginOut",
@@ -26,6 +35,7 @@ __all__ = [
     "SessionOut",
     "ShotOut",
     "SignupIn",
+    "TalentCohortOut",
     "UserOut",
     "VersionOut",
 ]

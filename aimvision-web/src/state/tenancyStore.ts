@@ -8,7 +8,7 @@ import { create } from 'zustand';
  */
 
 export type TenantId = string; // e.g. "solo:u_01...", "org:c_01...", "fed:f_01..."
-export type TenantRole = 'athlete' | 'coach' | 'club_admin' | 'fed_admin' | 'system_admin';
+export type TenantRole = 'athlete' | 'coach' | 'club_admin' | 'federation_admin' | 'system_admin';
 
 export interface TenantMembership {
   tenantId: TenantId;
