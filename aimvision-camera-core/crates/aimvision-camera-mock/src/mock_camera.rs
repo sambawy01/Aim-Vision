@@ -29,6 +29,59 @@ use aimvision_camera_traits::{
 use crate::clock::MockClock;
 use crate::fault_script::{FaultKind, FaultScript, FaultSpec};
 
+/// Mock microphone sample rate: Hero 13 default (48 kHz mono).
+pub const MOCK_AUDIO_SAMPLE_RATE_HZ: u32 = 48_000;
+
+/// Synthesize one window of mono PCM for `(from_s, to_s]`.
+///
+/// Each `(shot_time_s, amplitude)` places a broadband muzzle-blast
+/// transient — a sharp onset with exponential decay, modulated by
+/// deterministic pseudo-noise — at its sample offset within the
+/// window. Everything else is a quiet noise floor. The transient is
+/// shaped to fire the spectral-flux onset detector in `aimvision-ml`
+/// (broadband sharp attack), without depending on a PRNG crate: a
+/// tiny inline xorshift keeps the output deterministic + reproducible.
+fn synth_window_pcm(from_s: f64, to_s: f64, sample_rate_hz: u32, shots: &[(f64, f32)]) -> Vec<i16> {
+    let sr = f64::from(sample_rate_hz);
+    let n = (((to_s - from_s) * sr).round() as i64).max(0) as usize;
+    let mut buf = vec![0.0f32; n];
+
+    // Deterministic xorshift PRNG → broadband noise in [-1, 1].
+    let mut rng: u64 = 0x9E37_79B9_7F4A_7C15;
+    let mut next_noise = || -> f32 {
+        rng ^= rng << 13;
+        rng ^= rng >> 7;
+        rng ^= rng << 17;
+        // Top 24 bits → [0,1) → [-1,1).
+        ((rng >> 40) as f32 / f32::from(1u16 << 12) / 4096.0) * 2.0 - 1.0
+    };
+
+    // Quiet broadband noise floor (~ -60 dBFS) so the detector has a
+    // realistic baseline to threshold against rather than pure silence.
+    for s in buf.iter_mut() {
+        *s = next_noise() * 0.001;
+    }
+
+    // Muzzle-blast: ~6 ms exponential decay, broadband.
+    let decay_tau = 0.005 * sr; // samples
+    let blast_len = (0.03 * sr) as usize; // 30 ms tail
+    for &(t, amp) in shots {
+        let onset = (((t - from_s) * sr).round() as i64).max(0) as usize;
+        for k in 0..blast_len {
+            let idx = onset + k;
+            if idx >= n {
+                break;
+            }
+            let env = (-(k as f64) / decay_tau).exp() as f32;
+            buf[idx] += amp * env * next_noise();
+        }
+    }
+
+    buf.iter()
+        .map(|&v| (v.clamp(-1.0, 1.0) * f32::from(i16::MAX)) as i16)
+        .collect()
+}
+
 /// Mock camera. Cheaply cloneable — internal state is in `Arc<Mutex<...>>`.
 #[derive(Clone)]
 pub struct MockCamera {
@@ -136,11 +189,8 @@ impl MockCamera {
             Self::apply_fault(&mut st, &f);
         }
 
-        // Synthesize a preview frame every ~33 ms (30 fps) and an audio
-        // chunk every ~10 ms. We do this lazily — only if recording is on.
-        // The test driver does its own audio synthesis for sync tests, so
-        // we don't generate detailed audio here; the chunks are silence
-        // unless the script's shots place transients.
+        // Synthesize a preview frame + an audio chunk for the swept window.
+        // We do this lazily — only if recording is on.
         if st.recording {
             // One frame per advance call is sufficient for the tests we ship;
             // a real fixture player would interpolate more densely.
@@ -154,6 +204,27 @@ impl MockCamera {
                 height: 1080,
                 pts_ns,
                 monotonic_seq: seq,
+            });
+
+            // Synthesize the audio for (from, to]. Scripted shots place a
+            // broadband muzzle-blast transient at their sample offset; the
+            // rest is a low noise floor. This gives the mock real, shot-
+            // detectable PCM (previously the chunks were silent), so the
+            // dev/demo capture path can drive the audio shot detector.
+            let shots: Vec<(f64, f32)> = self
+                .inner
+                .script
+                .shots
+                .iter()
+                .filter(|s| s.t > from && s.t <= to)
+                .map(|s| (s.t, s.audio_amplitude))
+                .collect();
+            let samples = synth_window_pcm(from, to, MOCK_AUDIO_SAMPLE_RATE_HZ, &shots);
+            st.pending_audio.push_back(AudioChunk {
+                samples,
+                sample_rate_hz: MOCK_AUDIO_SAMPLE_RATE_HZ,
+                channels: 1,
+                start_ts_ns: pts_ns,
             });
         }
     }
@@ -445,5 +516,73 @@ mod tests {
             .expect("set");
         let v = cam.get_setting(id).await.expect("get");
         assert_eq!(v, SettingValue::U16(1080));
+    }
+
+    fn script_with_shots(times: &[f64]) -> FaultScript {
+        FaultScript {
+            shots: times
+                .iter()
+                .map(|&t| crate::fault_script::ShotSpec {
+                    t,
+                    station: 1,
+                    audio_amplitude: 0.85,
+                })
+                .collect(),
+            ..FaultScript::default()
+        }
+    }
+
+    fn peak_abs(chunk: &AudioChunk) -> i16 {
+        chunk.samples.iter().map(|s| s.abs()).max().unwrap_or(0)
+    }
+
+    #[tokio::test]
+    async fn recording_emits_audio_chunks_with_correct_format() {
+        let cam = MockCamera::new("cam_a", empty_script());
+        cam.connect().await.expect("connect");
+        cam.start_recording().await.expect("start");
+        cam.advance(0.1);
+        let chunk = cam.poll_audio_chunk().expect("audio chunk while recording");
+        assert_eq!(chunk.sample_rate_hz, MOCK_AUDIO_SAMPLE_RATE_HZ);
+        assert_eq!(chunk.channels, 1);
+        // 0.1 s at 48 kHz ≈ 4800 samples.
+        assert!((4700..=4900).contains(&chunk.samples.len()));
+    }
+
+    #[tokio::test]
+    async fn scripted_shot_places_a_loud_transient() {
+        // A shot at t=0.05 s should make the chunk covering [0, 0.1) much
+        // louder than a silent (no-shot) chunk — i.e. the mock now emits
+        // real, shot-detectable audio rather than silence.
+        let cam = MockCamera::new("cam_a", script_with_shots(&[0.05]));
+        cam.connect().await.expect("connect");
+        cam.start_recording().await.expect("start");
+        cam.advance(0.1);
+        let with_shot = cam.poll_audio_chunk().expect("chunk");
+
+        let quiet = MockCamera::new("cam_b", empty_script());
+        quiet.connect().await.expect("connect");
+        quiet.start_recording().await.expect("start");
+        quiet.advance(0.1);
+        let no_shot = quiet.poll_audio_chunk().expect("chunk");
+
+        let shot_peak = peak_abs(&with_shot);
+        let floor_peak = peak_abs(&no_shot);
+        // The muzzle blast is at least an order of magnitude above the floor.
+        assert!(
+            i32::from(shot_peak) > i32::from(floor_peak) * 10,
+            "shot peak {shot_peak} should dwarf floor {floor_peak}"
+        );
+        // And it's a substantial fraction of full-scale (a real transient).
+        assert!(shot_peak > i16::MAX / 4, "shot peak {shot_peak} too quiet");
+    }
+
+    #[tokio::test]
+    async fn no_audio_chunks_when_not_recording() {
+        let cam = MockCamera::new("cam_a", script_with_shots(&[0.05]));
+        cam.connect().await.expect("connect");
+        // Not recording → advance should not enqueue audio.
+        cam.advance(0.1);
+        assert!(cam.poll_audio_chunk().is_none());
     }
 }
