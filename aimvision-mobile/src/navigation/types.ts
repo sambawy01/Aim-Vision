@@ -10,6 +10,7 @@ export type AppStackParamList = {
   Home: undefined;
   Settings: undefined;
   DataPrivacy: undefined;
+  CapturePhone: undefined;
 };
 
 export type RootStackParamList = {

@@ -86,5 +86,26 @@
     "revoke": "Revoke a consent",
     "dsar": "Request my data (DSAR)",
     "delete": "Delete my account"
+  },
+  "capturePhone": {
+    "title": "Phone capture (dev)",
+    "subtitle": "Internal: records to a local MP4 for dataset collection. Hero 13 remains the product camera.",
+    "status": {
+      "unknown": "Camera permission not requested.",
+      "permissionPending": "Waiting for camera permission…",
+      "permissionDenied": "Camera permission denied. Enable it in Settings to continue.",
+      "ready": "Ready to record.",
+      "recording": "Recording…",
+      "stopping": "Finalizing recording…",
+      "idleWithRecording": "Saved {{uri}}",
+      "error": "Recording error: {{message}}"
+    },
+    "action": {
+      "requestPermission": "Grant camera + microphone access",
+      "startRecording": "Start recording",
+      "stopRecording": "Stop recording",
+      "reset": "Reset"
+    },
+    "noCamera": "No back-facing camera available on this device."
   }
 }

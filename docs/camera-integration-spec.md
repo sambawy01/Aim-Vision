@@ -668,6 +668,7 @@ Trait-level support for non-GoPro cameras is mandatory from V1 even though we sh
 | Hero 12                      | Solo / Club                        | V1 P1 (matrix entry, untested but architecturally supported)                                               |
 | Insta360 X4                  | Club (some clubs already use them) | V1.5 — different stitch semantics, requires `CameraMedia` impl that flattens to flat sensor virtual frames |
 | Phone-as-camera (PWA)        | Solo ultra-budget                  | V2 — PWA grabs phone camera + local audio, uploads MP4 + ground-truth ts; analytics run server-side only   |
+| Phone-as-camera (RN, dev)    | **Internal dev only**              | **V1 (active)** — react-native-vision-camera inside `aimvision-mobile`; see ADR-0009 + §17                 |
 | Custom AIMVISION hardware V3 | Federation premium                 | V3 — IMU-on-camera, GPS-disciplined timecode, hardware genlock, USB-C HID trigger                          |
 
 ### 16.2 What this buys us
@@ -681,6 +682,37 @@ Trait-level support for non-GoPro cameras is mandatory from V1 even though we sh
 - DJI cameras — locked SDK, no preview tap, no.
 - Sony alpha — interesting, but professional-cinema price points don't fit any tier.
 - IP/PoE security cameras — wrong form factor for shooters.
+
+---
+
+## 17. Dev-Mode Phone Capture (ADR-0009)
+
+The phone-as-camera roadmap entry in §16.1 marks the V2 PWA tier, but [ADR-0009](adr/0009-phone-capture-dev-backend.md) added an **internal-only** phone backend inside `aimvision-mobile` (`react-native-vision-camera` v4) starting V1, so the team can produce real range data before Hero 13 procurement closes. It is implemented in four slices; slice 1 is `CapturePhoneScreen` + a pure-TS recording state machine and lands the file-record-to-local-MP4 path with no upload and no frame processor.
+
+### 17.1 Capability matrix vs Hero 13
+
+| Capability                       | Hero 13 (product)    | Phone (dev)                                                                         |
+| -------------------------------- | -------------------- | ----------------------------------------------------------------------------------- |
+| Multi-camera sync (`!MSYNC`)     | sub-frame            | **N/A** — audio-correlation only                                                    |
+| GoPro Labs streaming overlay     | ✓                    | ✗                                                                                   |
+| External HILIGHT trigger         | ✓ (BLE)              | ✗ (V1 dev); soft-tap possible in slice 3                                            |
+| Mount stability + FOV            | designed for it      | tripod/clamp only                                                                   |
+| Audio                            | calibrated mic array | varies per device; shot-detection thresholds re-calibrate per phone                 |
+| Pose-estimation viability        | consistent           | varies; floor: Pixel 7 / iPhone 14, 1080p30                                         |
+| Admissible as ML training source | ✓                    | ✗ — `Recording.source_kind` filters phone-dev out of model gates (added in slice 2) |
+
+### 17.2 Slice plan
+
+| Slice | What lands                                                                                                                              |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Vision Camera dep + Expo plugin; `CapturePhoneScreen`; recording state machine; ADR-0009. No upload, no frame processor.                |
+| 2     | `POST /v1/sessions/{id}/recording` backend ingest; `Recording.source_kind` discriminator.                                               |
+| 3     | Real-time frame processor (worklet → Obj-C++/JNI shim → existing `extern "C"` media plane → new `aimvision-camera-phone` Rust backend). |
+| 4     | Dual-phone capture; audio cross-correlation alignment per [multi-camera-sync-spec](multi-camera-sync-spec.md).                          |
+
+### 17.3 Hard line
+
+Phone capture is **never** marketed, sold, or shown to a customer. Hero 13 is the product spec; the phone backend is a dev convenience that disappears (or moves to a separate `…-phone-dev` crate) at the Phase 2 re-evaluation gate from ADR-0003. When the two backends disagree on a contract, Hero 13 wins.
 
 ---
 
