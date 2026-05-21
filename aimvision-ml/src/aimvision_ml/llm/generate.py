@@ -152,9 +152,13 @@ def generate_coaching_note(
             now=now,
         )
 
-        # The model proposes verifier_passed, but the deterministic
-        # gate is authoritative. Schema-validate first (cheap reject),
-        # then reference-integrity.
+        # The deterministic gate — not the model — owns verifier_passed.
+        # Set it True provisionally so a note WITH diagnostics is
+        # schema-valid: the schema's allOf only constrains the False
+        # case (verifier_passed=false ⇒ tone_mode=silent + empty
+        # top_diagnostics). The reference-integrity check below then
+        # confirms the note or rejects it (→ retry/degrade).
+        note["verifier_passed"] = True
         try:
             validate_schema(note)
         except jsonschema.ValidationError:
@@ -162,10 +166,6 @@ def generate_coaching_note(
 
         report = deterministic_verify(note, valid_shot_ids=shot_ids, valid_drill_ids=drill_ids)
         if report.passed:
-            note["verifier_passed"] = True
-            # Re-validate after stamping verifier_passed (the allOf
-            # branch only constrains the False case, so this is safe).
-            validate_schema(note)
             return note
         # else: regenerate
 
