@@ -474,6 +474,12 @@ secrets:
         - secretKey: ANTHROPIC_API_KEY
           remoteRef:
             key: aimvision/backend/anthropic-api-key
+        # Ollama Cloud API key for the LLM + vision models (kimi-k2.6,
+        # qwen3-vl). Read by the ML worker as AIMVISION_OLLAMA_API_KEY.
+        # Stored ONLY in the secret manager — never in values/config/git.
+        - secretKey: AIMVISION_OLLAMA_API_KEY
+          remoteRef:
+            key: aimvision/backend/ollama-api-key
         - secretKey: PASETO_SIGNING_KEY
           remoteRef:
             key: aimvision/backend/paseto-signing-key
@@ -539,3 +545,11 @@ config:
     AIMVISION_WEB_BASE: "https://app.aimvision.example.com"
     AIMVISION_DEFAULT_REGION: "eu-west-1"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana-agent.monitoring.svc:4318"
+    # LLM + vision config consumed by the ML worker
+    # (aimvision_ml.llm.client). The base URL is the hosted Ollama
+    # Cloud endpoint by default; point it at the in-cluster self-hosted
+    # `ollama` Service to keep inference on-prem. Model names are
+    # non-secret. The API key is NOT here — it's a secret (see below).
+    AIMVISION_OLLAMA_BASE_URL: "https://ollama.com"
+    AIMVISION_LLM_MODEL: "kimi-k2.6"
+    AIMVISION_VISION_MODEL: "qwen3-vl:235b-instruct"
