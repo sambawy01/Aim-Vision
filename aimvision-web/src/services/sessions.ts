@@ -132,3 +132,62 @@ export async function processSession(
     taskQueue: wire.task_queue,
   };
 }
+
+/** Subset of the coaching-note structure the UI renders. The backend
+ * returns the full structured note (coaching-notes schema v1) under
+ * `note`; we type the fields we display. */
+export interface CoachingDiagnostic {
+  category: string;
+  confidence: number;
+  coaching_action: string;
+  evidence_shot_ids: string[];
+}
+
+export interface CoachingNoteBody {
+  headline: string;
+  top_diagnostics: CoachingDiagnostic[];
+  recommended_drills: string[];
+  tone_mode: string;
+  language: string;
+  degraded: boolean;
+  verifier_passed: boolean;
+  confidence_overall: number;
+}
+
+interface CoachingNoteWire {
+  id: string;
+  session_id: string;
+  headline: string;
+  verifier_passed: boolean;
+  degraded: boolean;
+  model_version: string;
+  generated_at: string;
+  note: CoachingNoteBody;
+}
+
+export interface CoachingNote {
+  id: string;
+  sessionId: string;
+  headline: string;
+  verifierPassed: boolean;
+  degraded: boolean;
+  modelVersion: string;
+  generatedAt: string;
+  note: CoachingNoteBody;
+}
+
+export async function getCoachingNote(id: string): Promise<CoachingNote> {
+  const wire = await fetchJson<CoachingNoteWire>(
+    `/sessions/${encodeURIComponent(id)}/coaching-note`,
+  );
+  return {
+    id: wire.id,
+    sessionId: wire.session_id,
+    headline: wire.headline,
+    verifierPassed: wire.verifier_passed,
+    degraded: wire.degraded,
+    modelVersion: wire.model_version,
+    generatedAt: wire.generated_at,
+    note: wire.note,
+  };
+}

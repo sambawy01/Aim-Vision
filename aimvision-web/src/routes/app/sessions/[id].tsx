@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
+  getCoachingNote,
   getSession,
   getSessionSummary,
   processSession,
@@ -42,18 +43,26 @@ export function SessionDetailRoute() {
         enabled: id.length > 0,
         retry: false,
       },
+      {
+        queryKey: ['sessions', 'coachingNote', id],
+        queryFn: () => getCoachingNote(id),
+        enabled: id.length > 0,
+        // 404 (no note yet) is expected; don't retry or surface as error.
+        retry: false,
+      },
     ],
   });
-  const [detail, summary] = results;
+  const [detail, summary, coachingNote] = results;
 
   const queryClient = useQueryClient();
   const processMutation = useMutation<ProcessSessionResult, unknown, void>({
     mutationFn: () => processSession(id),
     onSuccess: () => {
       // The pipeline will eventually mutate the summary (alignment,
-      // calibration, shots). Refetch so the readiness chips reflect
-      // progress once the worker commits.
+      // calibration, shots) and produce a coaching note. Refetch both
+      // so the UI reflects progress once the worker commits.
       void queryClient.invalidateQueries({ queryKey: ['sessions', 'summary', id] });
+      void queryClient.invalidateQueries({ queryKey: ['sessions', 'coachingNote', id] });
     },
   });
 
@@ -151,6 +160,53 @@ export function SessionDetailRoute() {
               </p>
             ) : null}
           </div>
+        </section>
+      ) : null}
+      {coachingNote.data ? (
+        <section
+          aria-label={t('sessions.coaching.heading')}
+          className="border border-border rounded-lg bg-surface p-4 space-y-3"
+        >
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-lg font-medium">{t('sessions.coaching.heading')}</h2>
+            {coachingNote.data.degraded ? (
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning/20 text-warning"
+                aria-label={t('sessions.coaching.degradedAria')}
+              >
+                {t('sessions.coaching.degradedBadge')}
+              </span>
+            ) : null}
+          </div>
+          <p className="text-base">{coachingNote.data.headline}</p>
+          {coachingNote.data.note.top_diagnostics.length > 0 ? (
+            <ul className="space-y-2">
+              {coachingNote.data.note.top_diagnostics.map((d) => (
+                <li key={`${d.category}-${d.coaching_action}`} className="text-sm">
+                  <span className="font-medium">{d.category}</span>{' '}
+                  <span className="text-text-muted">({Math.round(d.confidence * 100)}%)</span>
+                  <span className="block text-text-muted">{d.coaching_action}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-text-muted">{t('sessions.coaching.noDiagnostics')}</p>
+          )}
+          {coachingNote.data.note.recommended_drills.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {coachingNote.data.note.recommended_drills.map((drill) => (
+                <span
+                  key={drill}
+                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-surface-muted"
+                >
+                  {drill}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <p className="text-xs text-text-muted">
+            {t('sessions.coaching.model', { model: coachingNote.data.modelVersion })}
+          </p>
         </section>
       ) : null}
     </section>
