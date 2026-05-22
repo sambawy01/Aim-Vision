@@ -6,7 +6,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 
 import { initI18n } from '@/config/i18n';
 import { SessionDetailRoute } from '@/routes/app/sessions/[id]';
-import type { Session, SessionSummary } from '@/services/sessions';
+import type { CoachingNote, Session, SessionSummary } from '@/services/sessions';
 
 vi.mock('@/services/sessions', async () => {
   const actual = await vi.importActual('@/services/sessions');
@@ -14,6 +14,7 @@ vi.mock('@/services/sessions', async () => {
     ...actual,
     getSession: vi.fn(),
     getSessionSummary: vi.fn(),
+    getCoachingNote: vi.fn(),
     processSession: vi.fn(),
   };
 });
@@ -69,10 +70,39 @@ const SUMMARY: SessionSummary = {
   partialSession: false,
 };
 
+const COACHING_NOTE: CoachingNote = {
+  id: 'note-1',
+  sessionId: 'sess-1',
+  headline: 'Solid session — head lift on the left stations is the next fix.',
+  verifierPassed: true,
+  degraded: false,
+  modelVersion: 'kimi-k2.6@1',
+  generatedAt: '2026-05-21T05:41:37+00:00',
+  note: {
+    headline: 'Solid session — head lift on the left stations is the next fix.',
+    top_diagnostics: [
+      {
+        category: 'head_lift',
+        confidence: 0.81,
+        coaching_action: 'Cheek to the stock through the break; 10 bead-stare reps.',
+        evidence_shot_ids: ['shot_12', 'shot_19'],
+      },
+    ],
+    recommended_drills: ['drill_bead_stare'],
+    tone_mode: 'coach',
+    language: 'en-US',
+    degraded: false,
+    verifier_passed: true,
+    confidence_overall: 0.74,
+  },
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(sessionService.getSession).mockResolvedValue(SESSION);
   vi.mocked(sessionService.getSessionSummary).mockResolvedValue(SUMMARY);
+  // Default: no coaching note yet (404-equivalent rejection).
+  vi.mocked(sessionService.getCoachingNote).mockRejectedValue(new Error('404'));
   vi.mocked(sessionService.processSession).mockResolvedValue({
     sessionId: 'sess-1',
     workflowId: 'process-session-sess-1-abcd1234',
@@ -160,5 +190,43 @@ describe('SessionDetailRoute', () => {
     await waitFor(() => {
       expect(screen.getByText(/could not start the pipeline/i)).toBeInTheDocument();
     });
+  });
+
+  it('renders the coaching note with diagnostics + drills when present', async () => {
+    vi.mocked(sessionService.getCoachingNote).mockResolvedValue(COACHING_NOTE);
+    renderRoute();
+
+    expect(await screen.findByRole('heading', { name: /coaching note/i })).toBeInTheDocument();
+    expect(screen.getByText(/head lift on the left stations is the next fix/i)).toBeInTheDocument();
+    // Diagnostic atom + confidence + action.
+    expect(screen.getByText('head_lift')).toBeInTheDocument();
+    expect(screen.getByText(/81%/)).toBeInTheDocument();
+    expect(screen.getByText(/bead-stare reps/i)).toBeInTheDocument();
+    // Recommended drill chip.
+    expect(screen.getByText('drill_bead_stare')).toBeInTheDocument();
+    // Model attribution.
+    expect(screen.getByText(/kimi-k2\.6@1/)).toBeInTheDocument();
+  });
+
+  it('omits the coaching-note section when none exists (404)', async () => {
+    // Default mock rejects (no note). The page still renders without error.
+    renderRoute();
+    expect(await screen.findByText('user-1')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /coaching note/i })).not.toBeInTheDocument();
+    // A missing note must NOT trip the page-level error region.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows the degraded badge on a degraded coaching note', async () => {
+    vi.mocked(sessionService.getCoachingNote).mockResolvedValue({
+      ...COACHING_NOTE,
+      degraded: true,
+      note: { ...COACHING_NOTE.note, top_diagnostics: [], recommended_drills: [], degraded: true },
+    });
+    renderRoute();
+    await waitFor(() => {
+      expect(screen.getByLabelText(/coaching analysis was degraded/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/no diagnostics surfaced/i)).toBeInTheDocument();
   });
 });
