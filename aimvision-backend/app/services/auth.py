@@ -59,6 +59,7 @@ def issue_token(
         "sub": principal.user_id,
         "tid": principal.tenant_id,
         "role": principal.role,
+        "typ": "access",
         "iat": now,
         "exp": exp,
         "iss": "aimvision",
@@ -72,6 +73,46 @@ def issue_token(
 def verify_token(token: str, *, settings: Settings | None = None) -> Principal:
     s = settings or get_settings()
     payload = jwt.decode(token, s.jwt_secret, algorithms=[s.jwt_alg], issuer="aimvision")
+    # A refresh token must never be accepted as an access token. Tokens minted
+    # before `typ` existed carry no `typ` and are still honored as access.
+    if payload.get("typ") == "refresh":
+        raise jwt.InvalidTokenError("refresh token cannot be used as an access token")
+    return Principal(
+        user_id=str(payload["sub"]),
+        tenant_id=str(payload["tid"]),
+        role=str(payload["role"]),
+    )
+
+
+def issue_refresh_token(
+    principal: Principal,
+    *,
+    settings: Settings | None = None,
+) -> tuple[str, int]:
+    """Long-lived refresh token (delivered as an httpOnly cookie). Carries the
+    same principal claims as the access token so /auth/refresh can re-mint a
+    fresh access token without a DB round-trip."""
+    s = settings or get_settings()
+    now = int(time.time())
+    ttl = s.jwt_refresh_ttl_seconds
+    payload: dict[str, Any] = {
+        "sub": principal.user_id,
+        "tid": principal.tenant_id,
+        "role": principal.role,
+        "typ": "refresh",
+        "iat": now,
+        "exp": now + ttl,
+        "iss": "aimvision",
+    }
+    token = jwt.encode(payload, s.jwt_secret, algorithm=s.jwt_alg)
+    return token, ttl
+
+
+def verify_refresh_token(token: str, *, settings: Settings | None = None) -> Principal:
+    s = settings or get_settings()
+    payload = jwt.decode(token, s.jwt_secret, algorithms=[s.jwt_alg], issuer="aimvision")
+    if payload.get("typ") != "refresh":
+        raise jwt.InvalidTokenError("not a refresh token")
     return Principal(
         user_id=str(payload["sub"]),
         tenant_id=str(payload["tid"]),

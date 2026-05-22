@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-secret-change-me-in-production-please-32"
     jwt_alg: str = "HS256"
     jwt_ttl_seconds: int = 3600
+    # Refresh token (httpOnly cookie) lifetime — 30 days. The web silently
+    # exchanges it for a fresh access token on a 401, so an expired access
+    # token no longer logs the user out.
+    jwt_refresh_ttl_seconds: int = 60 * 60 * 24 * 30
 
     # Key Encryption Key for per-tenant DEK wrapping (right-to-erasure
     # crypto-shred, services/crypto_shred.py). Production roots this in
