@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     jwt_alg: str = "HS256"
     jwt_ttl_seconds: int = 3600
 
+    # Key Encryption Key for per-tenant DEK wrapping (right-to-erasure
+    # crypto-shred, services/crypto_shred.py). Production roots this in
+    # AWS KMS / Vault; here it's a config secret SHA-256'd to 32 bytes.
+    data_encryption_kek: str = "dev-data-encryption-kek-change-me-in-production"
+
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     ip_hash_salt: str = "dev-salt-rotate-daily"
 
