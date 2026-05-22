@@ -6,6 +6,7 @@
  */
 import {
   canStartRecording,
+  canUpload,
   INITIAL_RECORDING_STATE,
   isActivelyRecording,
   recordingReducer,
@@ -124,6 +125,8 @@ describe('phone recording state machine', () => {
         recordingStartedAt: null,
         errorMessage: null,
         permissionGranted: true,
+        uploadedRecordingId: null,
+        uploadError: null,
       };
       const next = recordingReducer(idle, { kind: 'start-recording' });
       expect(next.status).toBe('recording');
@@ -200,6 +203,8 @@ describe('phone recording state machine', () => {
         recordingStartedAt: null,
         errorMessage: null,
         permissionGranted: true,
+        uploadedRecordingId: null,
+        uploadError: null,
       };
       const next = recordingReducer(idle, { kind: 'error', message: 'late' });
       // error from idle-with-recording is ignored: the recording already
@@ -209,7 +214,7 @@ describe('phone recording state machine', () => {
   });
 
   describe('convenience selectors', () => {
-    it('canStartRecording is true exactly for ready and idle-with-recording', () => {
+    it('canStartRecording is true for ready / idle-with-recording / uploaded / upload-failed', () => {
       const matrix: [RecordingState['status'], boolean][] = [
         ['unknown', false],
         ['permission-pending', false],
@@ -218,6 +223,9 @@ describe('phone recording state machine', () => {
         ['recording', false],
         ['stopping', false],
         ['idle-with-recording', true],
+        ['uploading', false],
+        ['uploaded', true],
+        ['upload-failed', true],
         ['error', false],
       ];
       for (const [status, expected] of matrix) {
@@ -230,6 +238,63 @@ describe('phone recording state machine', () => {
       expect(isActivelyRecording({ ...INITIAL_RECORDING_STATE, status: 'recording' })).toBe(true);
       expect(isActivelyRecording({ ...INITIAL_RECORDING_STATE, status: 'stopping' })).toBe(false);
       expect(isActivelyRecording(INITIAL_RECORDING_STATE)).toBe(false);
+    });
+  });
+
+  describe('upload flow (ADR-0009 capture→ingest seam)', () => {
+    function ready(): RecordingState {
+      const req = recordingReducer(INITIAL_RECORDING_STATE, { kind: 'request-permission' });
+      return recordingReducer(req, { kind: 'permission-granted' });
+    }
+    function finalizedState(): RecordingState {
+      let s = recordingReducer(ready(), { kind: 'start-recording' });
+      s = recordingReducer(s, { kind: 'recording-started', at: 100 });
+      s = recordingReducer(s, { kind: 'stop-recording' });
+      return recordingReducer(s, { kind: 'recording-finalized', uri: 'file:///tmp/clip.mp4' });
+    }
+
+    it('canUpload is true only with a finalized clip (idle-with-recording / upload-failed)', () => {
+      expect(canUpload(finalizedState())).toBe(true);
+      expect(canUpload(INITIAL_RECORDING_STATE)).toBe(false);
+      expect(canUpload({ ...finalizedState(), lastRecordingUri: null })).toBe(false);
+    });
+
+    it('upload-started → uploading, then upload-succeeded → uploaded with the recording id', () => {
+      let s = recordingReducer(finalizedState(), { kind: 'upload-started' });
+      expect(s.status).toBe('uploading');
+      s = recordingReducer(s, { kind: 'upload-succeeded', recordingId: 'rec-1' });
+      expect(s.status).toBe('uploaded');
+      expect(s.uploadedRecordingId).toBe('rec-1');
+      expect(s.lastRecordingUri).toBe('file:///tmp/clip.mp4');
+    });
+
+    it('upload-failed records the error and allows a retry from upload-failed', () => {
+      let s = recordingReducer(finalizedState(), { kind: 'upload-started' });
+      s = recordingReducer(s, { kind: 'upload-failed', message: 'HTTP 401' });
+      expect(s.status).toBe('upload-failed');
+      expect(s.uploadError).toBe('HTTP 401');
+      // Retry: upload-started is allowed again from upload-failed.
+      const retry = recordingReducer(s, { kind: 'upload-started' });
+      expect(retry.status).toBe('uploading');
+      expect(retry.uploadError).toBeNull();
+    });
+
+    it('ignores upload events from states without a finalized clip', () => {
+      expect(recordingReducer(ready(), { kind: 'upload-started' }).status).toBe('ready');
+      const uploading = recordingReducer(finalizedState(), { kind: 'upload-started' });
+      // success/fail only apply mid-upload
+      expect(
+        recordingReducer(ready(), { kind: 'upload-succeeded', recordingId: 'x' }).status,
+      ).toBe('ready');
+      expect(uploading.status).toBe('uploading');
+    });
+
+    it('starting a new take from uploaded clears the prior upload result', () => {
+      let s = recordingReducer(finalizedState(), { kind: 'upload-started' });
+      s = recordingReducer(s, { kind: 'upload-succeeded', recordingId: 'rec-9' });
+      const next = recordingReducer(s, { kind: 'start-recording' });
+      expect(next.status).toBe('recording');
+      expect(next.uploadedRecordingId).toBeNull();
     });
   });
 });

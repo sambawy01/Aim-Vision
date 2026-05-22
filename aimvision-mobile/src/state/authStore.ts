@@ -11,15 +11,27 @@ export interface AuthSession {
   parentLinked: boolean;
 }
 
+/** The authenticated user's (id, tenant, role) as returned by /auth/login.
+ * Coaches/admins authenticate into this; the athlete-centric `AuthSession`
+ * is the onboarding-flow shape. Either being present means "signed in". */
+export interface Principal {
+  userId: string;
+  tenantId: string;
+  role: string;
+  displayName: string;
+}
+
 interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   session: AuthSession | null;
+  principal: Principal | null;
   hydrated: boolean;
   isAuthenticated: () => boolean;
   hydrate: () => Promise<void>;
   setTokens: (access: string, refresh: string) => Promise<void>;
   setSession: (session: AuthSession | null) => void;
+  setPrincipal: (principal: Principal | null) => void;
   signOut: () => Promise<void>;
 }
 
@@ -27,8 +39,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   accessToken: null,
   refreshToken: null,
   session: null,
+  principal: null,
   hydrated: false,
-  isAuthenticated: () => Boolean(get().accessToken && get().session),
+  isAuthenticated: () => Boolean(get().accessToken && (get().principal || get().session)),
   hydrate: async () => {
     const [access, refresh] = await Promise.all([
       SecureStore.getItemAsync(ACCESS_KEY),
@@ -42,11 +55,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ accessToken: access, refreshToken: refresh });
   },
   setSession: (session) => set({ session }),
+  setPrincipal: (principal) => set({ principal }),
   signOut: async () => {
     await Promise.all([
       SecureStore.deleteItemAsync(ACCESS_KEY),
       SecureStore.deleteItemAsync(REFRESH_KEY),
     ]);
-    set({ accessToken: null, refreshToken: null, session: null });
+    set({ accessToken: null, refreshToken: null, session: null, principal: null });
   },
 }));

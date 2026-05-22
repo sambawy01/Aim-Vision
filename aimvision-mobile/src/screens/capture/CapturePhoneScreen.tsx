@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { StyleSheet, TextInput, View } from 'react-native';
 import {
   Camera,
   useCameraDevice,
@@ -15,9 +15,11 @@ import { useRangeMode } from '../../components/RangeMode';
 import type { Theme } from '../../theme/tokens';
 import {
   canStartRecording,
+  canUpload,
   INITIAL_RECORDING_STATE,
   recordingReducer,
 } from '../../capture/phoneRecordingState';
+import { uploadRecording } from '../../services/recordings';
 import { formatFps, formatResolution } from '../../capture/frameStats';
 import { useFrameStats } from '../../capture/useFrameStats';
 
@@ -152,6 +154,27 @@ export function CapturePhoneScreen(): React.ReactElement {
 
   const reset = useCallback(() => dispatch({ kind: 'reset' }), []);
 
+  // Dev-mode capture has no session context of its own, so the operator
+  // pastes the target session id (created on the coach dashboard). Uploading
+  // closes the ADR-0009 capture→ingest seam: the local MP4 is POSTed to the
+  // backend tagged `phone_dev`, where the post-session pipeline runs over it.
+  const [sessionId, setSessionId] = useState('');
+  const handleUpload = useCallback(async () => {
+    if (!canUpload(state) || state.lastRecordingUri == null) return;
+    const sid = sessionId.trim();
+    if (sid.length === 0) return;
+    dispatch({ kind: 'upload-started' });
+    try {
+      const recording = await uploadRecording(sid, { fileUri: state.lastRecordingUri });
+      dispatch({ kind: 'upload-succeeded', recordingId: recording.id });
+    } catch (err) {
+      dispatch({
+        kind: 'upload-failed',
+        message: err instanceof Error ? err.message : t('capturePhone.upload.failed'),
+      });
+    }
+  }, [state, sessionId, t]);
+
   return (
     <View style={styles.container}>
       <AccessibleText variant="display">{t('capturePhone.title')}</AccessibleText>
@@ -240,6 +263,31 @@ export function CapturePhoneScreen(): React.ReactElement {
           </AccessibleTouchable>
         ) : null}
 
+        {canUpload(state) ? (
+          <View style={styles.uploadBlock} testID="capture-phone-upload">
+            <TextInput
+              value={sessionId}
+              onChangeText={setSessionId}
+              placeholder={t('capturePhone.upload.sessionPlaceholder')}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+              testID="capture-phone-session-input"
+            />
+            <AccessibleTouchable
+              accessibilityLabel={t('capturePhone.upload.cta')}
+              onPress={handleUpload}
+              variant="primary"
+              style={styles.primaryBtn}
+              testID="capture-phone-upload-btn"
+            >
+              <AccessibleText variant="body" color="white">
+                {t('capturePhone.upload.cta')}
+              </AccessibleText>
+            </AccessibleTouchable>
+          </View>
+        ) : null}
+
         {state.status === 'error' ? (
           <AccessibleTouchable
             accessibilityLabel={t('capturePhone.action.reset')}
@@ -275,6 +323,12 @@ function renderStatusLabel(state: ReturnType<typeof recordingReducer>, t: TFn): 
       return t('capturePhone.status.idleWithRecording', {
         uri: state.lastRecordingUri ?? '',
       });
+    case 'uploading':
+      return t('capturePhone.status.uploading');
+    case 'uploaded':
+      return t('capturePhone.status.uploaded', { id: state.uploadedRecordingId ?? '' });
+    case 'upload-failed':
+      return t('capturePhone.status.uploadFailed', { message: state.uploadError ?? '' });
     case 'error':
       return t('capturePhone.status.error', { message: state.errorMessage ?? '' });
   }
@@ -309,6 +363,19 @@ function makeStyles(theme: Theme) {
     },
     actions: {
       gap: theme.spacing.md,
+    },
+    uploadBlock: {
+      gap: theme.spacing.sm,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.radii.sm,
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.md,
+      minHeight: theme.tapTargets.minimum,
+      color: theme.colors.textPrimary,
+      backgroundColor: theme.colors.surface,
     },
     primaryBtn: {
       backgroundColor: theme.colors.accent,

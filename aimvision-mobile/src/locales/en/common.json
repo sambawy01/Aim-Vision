@@ -13,6 +13,15 @@
     "on": "On",
     "off": "Off"
   },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "For coaches and administrators. New athlete? Create an account below.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "error": "Sign-in failed. Check your email and password.",
+    "createAccount": "New here? Create an account"
+  },
   "ageGate": {
     "title": "When were you born?",
     "subtitle": "We use your date of birth to set the right protections for your account.",
@@ -98,6 +107,9 @@
       "recording": "Recording…",
       "stopping": "Finalizing recording…",
       "idleWithRecording": "Saved {{uri}}",
+      "uploading": "Uploading recording…",
+      "uploaded": "Uploaded — recording {{id}}",
+      "uploadFailed": "Upload failed: {{message}}",
       "error": "Recording error: {{message}}"
     },
     "action": {
@@ -105,6 +117,11 @@
       "startRecording": "Start recording",
       "stopRecording": "Stop recording",
       "reset": "Reset"
+    },
+    "upload": {
+      "sessionPlaceholder": "Session id (from the coach dashboard)",
+      "cta": "Upload to session",
+      "failed": "upload failed"
     },
     "noCamera": "No back-facing camera available on this device.",
     "stats": {
