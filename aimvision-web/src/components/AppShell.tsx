@@ -1,12 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTenancy } from '@/hooks/useTenancy';
+import { switchTenant } from '@/services/auth';
 import { useAuthStore } from '@/state/authStore';
 import { LocaleSwitcher } from './LocaleSwitcher';
 
 export function AppShell() {
   const { t } = useTranslation();
-  const { current, available, switchTo } = useTenancy();
+  const { current, available } = useTenancy();
   const role = useAuthStore((s) => s.principal?.role);
   const isFedAdmin = role === 'federation_admin';
   // Erasure is coach-or-higher; only `athlete` sits below it.
@@ -23,7 +24,12 @@ export function AppShell() {
                 <span className="sr-only">{t('settings.tenant')}</span>
                 <select
                   value={current.tenantId}
-                  onChange={(e) => switchTo(e.target.value)}
+                  onChange={(e) => {
+                    // Re-mints the token for the target tenant before flipping
+                    // scope. On failure `current` is unchanged, so the controlled
+                    // select snaps back to the active tenant.
+                    void switchTenant(e.target.value).catch(() => undefined);
+                  }}
                   aria-label={t('settings.tenant')}
                   className="min-h-touch px-2 py-1 rounded-md border border-border bg-surface text-text"
                 >

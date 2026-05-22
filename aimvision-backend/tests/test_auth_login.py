@@ -118,3 +118,119 @@ async def test_login_wrong_password_401(client: AsyncClient) -> None:
 async def test_login_unknown_email_401(client: AsyncClient) -> None:
     r = await client.post("/auth/login", json={"email": "nobody@example.com", "password": PASSWORD})
     assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_login_sets_refresh_cookie(client: AsyncClient) -> None:
+    await _signup(client, "login-cookie@example.com")
+    await _login(client, "login-cookie@example.com")
+    assert client.cookies.get("av_refresh")
+
+
+@pytest.mark.asyncio
+async def test_refresh_mints_a_working_access_token(client: AsyncClient) -> None:
+    await _signup(client, "refresh-ok@example.com")
+    body = await _login(client, "refresh-ok@example.com")
+    old_token = body["access_token"]
+
+    # The refresh cookie was stored by the client at login; /auth/refresh
+    # exchanges it for a fresh access token without re-sending credentials.
+    r = await client.post("/auth/refresh")
+    assert r.status_code == 200, r.text
+    new_token = r.json()["access_token"]
+    assert new_token
+
+    # The minted token authenticates a protected endpoint.
+    tenant = body["principal"]["tenant_id"]
+    protected = await client.get(
+        "/athletes",
+        headers={"Authorization": f"Bearer {new_token}", "X-Tenant-Scope": tenant},
+    )
+    assert protected.status_code == 200, protected.text
+    assert old_token  # sanity: login also returned one
+
+
+@pytest.mark.asyncio
+async def test_refresh_without_cookie_401(client: AsyncClient) -> None:
+    r = await client.post("/auth/refresh")
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_cannot_be_used_as_bearer(client: AsyncClient) -> None:
+    await _signup(client, "refresh-bearer@example.com")
+    await _login(client, "refresh-bearer@example.com")
+    refresh_value = client.cookies.get("av_refresh")
+    assert refresh_value
+
+    # Using the refresh token as an access bearer must be rejected (401), so a
+    # stolen refresh token can't directly call the API.
+    r = await client.get(
+        "/athletes",
+        headers={"Authorization": f"Bearer {refresh_value}", "X-Tenant-Scope": "solo:x"},
+    )
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_switch_tenant_rebinds_token_to_target(client: AsyncClient) -> None:
+    user_id = await _signup(client, "switch-ok@example.com")
+    await _seed_membership(user_id, tenant="org:club9", org_name="Club Nine", role=Role.coach)
+    body = await _login(client, "switch-ok@example.com")
+    # Login mints for the highest-privilege tenant (the coach club).
+    assert body["principal"]["tenant_id"] == "org:club9"
+    access = body["access_token"]
+
+    # Switch down to the solo tenancy. The call carries the current (club)
+    # token + matching scope, so it passes the middleware.
+    solo = f"solo:{user_id}"
+    r = await client.post(
+        "/auth/switch-tenant",
+        json={"tenant_id": solo},
+        headers={"Authorization": f"Bearer {access}", "X-Tenant-Scope": "org:club9"},
+    )
+    assert r.status_code == 200, r.text
+    out = r.json()
+    assert out["principal"]["tenant_id"] == solo
+    assert out["principal"]["role"] == "athlete"
+
+    # The re-minted token works against the solo tenant scope.
+    new = out["access_token"]
+    protected = await client.get(
+        "/athletes", headers={"Authorization": f"Bearer {new}", "X-Tenant-Scope": solo}
+    )
+    assert protected.status_code == 200, protected.text
+
+
+@pytest.mark.asyncio
+async def test_switch_tenant_to_non_member_403(client: AsyncClient) -> None:
+    user_id = await _signup(client, "switch-403@example.com")
+    body = await _login(client, "switch-403@example.com")
+    access = body["access_token"]
+    solo = f"solo:{user_id}"
+    r = await client.post(
+        "/auth/switch-tenant",
+        json={"tenant_id": "org:not-mine"},
+        headers={"Authorization": f"Bearer {access}", "X-Tenant-Scope": solo},
+    )
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_switch_tenant_requires_auth_401(client: AsyncClient) -> None:
+    r = await client.post("/auth/switch-tenant", json={"tenant_id": "solo:whoever"})
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_logout_clears_refresh_cookie(client: AsyncClient) -> None:
+    await _signup(client, "logout@example.com")
+    await _login(client, "logout@example.com")
+    assert client.cookies.get("av_refresh")
+
+    r = await client.post("/auth/logout")
+    assert r.status_code == 204
+    # Cookie is cleared, so a subsequent refresh fails.
+    client.cookies.clear()
+    again = await client.post("/auth/refresh")
+    assert again.status_code == 401

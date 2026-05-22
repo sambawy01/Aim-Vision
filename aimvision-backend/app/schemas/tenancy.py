@@ -52,6 +52,26 @@ class LoginOut(BaseModel):
     memberships: list[MembershipOut]
 
 
+class RefreshOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+
+class SwitchTenantIn(BaseModel):
+    tenant_id: str
+
+
+class SwitchTenantOut(BaseModel):
+    """A re-minted access token bound to the newly-selected tenant, plus the
+    principal under that tenant so the web can update its auth store."""
+
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    principal: PrincipalOut
+
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
