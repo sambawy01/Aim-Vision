@@ -7,10 +7,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import db_session_anon
-from ..models.tenancy import Account, OrgKind, User
+from ..models.tenancy import Account, Membership, OrgKind, Role, User
 from ..models.tenancy import Org as OrgModel
-from ..schemas.tenancy import LoginIn, LoginOut, SignupIn, UserOut
+from ..schemas.tenancy import (
+    LoginIn,
+    LoginOut,
+    MembershipOut,
+    PrincipalOut,
+    SignupIn,
+    UserOut,
+)
 from ..services.auth import Principal, hash_password, issue_token, verify_password
+from ..services.authz import ROLE_RANK
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -59,6 +67,61 @@ async def login(
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
 
-    principal = Principal(user_id=user.id, tenant_id=f"solo:{user.id}", role="athlete")
+    memberships = await _resolve_memberships(session, user)
+    # The token is minted for the user's highest-privilege membership; that
+    # membership is returned first so the web's `current` tenant matches the
+    # token's `tid`.
+    primary = memberships[0]
+    principal = Principal(user_id=user.id, tenant_id=primary.tenant_id, role=primary.role)
     token, ttl = issue_token(principal)
-    return LoginOut(access_token=token, expires_in=ttl)
+    return LoginOut(
+        access_token=token,
+        expires_in=ttl,
+        principal=PrincipalOut(
+            user_id=user.id,
+            tenant_id=primary.tenant_id,
+            role=primary.role,
+            display_name=user.display_name,
+        ),
+        memberships=memberships,
+    )
+
+
+async def _resolve_memberships(session: AsyncSession, user: User) -> list[MembershipOut]:
+    """Build the tenancies a user can operate in, highest-privilege first.
+
+    Every user has an implicit solo tenancy (the solo Org created at signup);
+    real `Membership` rows in clubs/federations are layered on top. When a user
+    holds several roles in one tenant, the highest-ranked wins for that tenant.
+    """
+    solo_tenant = f"solo:{user.id}"
+    solo_org = (
+        (await session.execute(select(OrgModel).where(OrgModel.tenant_id == solo_tenant)))
+        .scalars()
+        .first()
+    )
+    solo_name = solo_org.name if solo_org is not None else f"{user.display_name} (solo)"
+
+    # tenant_id -> (display_name, best_role)
+    by_tenant: dict[str, tuple[str, str]] = {solo_tenant: (solo_name, Role.athlete.value)}
+
+    rows = (
+        await session.execute(
+            select(Membership, OrgModel)
+            .join(OrgModel, Membership.org_id == OrgModel.id)
+            .where(Membership.user_id == user.id, Membership.is_active.is_(True))
+        )
+    ).all()
+    for membership, org in rows:
+        role = membership.role.value if hasattr(membership.role, "value") else str(membership.role)
+        existing = by_tenant.get(org.tenant_id)
+        if existing is None or ROLE_RANK.get(role, -1) > ROLE_RANK.get(existing[1], -1):
+            by_tenant[org.tenant_id] = (org.name, role)
+
+    out = [
+        MembershipOut(tenant_id=tid, display_name=name, role=role)
+        for tid, (name, role) in by_tenant.items()
+    ]
+    # Highest-privilege first; stable name order within equal rank.
+    out.sort(key=lambda m: (-ROLE_RANK.get(m.role, -1), m.display_name))
+    return out

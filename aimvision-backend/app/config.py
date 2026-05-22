@@ -32,7 +32,11 @@ class Settings(BaseSettings):
     # AWS KMS / Vault; here it's a config secret SHA-256'd to 32 bytes.
     data_encryption_kek: str = "dev-data-encryption-kek-change-me-in-production"
 
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    # Dev defaults cover both the legacy :3000 and the Vite dev server (:5173)
+    # the web app actually runs on. Production overrides via AIMVISION_CORS_ORIGINS.
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "http://localhost:5173"]
+    )
     ip_hash_salt: str = "dev-salt-rotate-daily"
 
     # Local-fs storage backend root. Recording uploads land under
