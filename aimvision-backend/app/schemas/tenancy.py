@@ -26,10 +26,30 @@ class LoginIn(BaseModel):
     password: str
 
 
+class PrincipalOut(BaseModel):
+    user_id: str
+    tenant_id: str
+    role: str
+    display_name: str = ""
+
+
+class MembershipOut(BaseModel):
+    """One tenancy the user can operate in. Drives the web tenant switcher."""
+
+    tenant_id: str
+    display_name: str
+    role: str
+
+
 class LoginOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
+    # The principal the token was minted for (the user's highest-privilege
+    # membership) plus the full set of tenancies they can switch between.
+    # The web client fills its auth + tenancy stores directly from these.
+    principal: PrincipalOut
+    memberships: list[MembershipOut]
 
 
 class UserOut(BaseModel):
@@ -38,9 +58,3 @@ class UserOut(BaseModel):
     id: str
     email: EmailStr
     display_name: str
-
-
-class PrincipalOut(BaseModel):
-    user_id: str
-    tenant_id: str
-    role: str
