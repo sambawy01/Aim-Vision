@@ -6,6 +6,7 @@ from .audit import AuditEvent
 from .base import Base
 from .camera_calibration import CameraCalibration
 from .consent import ConsentRecord
+from .drill import Drill
 from .session import Recording, RecordingSourceKind, Session, Shot, ShotEvent
 from .tenancy import (
     Account,
@@ -32,6 +33,7 @@ __all__ = [
     "CoachProfile",
     "Cohort",
     "ConsentRecord",
+    "Drill",
     "Membership",
     "Org",
     "OrgKind",

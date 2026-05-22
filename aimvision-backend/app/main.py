@@ -14,7 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
 from .config import get_settings
-from .db import dispose_engines, init_engines
+from .db import dispose_engines, get_app_engine, init_engines
 from .middleware.audit import AuditMiddleware
 from .middleware.tenant_context import TenantContextMiddleware
 from .routers import (
@@ -23,11 +23,13 @@ from .routers import (
     auth,
     cohorts,
     consent,
+    drills,
     federation,
     health,
     orgs,
     session,
 )
+from .services.drills import ensure_drills_seeded
 
 logger = logging.getLogger("aimvision")
 
@@ -36,6 +38,11 @@ logger = logging.getLogger("aimvision")
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_engines()
     logger.info("aimvision-backend %s starting in %s", __version__, get_settings().env)
+    # Idempotently seed the global drill catalog so it's present whether
+    # the schema came from migrations (prod) or create_all (tests).
+    inserted = await ensure_drills_seeded(get_app_engine())
+    if inserted:
+        logger.info("seeded %d drills into the catalog", inserted)
     try:
         yield
     finally:
@@ -69,6 +76,7 @@ def create_app() -> FastAPI:
     app.include_router(consent.router)
     app.include_router(athletes.router)
     app.include_router(cohorts.router)
+    app.include_router(drills.router)
     app.include_router(orgs.router)
     app.include_router(session.router)
     app.include_router(active_learning.router)
