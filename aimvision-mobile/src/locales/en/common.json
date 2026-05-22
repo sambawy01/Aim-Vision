@@ -98,6 +98,9 @@
       "recording": "Recording…",
       "stopping": "Finalizing recording…",
       "idleWithRecording": "Saved {{uri}}",
+      "uploading": "Uploading recording…",
+      "uploaded": "Uploaded — recording {{id}}",
+      "uploadFailed": "Upload failed: {{message}}",
       "error": "Recording error: {{message}}"
     },
     "action": {
@@ -105,6 +108,11 @@
       "startRecording": "Start recording",
       "stopRecording": "Stop recording",
       "reset": "Reset"
+    },
+    "upload": {
+      "sessionPlaceholder": "Session id (from the coach dashboard)",
+      "cta": "Upload to session",
+      "failed": "upload failed"
     },
     "noCamera": "No back-facing camera available on this device.",
     "stats": {

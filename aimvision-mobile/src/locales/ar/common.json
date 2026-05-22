@@ -98,6 +98,9 @@
       "recording": "جاري التسجيل…",
       "stopping": "إنهاء التسجيل…",
       "idleWithRecording": "تم الحفظ في {{uri}}",
+      "uploading": "جاري رفع التسجيل…",
+      "uploaded": "تم الرفع — التسجيل {{id}}",
+      "uploadFailed": "فشل الرفع: {{message}}",
       "error": "خطأ في التسجيل: {{message}}"
     },
     "action": {
@@ -105,6 +108,11 @@
       "startRecording": "ابدأ التسجيل",
       "stopRecording": "أوقف التسجيل",
       "reset": "إعادة"
+    },
+    "upload": {
+      "sessionPlaceholder": "معرّف الجلسة (من لوحة المدرب)",
+      "cta": "رفع إلى الجلسة",
+      "failed": "فشل الرفع"
     },
     "noCamera": "لا توجد كاميرا خلفية متاحة على هذا الجهاز.",
     "stats": {

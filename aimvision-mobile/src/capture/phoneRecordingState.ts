@@ -40,6 +40,9 @@ export type RecordingStatus =
   | 'recording'
   | 'stopping'
   | 'idle-with-recording'
+  | 'uploading'
+  | 'uploaded'
+  | 'upload-failed'
   | 'error';
 
 export interface RecordingState {
@@ -54,6 +57,10 @@ export interface RecordingState {
    * Distinct from `status === 'ready'` because `recording`/`stopping`/`idle-with-recording`
    * all imply the permission is still held. */
   permissionGranted: boolean;
+  /** Backend recording id once the finalized clip has been uploaded; null otherwise. */
+  uploadedRecordingId: string | null;
+  /** Human-readable upload error; only meaningful in status="upload-failed". */
+  uploadError: string | null;
 }
 
 export type RecordingEvent =
@@ -64,6 +71,9 @@ export type RecordingEvent =
   | { kind: 'recording-started'; at: number }
   | { kind: 'stop-recording' }
   | { kind: 'recording-finalized'; uri: string }
+  | { kind: 'upload-started' }
+  | { kind: 'upload-succeeded'; recordingId: string }
+  | { kind: 'upload-failed'; message: string }
   | { kind: 'error'; message: string }
   | { kind: 'reset' };
 
@@ -73,6 +83,8 @@ export const INITIAL_RECORDING_STATE: RecordingState = {
   recordingStartedAt: null,
   errorMessage: null,
   permissionGranted: false,
+  uploadedRecordingId: null,
+  uploadError: null,
 };
 
 /** Pure transition function. Illegal transitions return the state unchanged
@@ -107,13 +119,26 @@ export function recordingReducer(state: RecordingState, event: RecordingEvent): 
     }
 
     case 'start-recording': {
-      // Allowed from `ready` and from `idle-with-recording` (re-arm for
-      // a follow-up take). The native `recordingStartedAt` is filled in
-      // by the `recording-started` event once Vision Camera confirms.
-      if (state.status !== 'ready' && state.status !== 'idle-with-recording') {
+      // Allowed from `ready`, `idle-with-recording`, and after an upload
+      // settled (`uploaded` / `upload-failed`) so the user can shoot a
+      // follow-up take. Not allowed mid-`uploading`. The native
+      // `recordingStartedAt` is filled in by `recording-started` once
+      // Vision Camera confirms.
+      if (
+        state.status !== 'ready' &&
+        state.status !== 'idle-with-recording' &&
+        state.status !== 'uploaded' &&
+        state.status !== 'upload-failed'
+      ) {
         return state;
       }
-      return { ...state, status: 'recording', errorMessage: null };
+      return {
+        ...state,
+        status: 'recording',
+        errorMessage: null,
+        uploadError: null,
+        uploadedRecordingId: null,
+      };
     }
 
     case 'recording-started': {
@@ -134,6 +159,30 @@ export function recordingReducer(state: RecordingState, event: RecordingEvent): 
         lastRecordingUri: event.uri,
         recordingStartedAt: null,
       };
+    }
+
+    case 'upload-started': {
+      // Kick off an upload of the finalized clip. Allowed from
+      // `idle-with-recording` (fresh clip) or `upload-failed` (retry).
+      if (state.status !== 'idle-with-recording' && state.status !== 'upload-failed') {
+        return state;
+      }
+      return { ...state, status: 'uploading', uploadError: null };
+    }
+
+    case 'upload-succeeded': {
+      if (state.status !== 'uploading') return state;
+      return {
+        ...state,
+        status: 'uploaded',
+        uploadedRecordingId: event.recordingId,
+        uploadError: null,
+      };
+    }
+
+    case 'upload-failed': {
+      if (state.status !== 'uploading') return state;
+      return { ...state, status: 'upload-failed', uploadError: event.message };
     }
 
     case 'error': {
@@ -163,6 +212,8 @@ export function recordingReducer(state: RecordingState, event: RecordingEvent): 
         status: state.permissionGranted ? 'ready' : 'unknown',
         errorMessage: null,
         recordingStartedAt: null,
+        uploadError: null,
+        uploadedRecordingId: null,
       };
     }
   }
@@ -170,7 +221,20 @@ export function recordingReducer(state: RecordingState, event: RecordingEvent): 
 
 /** Convenience: does this state allow starting a new recording right now? */
 export function canStartRecording(state: RecordingState): boolean {
-  return state.status === 'ready' || state.status === 'idle-with-recording';
+  return (
+    state.status === 'ready' ||
+    state.status === 'idle-with-recording' ||
+    state.status === 'uploaded' ||
+    state.status === 'upload-failed'
+  );
+}
+
+/** Convenience: is there a finalized clip ready to upload (or retry)? */
+export function canUpload(state: RecordingState): boolean {
+  return (
+    (state.status === 'idle-with-recording' || state.status === 'upload-failed') &&
+    state.lastRecordingUri !== null
+  );
 }
 
 /** Convenience: is a recording actively underway? */
