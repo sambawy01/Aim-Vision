@@ -33,6 +33,9 @@ export function SessionCreateRoute(): JSX.Element {
     queryKey: ['athletes', 'list'],
     queryFn: listAthletes,
     initialData: [],
+    // [] seed must be immediately stale or the global staleTime suppresses
+    // the mount fetch (see config/query.ts) and the picker stays empty.
+    initialDataUpdatedAt: 0,
     retry: false,
   });
 
@@ -40,6 +43,9 @@ export function SessionCreateRoute(): JSX.Element {
     queryKey: ['orgs', 'list'],
     queryFn: listOrgs,
     initialData: [],
+    // [] seed must be immediately stale or the global staleTime suppresses
+    // the mount fetch (see config/query.ts) and the picker stays empty.
+    initialDataUpdatedAt: 0,
     retry: false,
   });
 

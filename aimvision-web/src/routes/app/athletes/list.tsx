@@ -9,8 +9,10 @@ export function AthleteListRoute() {
   const { data, isLoading, isError } = useQuery<Athlete[]>({
     queryKey: ['athletes', 'list'],
     queryFn: listAthletes,
-    // Placeholder seed for the scaffold; backend not wired yet.
     initialData: [],
+    // Treat the [] seed as immediately stale, else the global staleTime
+    // (config/query.ts) suppresses the mount fetch and the list stays empty.
+    initialDataUpdatedAt: 0,
     retry: false,
   });
 

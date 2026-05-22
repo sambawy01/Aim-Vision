@@ -37,6 +37,9 @@ export function FederationDashboardRoute(): JSX.Element {
     queryFn: listFederationClubs,
     retry: false,
     initialData: [],
+    // [] seed must be immediately stale or the global staleTime suppresses
+    // the mount fetch (see config/query.ts).
+    initialDataUpdatedAt: 0,
     enabled: principal?.role === 'federation_admin',
   });
 

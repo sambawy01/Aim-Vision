@@ -10,6 +10,9 @@ export function SessionListRoute() {
     queryKey: ['sessions', 'list'],
     queryFn: listSessions,
     initialData: [],
+    // [] seed must be immediately stale or the global staleTime suppresses
+    // the mount fetch (see config/query.ts).
+    initialDataUpdatedAt: 0,
     retry: false,
   });
 
