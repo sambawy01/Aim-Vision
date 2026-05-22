@@ -91,5 +91,13 @@ class GateResult(BaseModel):
     macro_f1: float
     top3_macro_f1: float
     conformal_coverage: float
+    min_class_recall: float = Field(
+        default=1.0,
+        description="Lowest recall across adequately-supported classes (1.0 if none qualify).",
+    )
     failed_axes: list[str] = Field(default_factory=list)
+    failed_classes: list[str] = Field(
+        default_factory=list,
+        description="Classes whose recall fell below the floor despite adequate support.",
+    )
     notes: str = ""

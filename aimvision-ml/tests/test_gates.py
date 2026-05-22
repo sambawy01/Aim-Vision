@@ -91,6 +91,79 @@ def test_gate_thresholds_can_be_relaxed() -> None:
         top3_macro_f1_min=0.0,
         conformal_coverage_min=0.0,
         bias_axis_macro_f1_gap_max=1.0,
+        per_class_recall_min=0.0,
     )
     result = evaluate(probs, labels, n_classes=5, prediction_sets=sets, thresholds=relaxed)
     assert result.passed
+
+
+def test_gate_passes_reports_min_class_recall() -> None:
+    probs, labels, sets = _make_clean_preds()
+    result = evaluate(probs, labels, n_classes=5, prediction_sets=sets)
+    assert result.passed, result.notes
+    # Clean preds recover every class well above the 0.50 floor.
+    assert result.min_class_recall >= 0.78
+    assert result.failed_classes == []
+
+
+def test_gate_fails_when_a_supported_class_is_systematically_missed() -> None:
+    """Macro-F1 stays healthy but one well-supported class is never recovered."""
+    rng = np.random.default_rng(7)
+    c = 5
+    missed = 2  # the diagnostic the model never predicts
+    probs_rows: list[np.ndarray] = []
+    labels_list: list[int] = []
+    for lbl in range(c):
+        n = 120
+        for _ in range(n):
+            labels_list.append(lbl)
+            # True class `missed` is always predicted as a neighbour, so its
+            # recall collapses to 0; other classes are recovered ~92% of time.
+            recovered = lbl != missed and rng.random() < 0.92
+            pred = lbl if recovered else (lbl + 1) % c
+            row = np.full(c, 0.02, dtype=np.float64)
+            row[pred] = 0.92
+            probs_rows.append(row)
+    probs = np.stack(probs_rows)
+    labels = np.array(labels_list)
+    sets = [{int(lbl)} for lbl in labels]
+
+    result = evaluate(probs, labels, n_classes=c, prediction_sets=sets)
+    assert not result.passed
+    assert any(f"class_{missed}" in fc for fc in result.failed_classes)
+    assert "per-class recall fail" in result.notes
+    assert result.min_class_recall == 0.0
+
+
+def test_gate_does_not_fail_on_low_support_class_below_floor() -> None:
+    """A class with too few samples to judge must not false-fail the gate."""
+    rng = np.random.default_rng(11)
+    c = 4
+    probs_rows: list[np.ndarray] = []
+    labels_list: list[int] = []
+    # Three well-supported, well-recovered classes.
+    for lbl in range(3):
+        for _ in range(120):
+            labels_list.append(lbl)
+            pred = lbl if rng.random() < 0.95 else (lbl + 1) % c
+            row = np.full(c, 0.02, dtype=np.float64)
+            row[pred] = 0.94
+            probs_rows.append(row)
+    # One rare class (n=5 < min_class_support) the model always misses.
+    for _ in range(5):
+        labels_list.append(3)
+        row = np.full(c, 0.02, dtype=np.float64)
+        row[0] = 0.94  # never predicts class 3
+        probs_rows.append(row)
+    probs = np.stack(probs_rows)
+    labels = np.array(labels_list)
+    sets = [{int(lbl)} for lbl in labels]
+
+    # Isolate the recall-floor support gating from the unrelated macro-F1 gate
+    # (one tiny zero-F1 class drags top3-macro-F1 below its threshold here).
+    # Defaults for per_class_recall_min / min_class_support are kept.
+    thresholds = GateThresholds(top3_macro_f1_min=0.0)
+    result = evaluate(probs, labels, n_classes=c, prediction_sets=sets, thresholds=thresholds)
+    # Class 3 has 0 recall but only 5 samples → below min_class_support, skipped.
+    assert result.failed_classes == [], result.failed_classes
+    assert result.passed, result.notes
