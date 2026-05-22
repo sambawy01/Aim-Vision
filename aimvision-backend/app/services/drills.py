@@ -20,9 +20,7 @@ async def ensure_drills_seeded(engine: AsyncEngine) -> int:
     """Insert any missing catalog drills. Returns the number inserted."""
     sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
     async with sessionmaker() as session, session.begin():
-        existing = set(
-            (await session.execute(select(Drill.id))).scalars().all()
-        )
+        existing = set((await session.execute(select(Drill.id))).scalars().all())
         inserted = 0
         for seed in DRILL_CATALOG:
             if seed["id"] in existing:
