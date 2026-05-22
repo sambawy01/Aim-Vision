@@ -1,4 +1,5 @@
 export type AuthStackParamList = {
+  Login: undefined;
   AgeGate: undefined;
   ParentalConsent: { dob: string; ageYears: number; mode: 'minor' | 'coppa' };
   ChildSetup: { parentConsentToken: string };

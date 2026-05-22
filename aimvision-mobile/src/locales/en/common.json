@@ -13,6 +13,15 @@
     "on": "On",
     "off": "Off"
   },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "For coaches and administrators. New athlete? Create an account below.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "error": "Sign-in failed. Check your email and password.",
+    "createAccount": "New here? Create an account"
+  },
   "ageGate": {
     "title": "When were you born?",
     "subtitle": "We use your date of birth to set the right protections for your account.",
