@@ -41,10 +41,10 @@ REFRESH_COOKIE = "av_refresh"
 
 def _set_refresh_cookie(response: Response, principal: Principal) -> None:
     token, ttl = issue_refresh_token(principal)
-    # Secure only in HTTPS-served environments. `development` (Vite over http)
-    # and `test` (httpx over http) must stay non-secure or the cookie is never
-    # sent back.
-    secure = get_settings().env not in {"development", "test"}
+    # Secure only in HTTPS-served environments (production/staging). The http
+    # envs — `development` (Vite), `test` (httpx), `ci` — must stay non-secure
+    # or the cookie is never sent back over plain http.
+    secure = get_settings().env in {"production", "staging"}
     response.set_cookie(
         REFRESH_COOKIE,
         token,
