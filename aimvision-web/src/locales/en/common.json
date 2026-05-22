@@ -18,6 +18,7 @@
     "sessions": "Sessions",
     "checkin": "Check-in",
     "federation": "Federation",
+    "erasure": "Erasure",
     "settings": "Settings"
   },
   "federation": {
@@ -113,6 +114,41 @@
     "sessionIdLabel": "Session ID",
     "redeem": "Redeem",
     "specRef": "See docs/security/qr-checkin-token-spec.md"
+  },
+  "erasure": {
+    "title": "Right to erasure",
+    "subtitle": "Permanently delete a data subject's records (GDPR Art. 17 / Egypt PDPL)",
+    "notAllowed": "Filing an erasure request requires a coach or administrator role.",
+    "athlete": "Data subject",
+    "athletePlaceholder": "Select an athlete…",
+    "reason": "Reason for erasure",
+    "reasonPlaceholder": "e.g. Subject withdrew consent and requested deletion.",
+    "submit": "Open erasure request",
+    "statusLabel": {
+      "pending": "Pending",
+      "completed": "Completed"
+    },
+    "ticket": {
+      "id": "Ticket",
+      "athlete": "Data subject",
+      "reason": "Reason",
+      "status": "Status"
+    },
+    "danger": {
+      "heading": "Irreversible action",
+      "body": "Executing this request crypto-shreds the tenant key and permanently destroys the subject's data everywhere it lives, including encrypted backups. This cannot be undone.",
+      "confirm": "I understand this permanently destroys the data subject's records and cannot be reversed.",
+      "execute": "Execute erasure"
+    },
+    "done": {
+      "body": "Erasure complete. The data subject's records were shredded.",
+      "another": "Start another request"
+    },
+    "errors": {
+      "required": "Select a data subject and provide a reason.",
+      "submitWithStatus": "Could not open the erasure request (status {{status}}).",
+      "executeWithStatus": "Could not execute the erasure (status {{status}})."
+    }
   },
   "settings": {
     "title": "Settings",

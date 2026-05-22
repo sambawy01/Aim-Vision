@@ -7,7 +7,10 @@ import { LocaleSwitcher } from './LocaleSwitcher';
 export function AppShell() {
   const { t } = useTranslation();
   const { current, available, switchTo } = useTenancy();
-  const isFedAdmin = useAuthStore((s) => s.principal?.role === 'federation_admin');
+  const role = useAuthStore((s) => s.principal?.role);
+  const isFedAdmin = role === 'federation_admin';
+  // Erasure is coach-or-higher; only `athlete` sits below it.
+  const canErase = role !== undefined && role !== 'athlete';
 
   return (
     <div className="min-h-screen bg-surface text-text flex flex-col">
@@ -56,6 +59,13 @@ export function AppShell() {
               <li>
                 <NavLink to="/app/federation" className={navClass}>
                   {t('nav.federation')}
+                </NavLink>
+              </li>
+            ) : null}
+            {canErase ? (
+              <li>
+                <NavLink to="/app/erasure" className={navClass}>
+                  {t('nav.erasure')}
                 </NavLink>
               </li>
             ) : null}

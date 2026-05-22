@@ -12,6 +12,7 @@ import { SessionCreateRoute } from './app/sessions/new';
 import { SessionDetailRoute } from './app/sessions/[id]';
 import { CheckinScanRoute } from './app/checkin/scan';
 import { FederationDashboardRoute } from './app/federation/dashboard';
+import { ErasureRequestRoute } from './app/erasure/request';
 import { SettingsRoute } from './app/settings';
 
 function RequireAuth({ children }: { children: JSX.Element }): JSX.Element {
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
           { path: 'sessions/:id', element: <SessionDetailRoute /> },
           { path: 'checkin', element: <CheckinScanRoute /> },
           { path: 'federation', element: <FederationDashboardRoute /> },
+          { path: 'erasure', element: <ErasureRequestRoute /> },
           { path: 'settings', element: <SettingsRoute /> },
         ],
       },
