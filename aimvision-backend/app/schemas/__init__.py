@@ -5,6 +5,7 @@ from .audit import AuditEventOut
 from .camera_calibration import CalibrationHealthOut, CameraCalibrationIn, CameraCalibrationOut
 from .cohorts import CohortOut
 from .consent import ConsentGrantIn, ConsentOut, ConsentRevokeIn
+from .drills import DrillOut
 from .federation import (
     ClubMembershipOut,
     ClubStatus,
@@ -49,6 +50,7 @@ __all__ = [
     "ConsentGrantIn",
     "ConsentOut",
     "ConsentRevokeIn",
+    "DrillOut",
     "FederationOverviewOut",
     "HealthOut",
     "LoginIn",
