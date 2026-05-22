@@ -14,6 +14,7 @@ from .federation import (
     TalentCohortOut,
 )
 from .orgs import OrgOut
+from .progress import AthleteProgressOut, AtomDelta, SessionProgressOut
 from .session import (
     AlignmentIn,
     ProcessSessionIn,
@@ -41,6 +42,8 @@ from .tenancy import (
 __all__ = [
     "AlignmentIn",
     "AthleteOut",
+    "AthleteProgressOut",
+    "AtomDelta",
     "AuditEventOut",
     "CalibrationHealthOut",
     "CameraCalibrationIn",
@@ -66,6 +69,7 @@ __all__ = [
     "SessionCreateIn",
     "SessionEndIn",
     "SessionOut",
+    "SessionProgressOut",
     "SessionSummaryOut",
     "ShotEventIn",
     "ShotEventOut",
