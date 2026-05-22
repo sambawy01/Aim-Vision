@@ -5,6 +5,7 @@ from .annotation import Annotation, AnnotationVisibility
 from .audit import AuditEvent
 from .base import Base
 from .camera_calibration import CameraCalibration
+from .coaching_note import CoachingNote
 from .consent import ConsentRecord
 from .drill import Drill
 from .session import Recording, RecordingSourceKind, Session, Shot, ShotEvent
@@ -31,6 +32,7 @@ __all__ = [
     "Base",
     "CameraCalibration",
     "CoachProfile",
+    "CoachingNote",
     "Cohort",
     "ConsentRecord",
     "Drill",
