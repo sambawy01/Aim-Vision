@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
 from ..deps import current_principal, db_session
-from ..models import CameraCalibration, Recording, RecordingSourceKind, Role
+from ..models import CameraCalibration, CoachingNote, Recording, RecordingSourceKind, Role
 from ..models.base import new_uuid
 from ..models.session import Session as SessionModel
 from ..models.session import Shot, ShotEvent
@@ -21,6 +21,11 @@ from ..schemas.camera_calibration import (
     CalibrationHealthOut,
     CameraCalibrationIn,
     CameraCalibrationOut,
+)
+from ..schemas.coaching_note import (
+    REQUIRED_NOTE_KEYS,
+    CoachingNoteIn,
+    CoachingNoteOut,
 )
 from ..schemas.session import (
     AlignmentIn,
@@ -885,3 +890,103 @@ async def list_shot_events(
         .all()
     )
     return [ShotEventOut.model_validate(r) for r in rows]
+
+
+def _parse_generated_at(value: str) -> datetime:
+    """Parse the note's ISO-8601 `generated_at`. Accepts a trailing
+    `Z`; falls back to now(UTC) for an unparseable value rather than
+    rejecting the whole note (the field is informational)."""
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.now(UTC)
+
+
+@router.post(
+    "/{session_id}/coaching-note",
+    response_model=CoachingNoteOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_coaching_note(
+    session_id: str,
+    payload: CoachingNoteIn,
+    # The post-session LLM worker (coach-tier service account) writes
+    # the note; a coach manually regenerating one uses the same role.
+    principal: Principal = Depends(require_role(Role.coach.value)),
+    db: AsyncSession = Depends(db_session),
+) -> CoachingNoteOut:
+    """Persist a generated coaching note for a session.
+
+    The note has already been schema-validated + verified by the ML
+    producer (docs/llm-coaching-notes-schema.md). The backend stores
+    it verbatim in `note_json` and denormalizes a few fields for
+    list/filtering. Multiple notes per session are allowed (a later
+    regeneration appends); GET returns the most recent.
+
+    Light validation only: the required top-level keys must be present
+    and the note's `session_id` must match the path (a mismatch is a
+    producer bug worth surfacing as 422). 404 on missing/cross-tenant
+    session.
+    """
+    await _session_in_tenant_or_404(db, principal, session_id)
+
+    note = payload.note
+    missing = [k for k in REQUIRED_NOTE_KEYS if k not in note]
+    if missing:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"note missing required keys: {missing}",
+        )
+    if note["session_id"] != session_id:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="note.session_id does not match the path session id",
+        )
+
+    row = CoachingNote(
+        id=new_uuid(),
+        tenant_id=principal.tenant_id,
+        session_id=session_id,
+        headline=str(note["headline"]),
+        tone_mode=str(note["tone_mode"]),
+        language=str(note["language"]),
+        verifier_passed=bool(note["verifier_passed"]),
+        degraded=bool(note["degraded"]),
+        confidence_overall=float(note["confidence_overall"]),
+        model_version=str(note["model_version"]),
+        taxonomy_version=str(note["taxonomy_version"]),
+        generated_at=_parse_generated_at(str(note["generated_at"])),
+        note_json=note,
+    )
+    db.add(row)
+    await db.flush()
+    await db.refresh(row)
+    return CoachingNoteOut.model_validate(row)
+
+
+@router.get("/{session_id}/coaching-note", response_model=CoachingNoteOut)
+async def get_coaching_note(
+    session_id: str,
+    principal: Principal = Depends(current_principal),
+    db: AsyncSession = Depends(db_session),
+) -> CoachingNoteOut:
+    """Return the most-recent coaching note for a session (by
+    created_at). 404 when none has been generated yet, or the session
+    isn't visible to the principal. Open to any authenticated
+    principal in the tenant."""
+    await _session_in_tenant_or_404(db, principal, session_id)
+    row = (
+        (
+            await db.execute(
+                select(CoachingNote)
+                .where(CoachingNote.session_id == session_id)
+                .order_by(CoachingNote.created_at.desc())
+                .limit(1)
+            )
+        )
+        .scalars()
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no coaching note for this session")
+    return CoachingNoteOut.model_validate(row)
