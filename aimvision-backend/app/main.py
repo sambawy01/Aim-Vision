@@ -24,6 +24,7 @@ from .routers import (
     cohorts,
     consent,
     drills,
+    erasure,
     federation,
     health,
     orgs,
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
     app.include_router(session.router)
     app.include_router(active_learning.router)
     app.include_router(federation.router)
+    app.include_router(erasure.router)
 
     @app.exception_handler(StarletteHTTPException)
     async def http_exc_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:

@@ -7,6 +7,7 @@ from .coaching_note import CoachingNoteIn, CoachingNoteOut
 from .cohorts import CohortOut
 from .consent import ConsentGrantIn, ConsentOut, ConsentRevokeIn
 from .drills import DrillOut
+from .erasure import ErasureRequestIn, ErasureTicketOut
 from .federation import (
     ClubMembershipOut,
     ClubStatus,
@@ -54,6 +55,8 @@ __all__ = [
     "ConsentOut",
     "ConsentRevokeIn",
     "DrillOut",
+    "ErasureRequestIn",
+    "ErasureTicketOut",
     "FederationOverviewOut",
     "HealthOut",
     "LoginIn",

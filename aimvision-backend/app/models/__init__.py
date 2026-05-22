@@ -8,6 +8,7 @@ from .camera_calibration import CameraCalibration
 from .coaching_note import CoachingNote
 from .consent import ConsentRecord
 from .drill import Drill
+from .erasure import ErasureTicket, TenantEncryptionKey
 from .session import Recording, RecordingSourceKind, Session, Shot, ShotEvent
 from .tenancy import (
     Account,
@@ -36,6 +37,7 @@ __all__ = [
     "Cohort",
     "ConsentRecord",
     "Drill",
+    "ErasureTicket",
     "Membership",
     "Org",
     "OrgKind",
@@ -45,6 +47,7 @@ __all__ = [
     "Session",
     "Shot",
     "ShotEvent",
+    "TenantEncryptionKey",
     "UncertaintySignal",
     "User",
 ]
