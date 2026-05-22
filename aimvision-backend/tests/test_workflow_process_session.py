@@ -11,11 +11,13 @@ from __future__ import annotations
 
 import uuid
 
+import httpx
 import pytest
 from temporalio.client import Client
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 
+from app.services.ingest_client import IngestClient
 from app.workflows import (
     ProcessSessionInput,
     ProcessSessionResult,
@@ -28,6 +30,7 @@ from app.workflows.activities import (
     finalize_session,
     run_per_shot_diagnostic,
 )
+from app.workflows.activities import post_session as post_session_module
 
 _TASK_QUEUE = "test-post-session"
 
@@ -117,6 +120,43 @@ async def test_workflow_uses_distinct_idempotency_keys_per_activity() -> None:
     assert len(keys) == 5, "activities must share workflow_id but not the suffix"
     for k in keys:
         assert ":" in k, "idempotency_key should be workflow_id:activity_name"
+
+
+@pytest.mark.asyncio
+async def test_finalize_persists_to_backend_when_client_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When a backend client is available, finalize_session actually
+    PATCHes /sessions/{sid}/end with the partial flag and reports
+    `persisted=True`. The stub path (no client) is the default the
+    other tests exercise."""
+    calls: list[tuple[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((str(request.url), request.read()))
+        # Echo a minimal SessionOut-shaped body.
+        return httpx.Response(200, json={"id": "sess-fin", "partial_session": True})
+
+    def fake_make_client(tenant_id: str) -> IngestClient:
+        assert tenant_id == "solo:t-1"
+        return IngestClient(
+            "http://backend.test",
+            "svc-token",
+            transport=httpx.MockTransport(handler),
+        )
+
+    monkeypatch.setattr(post_session_module, "make_ingest_client", fake_make_client)
+
+    result = await _run(
+        ProcessSessionInput(session_id="sess-fin", partial_session=True, tenant_id="solo:t-1")
+    )
+
+    assert result.finalize.persisted is True
+    assert result.finalize.partial_session is True
+    assert len(calls) == 1
+    url, body = calls[0]
+    assert url.endswith("/sessions/sess-fin/end")
+    assert b'"partial_session":true' in body.replace(b" ", b"")
 
 
 @pytest.mark.asyncio

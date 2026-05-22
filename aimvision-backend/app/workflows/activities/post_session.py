@@ -24,6 +24,10 @@ from dataclasses import dataclass
 
 from temporalio import activity
 
+from app.config import get_settings
+from app.services.auth import Principal, issue_token
+from app.services.ingest_client import IngestClient
+
 
 @dataclass(frozen=True, slots=True)
 class AlignmentResult:
@@ -60,6 +64,33 @@ class FinalizeResult:
     session_id: str
     partial_session: bool
     idempotency_key: str
+    # True when the activity actually called the backend and persisted
+    # the session-end transition; False on the stub path (no
+    # `post_session_base_url` configured — dev/CI default).
+    persisted: bool = False
+
+
+def make_ingest_client(tenant_id: str) -> IngestClient | None:
+    """Build a backend client for the post-session worker, or None
+    when no backend URL is configured (the stub path).
+
+    Mints a coach-tier service token scoped to `tenant_id` signed with
+    the backend's own `jwt_secret` — same trust domain, so the API
+    accepts it. Indirected through a module function so tests can
+    monkeypatch it to inject an httpx.MockTransport-backed client.
+    """
+    settings = get_settings()
+    if not settings.post_session_base_url:
+        return None
+    token, _ = issue_token(
+        Principal(
+            user_id=settings.post_session_worker_user_id,
+            tenant_id=tenant_id,
+            role="coach",
+        ),
+        settings=settings,
+    )
+    return IngestClient(settings.post_session_base_url, token)
 
 
 @activity.defn
@@ -153,23 +184,45 @@ async def run_per_shot_diagnostic(
 
 @activity.defn
 async def finalize_session(
-    session_id: str, partial_session: bool, idempotency_key: str
+    session_id: str, partial_session: bool, tenant_id: str, idempotency_key: str
 ) -> FinalizeResult:
     """Close the session lifecycle via PATCH /sessions/{sid}/end.
 
-    Stub returns FinalizeResult echoing the inputs. The next slice
-    calls the backend PATCH endpoint and sets `ended_at`.
+    When `post_session_base_url` is configured, this calls the backend
+    API to set `ended_at` + the partial flag (idempotent on the
+    backend). With no URL configured (dev/CI) it falls back to a
+    log-only stub so the workflow chain still exercises end-to-end.
     """
+    client = make_ingest_client(tenant_id)
+    if client is None:
+        activity.logger.info(
+            "finalize_session.stub",
+            extra={
+                "session_id": session_id,
+                "partial_session": partial_session,
+                "idempotency_key": idempotency_key,
+            },
+        )
+        return FinalizeResult(
+            session_id=session_id,
+            partial_session=partial_session,
+            idempotency_key=idempotency_key,
+            persisted=False,
+        )
+
     activity.logger.info(
-        "finalize_session.stub",
+        "finalize_session.persist",
         extra={
             "session_id": session_id,
             "partial_session": partial_session,
             "idempotency_key": idempotency_key,
         },
     )
+    async with client:
+        await client.patch_session_end(session_id, partial_session=partial_session)
     return FinalizeResult(
         session_id=session_id,
         partial_session=partial_session,
         idempotency_key=idempotency_key,
+        persisted=True,
     )

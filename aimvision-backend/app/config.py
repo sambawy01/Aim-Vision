@@ -40,6 +40,17 @@ class Settings(BaseSettings):
     # mis-configured clients filling the disk.
     max_recording_upload_bytes: int = 4 * 1024 * 1024 * 1024  # 4 GiB
 
+    # Base URL the Temporal post-session worker uses to call the
+    # backend API (ADR-0007). Empty (the dev/test default) keeps the
+    # finalize activity in stub mode — it logs and returns without a
+    # real HTTP call. Set to the in-cluster API URL in production so
+    # the worker actually persists the session-end transition.
+    post_session_base_url: str = ""
+    # Subject (`sub`) for the worker's minted service token. Signed
+    # with the same `jwt_secret`, so no external IdP is needed for the
+    # same-trust-domain worker→API call.
+    post_session_worker_user_id: str = "post-session-worker"
+
     @property
     def is_postgres(self) -> bool:
         return self.database_url.startswith(("postgresql://", "postgresql+asyncpg://"))
