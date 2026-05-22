@@ -46,6 +46,11 @@ class ProcessSessionInput:
     # GoPro disconnected mid-session). Default False keeps the
     # happy path tight.
     partial_session: bool = False
+    # Tenant the session belongs to. The finalize activity mints a
+    # service token scoped to this tenant to call the backend API.
+    # Defaults to "" so callers that only orchestrate (and the stub
+    # finalize path) stay backward-compatible.
+    tenant_id: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,6 +131,7 @@ class ProcessSessionWorkflow:
             args=[
                 sid,
                 payload.partial_session,
+                payload.tenant_id,
                 f"{workflow.info().workflow_id}:finalize",
             ],
             start_to_close_timeout=_DEFAULT_TIMEOUT,
