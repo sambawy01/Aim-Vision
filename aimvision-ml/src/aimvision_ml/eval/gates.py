@@ -18,6 +18,7 @@ from aimvision_ml.eval.metrics import (
     conformal_coverage,
     expected_calibration_error,
     macro_f1,
+    per_class_recall,
     top_k_macro_f1,
 )
 from aimvision_ml.eval.stratify import DEFAULT_STRATIFICATION_AXES, Stratum, stratify
@@ -30,12 +31,23 @@ class GateThresholds:
 
     `bias_axis_macro_f1_gap_max` is the maximum allowed spread of macro-F1
     across buckets within an axis. A 0.05-pt spread on any axis fails.
+
+    `per_class_recall_min` is the recall floor every adequately-supported
+    diagnostic class must clear — it blocks promotion of a model that
+    systematically misses a fault (which macro-F1 alone can mask). The floor
+    is enforced only on classes with at least `min_class_support` true
+    samples in the eval slice, so a class that is merely absent or rare does
+    not false-fail the gate. The registry tunes these on stratified
+    validation per ml-architecture.md §8/§12, mirroring the per-class
+    abstention thresholds.
     """
 
     ece_max: float = 0.05
     top3_macro_f1_min: float = 0.78
     conformal_coverage_min: float = 0.88
     bias_axis_macro_f1_gap_max: float = 0.05
+    per_class_recall_min: float = 0.50
+    min_class_support: int = 25
 
 
 # Module-level default to avoid B008 (mutable default in function signature)
@@ -59,6 +71,11 @@ def evaluate(
     omitted, conformal coverage is reported as 0.0 and the conformal gate
     is treated as failing). `metadata[i]` carries the axis fields for the
     bias audit; if omitted, the bias audit is skipped (no axes can fail).
+
+    The per-class recall floor always runs: any class with at least
+    `thresholds.min_class_support` true samples whose recall falls below
+    `thresholds.per_class_recall_min` is recorded in `failed_classes` and
+    fails the gate.
     """
     probs_arr = np.asarray(probs, dtype=np.float64)
     labels_arr = np.asarray(labels, dtype=np.int64)
@@ -73,6 +90,16 @@ def evaluate(
         coverage = 0.0
     else:
         coverage = conformal_coverage([set(s) for s in prediction_sets], labels_arr)
+
+    # Per-class recall floor: a well-supported diagnostic the model never
+    # recovers must block promotion even when macro-F1 looks healthy.
+    recall, support = per_class_recall(preds, labels_arr, n_classes)
+    supported = support >= thresholds.min_class_support
+    failed_classes: list[str] = []
+    for c in range(n_classes):
+        if supported[c] and recall[c] < thresholds.per_class_recall_min:
+            failed_classes.append(f"class_{c} (recall={recall[c]:.3f}, n={int(support[c])})")
+    min_class_recall = float(recall[supported].min()) if bool(supported.any()) else 1.0
 
     failed_axes: list[str] = []
     if metadata is not None:
@@ -96,6 +123,7 @@ def evaluate(
         and top3 >= thresholds.top3_macro_f1_min
         and coverage >= thresholds.conformal_coverage_min
         and not failed_axes
+        and not failed_classes
     )
 
     notes_parts: list[str] = []
@@ -109,6 +137,8 @@ def evaluate(
         )
     if failed_axes:
         notes_parts.append("bias-axis fail: " + ", ".join(failed_axes))
+    if failed_classes:
+        notes_parts.append("per-class recall fail: " + ", ".join(failed_classes))
 
     return GateResult(
         passed=passed,
@@ -117,6 +147,8 @@ def evaluate(
         macro_f1=overall_macro_f1,
         top3_macro_f1=top3,
         conformal_coverage=coverage,
+        min_class_recall=min_class_recall,
         failed_axes=failed_axes,
+        failed_classes=failed_classes,
         notes="; ".join(notes_parts),
     )

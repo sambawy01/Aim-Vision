@@ -115,6 +115,44 @@ def macro_f1(
     return float(np.mean(f1s))
 
 
+def per_class_recall(
+    preds: npt.ArrayLike,
+    labels: npt.ArrayLike,
+    n_classes: int,
+) -> tuple[FloatArray, IntArray]:
+    """Per-class recall and support count.
+
+    Returns ``(recall, support)``, each of length ``n_classes``. ``recall[c]``
+    is ``TP / (TP + FN)`` for class ``c`` — the fraction of true-class-``c``
+    samples the model recovered. Classes with zero support get
+    ``recall[c] = 0.0`` and ``support[c] = 0``; the promotion gate enforces the
+    recall floor only on adequately-supported classes so a class that is simply
+    absent from the eval slice does not false-fail the gate.
+
+    Macro-F1 can hide a single systematically-missed diagnostic when the common
+    classes are strong; this surfaces it so a never-predicted fault blocks
+    promotion. Cite ml-architecture.md §8 (no fault left undiagnosed) and §12.
+    """
+    preds_arr = np.asarray(preds, dtype=np.int64)
+    labels_arr = np.asarray(labels, dtype=np.int64)
+    if preds_arr.shape != labels_arr.shape:
+        raise ValueError("preds and labels must have the same shape")
+    if n_classes < 1:
+        raise ValueError("n_classes must be >= 1")
+
+    recall = np.zeros(n_classes, dtype=np.float64)
+    support = np.zeros(n_classes, dtype=np.int64)
+    for c in range(n_classes):
+        is_c: BoolArray = labels_arr == c
+        n_c = int(is_c.sum())
+        support[c] = n_c
+        if n_c == 0:
+            continue
+        tp = int((is_c & (preds_arr == c)).sum())
+        recall[c] = tp / n_c
+    return recall, support
+
+
 def top_k_macro_f1(
     probs: npt.ArrayLike,
     labels: npt.ArrayLike,

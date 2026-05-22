@@ -10,6 +10,7 @@ from aimvision_ml.eval.metrics import (
     conformal_coverage,
     expected_calibration_error,
     macro_f1,
+    per_class_recall,
     top_k_macro_f1,
 )
 
@@ -93,3 +94,20 @@ def test_conformal_coverage_full_coverage() -> None:
 def test_ece_rejects_bad_shapes() -> None:
     with pytest.raises(ValueError):
         expected_calibration_error(np.zeros(10), np.zeros(10))
+
+
+def test_per_class_recall_and_support() -> None:
+    # Class 0: 3 samples, 2 recovered → recall 2/3. Class 1: 2 samples, both
+    # recovered → 1.0. Class 2: no support → recall 0.0, support 0.
+    labels = np.array([0, 0, 0, 1, 1])
+    preds = np.array([0, 0, 1, 1, 1])
+    recall, support = per_class_recall(preds, labels, n_classes=3)
+    assert recall[0] == pytest.approx(2 / 3)
+    assert recall[1] == pytest.approx(1.0)
+    assert recall[2] == pytest.approx(0.0)
+    assert support.tolist() == [3, 2, 0]
+
+
+def test_per_class_recall_rejects_shape_mismatch() -> None:
+    with pytest.raises(ValueError):
+        per_class_recall(np.zeros(4), np.zeros(5), n_classes=3)
