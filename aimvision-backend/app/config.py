@@ -27,6 +27,30 @@ class Settings(BaseSettings):
     jwt_alg: str = "HS256"
     jwt_ttl_seconds: int = 3600
 
+    # Identity provider switch (ADR-0010). "stub" keeps the in-house
+    # PBKDF2 + HS256 path that ships today; "gotrue" routes login
+    # through a self-hosted Supabase Auth (GoTrue) JWT verifier. The
+    # `/auth/login` integration that consumes a GoTrue token lands in
+    # a follow-up PR; this flag exists so the verifier module can be
+    # exercised in tests and dual-run during cutover without a code
+    # change.
+    auth_provider: str = "stub"
+    # Issuer claim that GoTrue stamps into its JWTs. Must be set when
+    # `auth_provider == "gotrue"`. For a default Supabase Auth self-host
+    # this is the `GOTRUE_JWT_ISS` env or the project URL.
+    gotrue_issuer: str | None = None
+    # Audience the verifier requires. GoTrue defaults to "authenticated"
+    # for end-user tokens; service-role tokens use "service_role" and
+    # must never reach end-user endpoints.
+    gotrue_audience: str = "authenticated"
+    # HS256 path: shared secret with the GoTrue process
+    # (`GOTRUE_JWT_SECRET`). Required when `gotrue_jwt_alg == "HS256"`.
+    gotrue_jwt_secret: str | None = None
+    # Asymmetric path: PEM-encoded public key. Required when
+    # `gotrue_jwt_alg` is RS256/RS384/RS512/ES256/ES384.
+    gotrue_jwt_public_key_pem: str | None = None
+    gotrue_jwt_alg: str = "HS256"
+
     # Key Encryption Key for per-tenant DEK wrapping (right-to-erasure
     # crypto-shred, services/crypto_shred.py). Production roots this in
     # AWS KMS / Vault; here it's a config secret SHA-256'd to 32 bytes.
