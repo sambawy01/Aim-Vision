@@ -119,12 +119,20 @@ tenant-switch endpoints (#89). Mobile has no refresh-on-401. No password
 reset, no email verification, no rate limiting.
 
 **Integrations needed.**
-- **Auth0** *or* **self-hosted Keycloak** *or* **WorkOS** (decision in §10).
+- **Supabase Auth (GoTrue)** — self-hosted per ADR-0010 to match the
+  on-prem-first GA (ADR-0012). GoTrue is the JWT issuer + user store +
+  password-reset + email-verify path; the AIMVISION backend keeps its
+  tenancy / memberships / RLS layer and validates Supabase-issued JWTs.
 - TLS pinning library on iOS (URLSession `serverTrust` evaluator) and
   Android (OkHttp `CertificatePinner`).
-- An email provider (Postmark, SES) for verification / password reset.
-- Recommended: **DataDome** or **Cloudflare Bot Management** for login rate
-  limiting beyond what FastAPI middleware gives us.
+- An email provider for verification / password reset (Postmark / SES for
+  cloud; **`smtp4dev` or a federation's own SMTP** for on-prem).
+- Recommended: **Cloudflare Bot Management** for login rate limiting
+  beyond what FastAPI middleware + GoTrue's per-user limits give us.
+
+**Migration.** Existing PBKDF2 + dev-secret-JWT users get bulk-imported into
+GoTrue (`auth.users.encrypted_password = '$pbkdf2$…'`) so the next login
+on the new stack succeeds without forcing a password reset.
 
 **Effort.** **3–4 weeks** with one senior backend + one mobile dev.
 
@@ -171,7 +179,14 @@ backend-persisted but the parental tie-in is missing.
 - DSAR + erasure tie-in: a minor's erasure request must notify the parent.
 
 **Effort.** **4–5 weeks** with one backend dev + one mobile dev + design
-review + **specialist counsel** (1 session, see §6).
+review + **specialist counsel — Phase-1 gate, not optional** per ADR-0015
+(Phase 1 ships full minor-athlete support). See §6.
+
+**Scope at launch per ADR-0011.** Stripe card verification is the *only*
+active method in Phase 1; the other three UI methods (paper PDF, email +
+ID, video call) stay in the codebase but their backend routes return 410
+Gone behind a runtime flag. They re-enable in a Phase-2 enhancement once
+Stripe alone has surfaced consent-flow operational gaps.
 
 **Acceptance.**
 - All four UI methods reach a verified state in staging using sandbox
@@ -244,14 +259,23 @@ diagnostic head not trained, DeepSeek 14B not fine-tuned, LoRA per-athlete
 adapters not built.
 
 **Integrations needed.**
-- **GPU compute**: AWS A10G / L4 (~$0.50–$1/hr) or on-prem RTX 4090s. RN
-  review of the V2 plan called for "A10G or L4 minimum per worker"; T4 is
-  too slow for RTMPose-x per `docs/ml-architecture.md`.
+- **GPU compute** (pose + diagnostic training only): AWS A10G / L4
+  (~$0.50–$1/hr) or on-prem RTX 4090s. T4 is too slow for RTMPose-x per
+  `docs/ml-architecture.md`. No GPU needed at inference time — pose /
+  diagnostic models run on CPU + ONNX Runtime in the ML worker pool.
 - **MLflow Tracking** (already integrated client-side) — needs a hosted
-  server (DataBricks Community Edition or self-hosted).
-- **DeepSeek 14B model weights** — via Ollama (already in the pipeline)
-  for self-hosted inference. Federation tier on-prem needs its own
-  Ollama deployment.
+  server (Databricks Community Edition or self-hosted).
+- **Hosted LLM API** for coaching-note generation per ADR-0014. Vendor
+  selection (Anthropic Claude / OpenAI GPT-4o / Together AI hosted Llama
+  3.1 70B / etc.) is workstream D's week-1 task. Supersedes the original
+  DeepSeek-via-Ollama plan from `docs/ml-architecture.md`.
+  - **PII strip is now load-bearing.** `aimvision_ml.llm.pii` runs on
+    every prompt before the on-prem deployment egresses to the hosted
+    endpoint. Document the data flow for the Egypt federation
+    procurement review.
+  - Federation egress carve-out (post-Phase-1): if a specific federation
+    contractually disallows internet egress, wire a self-hosted smaller
+    LLM via Ollama as a fallback. Not in Phase 1.
 - **Synthetic + real data**: synthetic harness already in `eval/synth_*.py`;
   real data is the **chicken/egg** problem (see §8 risks).
 
@@ -465,9 +489,11 @@ real range data.
   USB-C tether cables + spare batteries. ~$3,500.
 - J2: Optional: 2 × Sony A7C II as a federation-tier USB-C UVC alternative
   per the perf review (~$5k).
-- J3: Egypt National Team pilot scheduling (Cairo Shooting Club is the
-  natural first venue; the V2 plan §EPIC 5.5 already places the first
-  range capture there).
+- J3: **Egypt National Team facility** pilot scheduling per ADR-0016
+  (the design partner per CLAUDE.md; supersedes the earlier
+  Cairo-Shooting-Club default). National Team coaching staff are the
+  in-region champions + the source-of-truth coaches for D2's card-sort
+  + D4's coaching-note review.
 - J4: Range data harvest with consent (workstreams B + C must be live).
 - J5: Field-data feedback loop into workstream D (ML training).
 
@@ -603,30 +629,35 @@ trained models is otherwise the long pole.
 
 The integrations that need a purchase decision **before week 1**:
 
-| Item | Vendor candidates | Approx. cost | Decision owner |
+All seven §10 decisions resolve; this table reflects the chosen path
+(on-prem-first, Supabase auth, Stripe-only consent, Android-first
+rollout, hosted LLM, full minor support).
+
+| Item | Vendor (chosen / decision) | Approx. cost | Owner |
 |---|---|---|---|
-| Identity provider | Auth0 / WorkOS / self-hosted Keycloak | $0 (Keycloak) – $0.023/MAU (Auth0) | CTO |
-| Email | Postmark / AWS SES | $10/mo + per-email | Backend lead |
-| Card verification (consent) | Stripe | ~$0.30 / consent | Compliance lead |
-| ID verification | Veriff / Persona | $1.50–$3.50 / check | Compliance lead |
-| Video verification | Twilio Video / Daily | $0.004 / min participant | Compliance lead |
-| Document signing | DocuSign / HelloSign | $0.40+ / envelope | Compliance lead |
-| Crash analytics | Sentry SaaS / GlitchTip self-hosted | $0 (self-hosted) – $26/mo+ | DevOps |
-| Tracing/metrics | Honeycomb / Grafana Cloud | $0 (free tier) – $200/mo | DevOps |
+| Identity (ADR-0010) | **Supabase Auth (GoTrue), self-hosted** | infra only | Backend lead |
+| Email (verify / pw-reset) | Postmark or SES; federation can BYO SMTP | $10/mo + per-email | Backend lead |
+| Card verification, consent (ADR-0011) | **Stripe** (Setup Intent + refund) | ~$0.30 / consent | Compliance lead |
+| ID / video / document-signing | *Deferred to Phase 2 enhancement per ADR-0011* | — | — |
+| Coaching-note LLM (ADR-0014) | Anthropic Claude / OpenAI GPT-4o / Together AI hosted Llama 3.1 70B (pick week-1 of D) | $0.15–$3 / 1M input tokens | ML lead |
+| Crash analytics | **GlitchTip self-hosted** (on-prem default) — Sentry SaaS available as a cloud add-on | infra only | DevOps |
+| Tracing / metrics | **Grafana Cloud free** *or* self-hosted Prometheus + Tempo | $0 – $200/mo | DevOps |
 | Logs | Loki self-hosted | infra cost only | DevOps |
 | On-call | PagerDuty / Opsgenie | $21/user/mo | SRE lead |
-| Feature flags | ConfigCat / Unleash | $0–$80/mo | Mobile lead |
-| Object storage | AWS S3 (cloud) + MinIO (on-prem) | ~$0.023/GB | Infra lead |
-| KMS / secrets | AWS KMS (cloud) + Vault (on-prem) | $1/key/mo + ops | Security lead |
-| GPU compute | AWS A10G / L4 *or* on-prem RTX 4090 | $0.50–$1/hr cloud | ML lead |
-| MLflow tracking | Self-host / Databricks Community | $0 | ML lead |
+| Feature flags | ConfigCat / Unleash | $0 – $80/mo | Mobile lead |
+| Object storage | **MinIO (on-prem default)** — S3 available as a cloud add-on | infra cost only | Infra lead |
+| KMS / secrets | **HashiCorp Vault (on-prem default)** — AWS KMS as cloud add-on | infra cost only | Security lead |
+| GPU compute (training only) | AWS A10G / L4 *or* on-prem RTX 4090 | $0.50–$1/hr cloud | ML lead |
+| MLflow tracking | Self-host | infra cost only | ML lead |
 | Hardware | 6 × Hero 13 + mounts | ~$3,500 | PM |
-| App stores | Apple Dev + Google Play | $99/yr + $25 one-time | PM |
-| **Counsel** | Specialist (children's data + firearms-adjacent) | Hourly | Founder/CEO |
+| App stores (Android first per ADR-0013) | **Google Play** ($25 one-time); Apple Dev maintained for builds, not first release | $25 (+ $99/yr iOS later) | PM |
+| **Counsel** *(Phase-1 gate per ADR-0015)* | Specialist (children's data + firearms-adjacent + Egypt PDPL) | Hourly | Founder/CEO |
 
-Estimated **first-year integration spend (excluding salaries):** **$8k–$25k**
-depending on Sentry / Auth0 self-host choices, plus per-consent variable
-cost that scales with onboarded athletes.
+Estimated **first-year recurring integration spend (excluding salaries +
+infra + hardware):** **$2k–$8k** (the on-prem-default story drops Sentry
+SaaS, Auth0 / WorkOS, and the deferred consent vendors), plus per-consent
+variable cost (~$0.30 × N athletes onboarded) and per-token LLM cost
+(small for short structured outputs).
 
 ---
 
@@ -678,25 +709,62 @@ modernization PR alone unlocks the next 8 weeks of mobile work.
 
 Real decisions that block the plan, in priority order:
 
-1. **Identity provider.** Auth0 (lowest setup), Keycloak (lowest cost), or
-   WorkOS (best SSO story for federations later)? Decide week 1.
-2. **Consent verification methods at launch.** Stripe alone? Stripe +
-   Veriff? All four? Cheaper-to-launch is fewer; gold-standard is all four.
-3. **Cloud-first vs on-prem-first GA.** The federation tier explicitly
-   wants on-prem (ADR-0005); is the first GA customer a federation (on-prem
-   priority) or a club (cloud priority)?
-4. **App store rollout order.** iOS first (smaller market, faster review
-   when accepted; firearms-adjacent risk) or Android first (broader
-   reach in the Egypt pilot region, fewer review-time hurdles)?
-5. **DeepSeek vs alternative LLM.** Continue with DeepSeek 14B Q4 via
-   Ollama (per `docs/ml-architecture.md`) or move to a smaller fine-tuneable
-   model (Qwen 7B, Llama 3.1 8B) that runs on cheaper inference hardware?
-6. **Phase-1 minor support.** Cleanest path: defer minors entirely to a
-   post-GA wave (avoid COPPA risk on day-one). Bigger upside: ship with
-   minors so the youth-sports compliance moat is real from the start. PM
-   call.
-7. **Pilot venue.** Cairo Shooting Club is the natural first range per the
-   sprint plan. Confirm — or pick another — by week 4.
+### Resolved (2026-05-24)
+
+1. **Identity provider = Supabase (Supabase Auth / GoTrue).** ADR-0010.
+   Self-hosted GoTrue fits the on-prem-first GA. Supabase Auth is the
+   JWT issuer + user store + password-reset + email-verify path; the
+   AIMVISION backend stays the authority on tenancy, memberships, and
+   RLS. PBKDF2 users get bulk-imported on the cutover.
+2. **Verifiable parental consent at launch = Stripe card verification
+   only.** ADR-0011. Stripe Setup Intent + immediate refund of the auth
+   (COPPA §312.5(b)(2)(ii)). The other three UI methods (paper PDF,
+   email+ID, video call) stay in the codebase but are gated off in
+   Phase 1 — they re-enable in a Phase-2 enhancement once Stripe alone
+   has surfaced consent-flow operational gaps.
+3. **First GA target = on-prem (federation tier).** ADR-0012. Matches
+   ADR-0005's "one Helm chart, cloud↔on-prem parity" intent. Drives
+   every vendor decision toward something that has a credible
+   self-hosted story (Supabase self-host, MinIO, GlitchTip, Grafana
+   Cloud-or-self-hosted, Vault). AWS / managed cloud equivalents stay
+   available as the cloud-tier add-on, but no Phase-1 work depends on
+   them.
+4. **First app store = Google Play.** ADR-0013. Android dominates the
+   Egypt pilot region's device mix, Play Store review is more permissive
+   than Apple's for firearms-adjacent content, and we already have
+   `adb` on the dev machine. iOS code stays maintained (capture +
+   onboarding work on the Sim today per PR #92), but the first
+   external-customer build is the Android one.
+
+5. **Coaching-note LLM = hosted API (not self-hosted Ollama).** ADR-0014.
+   Supersedes the `docs/ml-architecture.md` DeepSeek-via-Ollama plan.
+   Hosted gives us better-quality output, faster iteration on prompts,
+   no GPU procurement on the critical path, and no on-prem-side
+   inference cost. Vendor selection (Anthropic Claude / OpenAI / Together
+   AI / etc.) deferred to workstream D week 1; the architectural
+   commitment is "hosted." `aimvision-ml/src/aimvision_ml/llm/pii.py`
+   is now load-bearing: every prompt to the hosted endpoint strips PII
+   before it leaves the (potentially on-prem) deployment, and we
+   document the data flow for federation procurement reviews.
+   Federation carve-out: if a specific federation contractually
+   disallows egress, a Phase-2 fallback wires a smaller self-hosted
+   model — but this is **not** in Phase 1.
+6. **Phase-1 ships full minor-athlete support.** ADR-0015. The
+   youth-sports compliance moat is the differentiator and Phase 0's
+   age-gate + parental-consent UI is the most-built surface. Shipping
+   minors in Phase 1 means: server-side age enforcement is non-optional
+   (workstream B), Stripe parental-consent flow must be airtight for
+   COPPA, and **specialist counsel review (workstream L) is a Phase-1
+   gate, not a Phase-3 nice-to-have**.
+7. **Pilot venue = Egypt National Team facility.** ADR-0016. Confirmed
+   per CLAUDE.md ("Egypt National Team as design partner") and the V2
+   sprint plan's EPIC 5.5. The National Team's coaching staff are the
+   in-region champions and the source-of-truth coaches for ML training
+   data + coaching-note quality review.
+
+### Open
+
+None — all seven blocking decisions resolved 2026-05-24.
 
 ---
 
