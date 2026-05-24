@@ -109,3 +109,7 @@ kubeconfig
 # --- Tooling caches ---
 .expo/
 **/.expo/
+
+# Expo prebuild generated native projects.
+aimvision-mobile/ios/
+aimvision-mobile/android/
