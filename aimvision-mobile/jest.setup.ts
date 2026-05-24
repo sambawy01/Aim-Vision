@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import '@testing-library/react-native';
+// RNTL 13's auto-extend used to be imported here, but it requires `expect`
+// at import time which isn't available in `setupFiles`. The tests use the
+// standard Jest matchers (toBe, toEqual, ...); any test wanting RNTL's
+// custom matchers (toBeOnTheScreen, etc.) can import
+// `@testing-library/react-native/extend-expect` in-test.
 
 jest.mock('expo-localization', () => ({
   getLocales: jest.fn(() => [{ languageCode: 'en', regionCode: 'US', textDirection: 'ltr' }]),
@@ -43,40 +47,3 @@ jest.mock('@sentry/react-native', () => ({
   withScope: jest.fn((cb: (scope: unknown) => void) => cb({ setTag: jest.fn() })),
 }));
 
-jest.mock('statsig-react-native-expo', () => ({
-  Statsig: {
-    initialize: jest.fn(async () => undefined),
-    checkGate: jest.fn(() => false),
-    getConfig: jest.fn(() => ({ get: jest.fn() })),
-  },
-  StatsigProvider: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
-
-jest.mock('react-native-gesture-handler', () => {
-  const View = require('react-native').View;
-  return {
-    GestureHandlerRootView: View,
-    Swipeable: View,
-    DrawerLayout: View,
-    State: {},
-    ScrollView: View,
-    Slider: View,
-    Switch: View,
-    TextInput: View,
-    ToolbarAndroid: View,
-    ViewPagerAndroid: View,
-    DrawerLayoutAndroid: View,
-    WebView: View,
-    NativeViewGestureHandler: View,
-    TapGestureHandler: View,
-    FlingGestureHandler: View,
-    ForceTouchGestureHandler: View,
-    LongPressGestureHandler: View,
-    PanGestureHandler: View,
-    PinchGestureHandler: View,
-    RotationGestureHandler: View,
-    Directions: {},
-  };
-});

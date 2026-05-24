@@ -1,9 +1,14 @@
 /**
- * Statsig client init.
- * See docs/mobile-architecture.md §13 — feature flags + experiments + offline defaults.
+ * Statsig wrapper — currently a no-op stub.
+ *
+ * The previous integration via `statsig-react-native-expo` is incompatible
+ * with React 19 (the SDK's peer dep is React ≤ 18). The app never actually
+ * configured a STATSIG_CLIENT_KEY, so initialize() was always an early
+ * return; useFlag(name, default) just resolves to the default. This stub
+ * keeps the API surface so callers do not change, and `useFlag()` continues
+ * to return the supplied default (e.g. `__DEV__` for the phone-capture flag).
+ * Reinstate a real flag SDK when one ships with React-19 support.
  */
-import { Statsig } from 'statsig-react-native-expo';
-import { env } from './env';
 
 export interface StatsigUser {
   userID?: string;
@@ -11,18 +16,16 @@ export interface StatsigUser {
   custom?: Record<string, string | number | boolean>;
 }
 
-let initialized = false;
-
-export async function initStatsig(user: StatsigUser = {}): Promise<void> {
-  if (!env.statsigClientKey || initialized) return;
-  await Statsig.initialize(env.statsigClientKey, user, {
-    environment: { tier: __DEV__ ? 'development' : 'production' },
-  });
-  initialized = true;
+export async function initStatsig(_user: StatsigUser = {}): Promise<void> {
+  return;
 }
 
 export function isInitialized(): boolean {
-  return initialized;
+  return false;
 }
 
-export { Statsig };
+export const Statsig = {
+  checkGate(_name: string): boolean {
+    return false;
+  },
+};

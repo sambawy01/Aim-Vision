@@ -44,8 +44,25 @@ public class AVPhoneFrameSink: FrameProcessorPlugin {
         let height = UInt32(frame.height)
         // `frame.timestamp` is the CMSampleBuffer PTS in nanoseconds.
         let timestampNs = UInt64(frame.timestamp)
-        let pixelFormatRaw = frame.pixelFormat.rawValue
-        let orientationRaw = frame.orientation.rawValue
+        // vision-camera v4+ surfaces pixelFormat as a String (e.g. "yuv", "rgb").
+        let pixelFormatRaw: String = frame.pixelFormat
+        // vision-camera surfaces `frame.orientation` as `UIImage.Orientation`
+        // on the Swift side (the JS-side `Orientation` string is something
+        // else). Map it to a stable descriptive string so the JS worklet
+        // sees a consistent value across versions.
+        let orientationRaw: String = {
+            switch frame.orientation {
+            case .up: return "up"
+            case .down: return "down"
+            case .left: return "left"
+            case .right: return "right"
+            case .upMirrored: return "upMirrored"
+            case .downMirrored: return "downMirrored"
+            case .leftMirrored: return "leftMirrored"
+            case .rightMirrored: return "rightMirrored"
+            @unknown default: return "unknown"
+            }
+        }()
 
         // Map Vision Camera's pixel format string to the C ABI enum.
         // Vision Camera doesn't surface NV12 vs I420 reliably across

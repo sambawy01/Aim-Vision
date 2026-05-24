@@ -1,17 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Statsig, isInitialized } from '../config/statsig';
+import { isInitialized, Statsig } from '../config/statsig';
 
+/**
+ * Returns a feature-flag value. Falls back to `defaultValue` when the flag
+ * SDK is not initialized — which is the current state (see config/statsig.ts).
+ */
 export function useFlag(name: string, defaultValue = false): boolean {
-  const [value, setValue] = useState<boolean>(defaultValue);
-
-  useEffect(() => {
-    if (!isInitialized()) return;
-    try {
-      setValue(Statsig.checkGate(name));
-    } catch {
-      setValue(defaultValue);
-    }
-  }, [name, defaultValue]);
-
-  return value;
+  if (!isInitialized()) return defaultValue;
+  try {
+    return Statsig.checkGate(name);
+  } catch {
+    return defaultValue;
+  }
 }

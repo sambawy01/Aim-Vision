@@ -149,21 +149,26 @@ type XcodeProjectLike = {
 export function addIosSourcesToXcodeProject(
   xcodeProject: XcodeProjectLike,
   iosSources: readonly string[],
+  groupPath: string = IOS_GROUP_NAME,
 ): void {
   // Idempotent: if the group already exists, the plugin has already run.
   if (xcodeProject.pbxGroupByName(IOS_GROUP_NAME)) {
     return;
   }
+  // `groupPath` is relative to the Xcode project root (`ios/`). It must
+  // match where `copySource` writes the files — typically
+  // `<projectName>/PhoneFrameSink` so xcodebuild finds
+  // `ios/<projectName>/PhoneFrameSink/<source>.swift`.
   const group = xcodeProject.addPbxGroup(
     iosSources.slice(),
     IOS_GROUP_NAME,
-    IOS_GROUP_NAME,
+    groupPath,
     '"<group>"',
   );
   // Slot the new group under the main project group.
   xcodeProject.addToPbxGroup(group, xcodeProject.getFirstProject().firstProject.mainGroup);
   for (const src of iosSources) {
-    xcodeProject.addSourceFile(path.join(IOS_GROUP_NAME, src), { target: undefined }, group.uuid);
+    xcodeProject.addSourceFile(path.join(groupPath, src), { target: undefined }, group.uuid);
   }
 }
 
@@ -184,9 +189,17 @@ const withPhoneFrameSink: ConfigPlugin = (config) => {
     },
   ]);
 
-  // 2. Register iOS sources in the Xcode project (.pbxproj).
+  // 2. Register iOS sources in the Xcode project (.pbxproj). The group path
+  //    must match the on-disk layout `ios/<projectName>/PhoneFrameSink/` that
+  //    `copySource` wrote to in step 1 — otherwise xcodebuild fails with
+  //    "Build input files cannot be found".
   config = withXcodeProject(config, (cfg) => {
-    addIosSourcesToXcodeProject(cfg.modResults as unknown as XcodeProjectLike, IOS_SOURCES);
+    const projectName = cfg.modRequest.projectName ?? cfg.name ?? 'AIMVISION';
+    addIosSourcesToXcodeProject(
+      cfg.modResults as unknown as XcodeProjectLike,
+      IOS_SOURCES,
+      path.join(projectName, IOS_GROUP_NAME),
+    );
     return cfg;
   });
 
