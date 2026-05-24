@@ -66,7 +66,9 @@ export function AgeGateScreen(): React.ReactElement {
     const dobIso = parsed.toISOString().slice(0, 10);
     if (isAdult) {
       emitAuditEvent({ eventType: 'age_gate_branched', payload: { branch: 'adult' } });
-      navigation.navigate('Welcome');
+      // Adult age confirmation is a one-time commitment — wipe the stack so
+      // the user can't go back and re-edit the DOB after the age branch.
+      navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
       return;
     }
     if (isUnder13) {

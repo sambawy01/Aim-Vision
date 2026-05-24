@@ -30,7 +30,9 @@ export function ConsentMatrixScreen(): React.ReactElement {
     setSaving(true);
     try {
       await grant(matrix, version, route.params?.childAccountId);
-      navigation.navigate('Welcome');
+      // End of the child onboarding flow — wipe the stack so the user can't
+      // back-navigate to revoke a consent they just submitted.
+      navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
     } catch {
       // Sprint 4 surfaces a toast/alert.
     } finally {
