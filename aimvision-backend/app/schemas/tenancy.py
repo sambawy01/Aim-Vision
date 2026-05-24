@@ -26,6 +26,13 @@ class LoginIn(BaseModel):
     password: str
 
 
+class GoTrueExchangeIn(BaseModel):
+    """The web/mobile client got a JWT from the GoTrue login endpoint and
+    posts it here to receive an AIMVISION session (per ADR-0010)."""
+
+    gotrue_jwt: str = Field(min_length=16, max_length=4096)
+
+
 class PrincipalOut(BaseModel):
     user_id: str
     tenant_id: str
