@@ -30,7 +30,10 @@ EMAIL="smoke+${SUFFIX}@aimvision.test"
 PASSWORD="SmokeTest-${SUFFIX}-Passw0rd!"
 
 log() { printf '\033[36m[smoke]\033[0m %s\n' "$*"; }
-fail() { printf '\033[31m[smoke] FAIL:\033[0m %s\n' "$*" >&2; exit 1; }
+fail() {
+  printf '\033[31m[smoke] FAIL:\033[0m %s\n' "$*" >&2
+  exit 1
+}
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"
@@ -86,8 +89,12 @@ log "  jwt acquired (${#access_token} chars)"
 # Sanity-check the token's `sub` matches what we got from signup.
 token_sub=$(printf '%s' "$access_token" \
   | awk -F. '{print $2}' \
-  | { read -r p; printf '%s' "$p"; printf '%*s' $(( (4 - ${#p} % 4) % 4 )) '=' \
-       | tr ' ' '='; } \
+  | {
+    read -r p
+    printf '%s' "$p"
+    printf '%*s' $(((4 - ${#p} % 4) % 4)) '=' \
+      | tr ' ' '='
+  } \
   | base64 -d 2>/dev/null \
   | jq -r '.sub // empty')
 [ "$token_sub" = "$gotrue_sub" ] || fail "JWT sub ($token_sub) != signup id ($gotrue_sub)"
