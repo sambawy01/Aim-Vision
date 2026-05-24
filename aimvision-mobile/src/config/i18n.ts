@@ -2,6 +2,11 @@
  * i18next setup with EN + AR + RTL bootstrap.
  * See docs/mobile-architecture.md §15 (i18n / RTL).
  */
+// Hermes (RN's JS engine) ships only partial Intl support, so
+// `Intl.PluralRules` is missing. i18next's pluralResolver detects this and
+// falls back to compatibilityJSON v3 with a noisy red LogBox overlay. The
+// polyfill MUST be imported before i18next/initReactI18next is touched.
+import 'intl-pluralrules';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { I18nManager } from 'react-native';
