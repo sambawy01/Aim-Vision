@@ -1,0 +1,116 @@
+# Local dev stack for the AIMVISION ↔ GoTrue identity loop (ADR-0010).
+#
+# Brings up:
+#   - postgres      — shared Postgres 16 (one cluster, two databases:
+#                     aimvision + gotrue).
+#   - gotrue        — Supabase Auth (https://github.com/supabase/auth)
+#                     pinned to a tag we can rebuild deterministically.
+#   - backend       — the AIMVISION FastAPI app, configured to use
+#                     gotrue as the identity provider.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+#   ./scripts/smoke_gotrue_exchange.sh
+#   docker compose -f docker-compose.dev.yml down -v
+#
+# This compose file is the bench for the verifier (PR #94) and exchange
+# endpoint (PR #95). It also doubles as the working reference for the
+# Helm chart change that lands in workstream H — service env vars,
+# secrets layout, and JWT-secret sharing all map across 1:1.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aimvision-dev-postgres
+    environment:
+      POSTGRES_USER: aimvision
+      POSTGRES_PASSWORD: aimvision-dev-only
+      POSTGRES_DB: aimvision
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+    ports:
+      - "5433:5432" # 5433 on host to avoid clashing with a system Postgres
+    volumes:
+      - aimvision_pgdata:/var/lib/postgresql/data
+      - ./scripts/dev/init_dual_db.sql:/docker-entrypoint-initdb.d/00_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aimvision -d aimvision"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  gotrue:
+    # Supabase Auth (formerly GoTrue). Tag pinned so the JWT-payload
+    # shape this dev stack produces matches what the verifier was
+    # tested against.
+    image: supabase/gotrue:v2.158.1
+    container_name: aimvision-dev-gotrue
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://gotrue:gotrue-dev-only@postgres:5432/gotrue?sslmode=disable
+      GOTRUE_SITE_URL: http://localhost:8000
+      GOTRUE_URI_ALLOW_LIST: http://localhost:8000,http://localhost:5173
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_SECRET: aimvision-dev-gotrue-jwt-secret-32bytes-plus
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_ISSUER: http://localhost:9999
+      GOTRUE_MAILER_AUTOCONFIRM: "true" # skip the SMTP loop in dev
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_SMS_AUTOCONFIRM: "true"
+      GOTRUE_LOG_LEVEL: info
+      API_EXTERNAL_URL: http://localhost:9999
+    ports:
+      - "9999:9999"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9999/health"]
+      interval: 3s
+      timeout: 2s
+      retries: 30
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aimvision-dev-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gotrue:
+        condition: service_healthy
+    environment:
+      AIMVISION_ENV: development
+      AIMVISION_DATABASE_URL: postgresql+asyncpg://aimvision:aimvision-dev-only@postgres:5432/aimvision
+      AIMVISION_JWT_SECRET: aimvision-dev-internal-jwt-secret-32bytes-plus
+      AIMVISION_CORS_ORIGINS: http://localhost:5173
+      AIMVISION_IP_HASH_SALT: aimvision-dev-ip-hash-salt
+      # --- GoTrue verifier wiring (ADR-0010) ---
+      AIMVISION_AUTH_PROVIDER: gotrue
+      AIMVISION_GOTRUE_JWT_ALG: HS256
+      # The same secret the gotrue service uses to *sign* tokens. The
+      # AIMVISION backend uses it to *verify* them.
+      AIMVISION_GOTRUE_JWT_SECRET: aimvision-dev-gotrue-jwt-secret-32bytes-plus
+      AIMVISION_GOTRUE_ISSUER: http://localhost:9999
+      AIMVISION_GOTRUE_AUDIENCE: authenticated
+    ports:
+      - "8000:8000"
+    # Run migrations on boot so the backend is usable without a manual
+    # alembic step. Dev-only convenience; production uses a separate
+    # migration job.
+    command:
+      - sh
+      - -c
+      - "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  aimvision_pgdata:
