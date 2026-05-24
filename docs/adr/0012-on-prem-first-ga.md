@@ -34,7 +34,7 @@ Concretely:
   optional `values-cloud.yaml` knobs in the Helm chart, not required.
 - The first paying customer Egypt National Team installs the Helm
   chart inside their own network. Internet egress is permitted but
-  *minimised* — only the hosted LLM endpoint per ADR-0014 (with
+  _minimised_ — only the hosted LLM endpoint per ADR-0014 (with
   documented PII strip) and Stripe per ADR-0011 leave the network.
 - The post-pilot cloud-tier rollout reuses the same Helm chart with
   `values-cloud.yaml`.
@@ -42,6 +42,7 @@ Concretely:
 ## Consequences
 
 **Positive.**
+
 - Aligns the first customer's procurement model (on-prem) with the
   first GA path (no platform-shape change at launch).
 - Forces every dependency to be self-hostable, which removes the
@@ -53,6 +54,7 @@ Concretely:
   later.
 
 **Negative.**
+
 - Per-customer rollout is heavier (each federation needs an installer
   walkthrough). The 30-min installer target in ADR-0005 is
   load-bearing.

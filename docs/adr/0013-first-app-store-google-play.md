@@ -18,7 +18,7 @@ review notes.
 Building for both stores in Phase 1 means doubling submission cycles,
 two privacy nutrition forms, two App Privacy / Data Safety reviews
 within the same sprint, and dual TestFlight/Play-Internal pipelines
-under one engineer. The codebase doesn't care; the *operational*
+under one engineer. The codebase doesn't care; the _operational_
 surface roughly doubles.
 
 ## Decision
@@ -43,6 +43,7 @@ Concretely:
 ## Consequences
 
 **Positive.**
+
 - One store submission cycle in Phase 1 instead of two.
 - Google Play's review for camera + minor-targeted apps is generally
   faster and more predictable than App Store Review for the same
@@ -54,6 +55,7 @@ Concretely:
   pilot geography.
 
 **Negative.**
+
 - Athletes on personal iPhones cannot install via App Store in
   Phase 1; they're either on TestFlight (limited to 100) or wait for
   Phase 2.

@@ -7,11 +7,11 @@
 Youth shooting is a meaningful share of competitive shotgun sports;
 the Egypt National Team (ADR-0016 pilot venue) fields a junior squad,
 and many federations the platform is designed for run youth-development
-programmes. Shipping a coaching platform for shooters and *excluding
-minors* would carve out the segment that arguably most needs the
+programmes. Shipping a coaching platform for shooters and _excluding
+minors_ would carve out the segment that arguably most needs the
 diagnostic transparency the platform provides.
 
-The compliance debt to ship minors *correctly* is real and was the
+The compliance debt to ship minors _correctly_ is real and was the
 "defer it" argument:
 
 - COPPA (US, < 13) requires verifiable parental consent — ADR-0011
@@ -26,7 +26,7 @@ The compliance debt to ship minors *correctly* is real and was the
   data sale, and an honoured deletion path — the right-to-erasure
   architecture (PR #84 backend, PR #85 UI) covers the deletion path.
 
-All of the *infrastructure* is built. The remaining work to "make
+All of the _infrastructure_ is built. The remaining work to "make
 minors safe to launch with" is: wire the Stripe consent backend
 (ADR-0011), wire the consent-matrix submit endpoint server-side,
 have legal counsel sign off on the parental-consent + privacy-notice
@@ -65,6 +65,7 @@ proposition off for the design partner's primary user-base.
 ## Consequences
 
 **Positive.**
+
 - The Egypt pilot's junior squad is supported on day one.
 - The COPPA / GDPR-K / PDPL compliance posture is built into the
   product DNA rather than retrofitted; retrofitting youth compliance
@@ -74,6 +75,7 @@ proposition off for the design partner's primary user-base.
   differentiator versus generic adult-aimed sport-tech products.
 
 **Negative.**
+
 - Legal sign-off becomes a launch-blocking gate that we don't
   control unilaterally (the lawyer can take a week).
 - Stripe must be live at GA (ADR-0011), which adds one more

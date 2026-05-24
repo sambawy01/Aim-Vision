@@ -16,15 +16,15 @@ Per ADR-0015 we ship full minor-athlete support in Phase 1, which
 means at least one verifiable method must be live for GA. The four
 methods differ on automation, cost, and federation acceptability:
 
-|Method|Setup work|Cost / consent|Provider example|
-|---|---|---|---|
-|Card verification|Days|~$0.30 (Stripe refunds the auth)|Stripe (COPPA §312.5(b)(2)(ii))|
-|ID verification|Weeks|$1.50–$3.50|Veriff / Persona|
-|Video call|Weeks + ops|$0.50+ per call|Twilio Video / Daily|
-|Paper PDF + ID|Days code + ongoing review queue|Free + human review hours|n/a (LiveOps)|
+| Method            | Setup work                       | Cost / consent                   | Provider example                |
+| ----------------- | -------------------------------- | -------------------------------- | ------------------------------- |
+| Card verification | Days                             | ~$0.30 (Stripe refunds the auth) | Stripe (COPPA §312.5(b)(2)(ii)) |
+| ID verification   | Weeks                            | $1.50–$3.50                      | Veriff / Persona                |
+| Video call        | Weeks + ops                      | $0.50+ per call                  | Twilio Video / Daily            |
+| Paper PDF + ID    | Days code + ongoing review queue | Free + human review hours        | n/a (LiveOps)                   |
 
 Phase 1 also constrains us to the on-prem-first GA path (ADR-0012);
-every verification provider is a SaaS but the *integration cost* (lift
+every verification provider is a SaaS but the _integration cost_ (lift
 of wiring it up + per-federation procurement review of the data flow)
 is what we want to minimize.
 
@@ -54,6 +54,7 @@ in Phase 1.** Specifically:
 ## Consequences
 
 **Positive.**
+
 - Smallest integration surface → fastest path to legal GA with minor
   support.
 - Stripe is widely understood by federation procurement reviewers; no
@@ -65,6 +66,7 @@ in Phase 1.** Specifically:
   fewer methods at launch.
 
 **Negative.**
+
 - Parents without a credit card can't onboard a minor in Phase 1.
   In Egypt this is a real fraction of the addressable market; the
   Egypt pilot venue (ADR-0016) is an elite-federation context where
@@ -88,4 +90,4 @@ consent, enable the paper-PDF + DocuSign path.
 - **Defer minors entirely to a post-GA wave** — explicitly rejected
   by ADR-0015; the youth-sports compliance moat is the differentiator.
 - **Build the consent flow without verification (just email
-  acknowledgement)** — does *not* meet COPPA §312.5; rejected.
+  acknowledgement)** — does _not_ meet COPPA §312.5; rejected.

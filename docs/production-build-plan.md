@@ -23,6 +23,7 @@ clay/skeet sessions end-to-end. Compliant with **GDPR**, **COPPA**, and
 **Egypt PDPL**. Multi-tenant SaaS with optional on-prem federation deploy.
 
 **Definition of production-grade** (the bar):
+
 - **Compliance**: verifiable parental consent, server-enforced age gate,
   audit-chained data access, right-to-erasure, DPIA/RoPA on file.
 - **Security**: OIDC-grade auth, TLS pinning, secrets in KMS, rate limits,
@@ -37,6 +38,7 @@ clay/skeet sessions end-to-end. Compliant with **GDPR**, **COPPA**, and
   on-prem Helm chart deployable by a non-author.
 
 **Non-goals for this plan** (Phase-2 or later):
+
 - Custom AIMVISION sensor hardware (BMI270 IMU rig) — Phase 2.
 - Public-marketing website / Stripe billing UI for Solo tier — post-pilot.
 - Mobile-side ML inference (server-side stays the source of truth in V1).
@@ -47,16 +49,16 @@ clay/skeet sessions end-to-end. Compliant with **GDPR**, **COPPA**, and
 
 The end of the deep-dive session leaves the following PRs open or merged:
 
-| PR | Scope | Status |
-|---|---|---|
-| #85 | Right-to-erasure web UI | Merged |
-| #86 | ML per-class recall gate (S6) | Merged |
-| #87 | Mobile phone-capture feature flag (ADR-0009 gate) | Merged |
-| #88 | Login contract + pickers + athlete seed | Merged |
-| #89 | Auth refresh tokens + tenant switching | Open, CI passing |
-| #90 | Mobile capture → upload seam + working login | Open |
-| #91 | Mobile local launch (TS plugin → JS, assets, deps) + runbook | Open |
-| #92 | **RN ecosystem modernization** (Expo 51 → 56, RN 0.76 → 0.85, screens 3 → 4.25, React 18 → 19, plus 13 platform-drift fixes) — *app now boots on the iOS Sim* | Open |
+| PR  | Scope                                                                                                                                                         | Status           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| #85 | Right-to-erasure web UI                                                                                                                                       | Merged           |
+| #86 | ML per-class recall gate (S6)                                                                                                                                 | Merged           |
+| #87 | Mobile phone-capture feature flag (ADR-0009 gate)                                                                                                             | Merged           |
+| #88 | Login contract + pickers + athlete seed                                                                                                                       | Merged           |
+| #89 | Auth refresh tokens + tenant switching                                                                                                                        | Open, CI passing |
+| #90 | Mobile capture → upload seam + working login                                                                                                                  | Open             |
+| #91 | Mobile local launch (TS plugin → JS, assets, deps) + runbook                                                                                                  | Open             |
+| #92 | **RN ecosystem modernization** (Expo 51 → 56, RN 0.76 → 0.85, screens 3 → 4.25, React 18 → 19, plus 13 platform-drift fixes) — _app now boots on the iOS Sim_ | Open             |
 
 What is genuinely **built and verified** today:
 
@@ -73,7 +75,7 @@ What is genuinely **built and verified** today:
   harness, diagnostic eval harness with per-class recall gate, LLM
   coaching-note pipeline with verifier (deepseek/qwen via Ollama).
 - Camera: mock backend, in-tree phone-capture native plugin (Swift +
-  Kotlin + Rust C-ABI bridge) — *runtime never verified on device*.
+  Kotlin + Rust C-ABI bridge) — _runtime never verified on device_.
 - Infra: Helm chart + CloudNativePG groundwork (ADR-0005), GitHub Actions
   CI per sub-repo + orchestrator.
 
@@ -114,11 +116,12 @@ verification, login rate limiting, server-side session revocation, TLS
 pinning at the native layer.
 
 **Current.** PBKDF2 + dev-secret HS256 JWT (`services/auth.py` literally
-says *"Stub for the production PASETO/OIDC path"*). Web has refresh +
+says _"Stub for the production PASETO/OIDC path"_). Web has refresh +
 tenant-switch endpoints (#89). Mobile has no refresh-on-401. No password
 reset, no email verification, no rate limiting.
 
 **Integrations needed.**
+
 - **Supabase Auth (GoTrue)** — self-hosted per ADR-0010 to match the
   on-prem-first GA (ADR-0012). GoTrue is the JWT issuer + user store +
   password-reset + email-verify path; the AIMVISION backend keeps its
@@ -137,6 +140,7 @@ on the new stack succeeds without forcing a password reset.
 **Effort.** **3–4 weeks** with one senior backend + one mobile dev.
 
 **Acceptance.**
+
 - Argon2id hashing live; old PBKDF2 users migrated on next login.
 - Refresh-on-401 working on both web and mobile.
 - Login + password reset rate-limited to 5/min/IP, 20/hour/account.
@@ -157,19 +161,21 @@ card, email+ID, video call) exists and is polished. Backend endpoint
 backend-persisted but the parental tie-in is missing.
 
 **Integrations needed (one per method, choose at least two for launch).**
+
 - **Paper PDF + ID upload**: object storage for the PDF (S3/GCS) + a
   background-checked human review queue (LiveOps tooling — Notion/Linear
   works for a small queue).
-- **Credit-card verification** (the most automatable): **Stripe** *Setup
-  Intent* + immediate refund of the auth (COPPA §312.5(b)(2)(ii)). Stripe
+- **Credit-card verification** (the most automatable): **Stripe** _Setup
+  Intent_ + immediate refund of the auth (COPPA §312.5(b)(2)(ii)). Stripe
   has no per-event fee for $0 auth + refund. Estimated cost: ~$0.30 per
   consent.
 - **ID verification** (the gold standard for federations): **Veriff** or
   **Persona** — both serve the EU + MENA. ~$1.50–$3.50 per check.
-- **Video verification call**: **Twilio Video** *or* **Daily** (cheaper) —
+- **Video verification call**: **Twilio Video** _or_ **Daily** (cheaper) —
   integrate scheduling + recording-with-consent + retain for the audit log.
 
 **Other backend work**:
+
 - New `/auth/parental-consent` endpoint + Temporal workflow per
   [`docs/compliance/parental-consent-flow.md`](compliance/parental-consent-flow.md).
 - Server-side age check on every authenticated request (currently only the
@@ -182,13 +188,14 @@ backend-persisted but the parental tie-in is missing.
 review + **specialist counsel — Phase-1 gate, not optional** per ADR-0015
 (Phase 1 ships full minor-athlete support). See §6.
 
-**Scope at launch per ADR-0011.** Stripe card verification is the *only*
+**Scope at launch per ADR-0011.** Stripe card verification is the _only_
 active method in Phase 1; the other three UI methods (paper PDF, email +
 ID, video call) stay in the codebase but their backend routes return 410
 Gone behind a runtime flag. They re-enable in a Phase-2 enhancement once
 Stripe alone has surfaced consent-flow operational gaps.
 
 **Acceptance.**
+
 - All four UI methods reach a verified state in staging using sandbox
   credentials of the integration.
 - A signed RoPA + DPIA on file in `docs/compliance/` covering each
@@ -213,6 +220,7 @@ implemented in `aimvision-ml/`. The mock camera works (PR #77 synthesizes
 shot-detectable audio).
 
 **Integrations needed.**
+
 - **GoPro Hero 13 hardware** (procurement — see §6).
 - **Open GoPro SDK** for iOS and Android (free, but currently
   out-of-the-box experience is rough — see `docs/camera-integration-spec.md`
@@ -222,11 +230,12 @@ shot-detectable audio).
   `docs/camera-integration-spec.md`).
 - **USB-C UVC tether** mode for the federation tier — `docs/architecture-overview.md`
   upgrades this from P1 to P0 per the perf review.
-- **AWS S3** *or* **on-prem MinIO** for recording storage (currently local-fs
+- **AWS S3** _or_ **on-prem MinIO** for recording storage (currently local-fs
   per `services/storage.py`); resumable multipart uploads, server-side
   encryption with per-tenant DEKs from the right-to-erasure layer.
 
 **Mobile work**:
+
 - BLE-discovery + Wi-Fi pair-and-stream control plane.
 - Background upload with retry queue (poor range Wi-Fi is the assumption).
 - Session-picker UI on mobile (today the capture screen wants a pasted
@@ -237,6 +246,7 @@ shot-detectable audio).
 specialist. Hardware-gated: needs at least two Hero 13s in hand.
 
 **Acceptance.**
+
 - A coach pairs a Hero 13, captures a 5-minute session, the recording
   uploads while the range Wi-Fi is intentionally throttled, the
   post-session pipeline runs, and a coaching note renders on the web
@@ -251,14 +261,15 @@ specialist. Hardware-gated: needs at least two Hero 13s in hand.
 to the ML worker pool, validate the LLM coaching-note quality with real
 coaches, lock the diagnostic taxonomy via card-sort.
 
-**Current.** `aimvision-ml/` has the *infrastructure* (eval gates, audio
+**Current.** `aimvision-ml/` has the _infrastructure_ (eval gates, audio
 shot detection, pose eval harness, synthetic data generators, LLM
 coaching-note pipeline with verifier, MLflow client). What is missing
-is the *trained models*: RTMPose-x not trained on shooter footage,
+is the _trained models_: RTMPose-x not trained on shooter footage,
 diagnostic head not trained, DeepSeek 14B not fine-tuned, LoRA per-athlete
 adapters not built.
 
 **Integrations needed.**
+
 - **GPU compute** (pose + diagnostic training only): AWS A10G / L4
   (~$0.50–$1/hr) or on-prem RTX 4090s. T4 is too slow for RTMPose-x per
   `docs/ml-architecture.md`. No GPU needed at inference time — pose /
@@ -280,6 +291,7 @@ adapters not built.
   real data is the **chicken/egg** problem (see §8 risks).
 
 **Workstreams sub-tasks**:
+
 - D1: Collect 50+ hours of real range footage with consent (waits on
   workstreams B + C).
 - D2: Fine-tune RTMPose-x on shooter stances (12-coach card-sort first
@@ -292,9 +304,11 @@ adapters not built.
   conformal coverage ≥ 0.88.
 
 **Effort.** **8–12 weeks** (parallel with B+C), one ML engineer + GPU access
-+ active access to real footage from the Egypt pilot.
+
+- active access to real footage from the Egypt pilot.
 
 **Acceptance.**
+
 - All three model types pass the §13 promotion gate on a held-out test set.
 - 10-coach blind review of coaching notes: ≥ 70 % "would say this to my
   athlete" rate.
@@ -311,6 +325,7 @@ login, capture, upload, RangeMode, i18n all real. Statsig stubbed.
 WatermelonDB not installed. Refresh-on-401 not wired.
 
 **Sub-tasks**:
+
 - E1: Replace Statsig with a React-19-compatible flag SDK — **ConfigCat**
   is the lowest-friction (REST API, no React peer-dep coupling).
 - E2: Install + wire **`@nozbe/watermelondb`** and connect it to the
@@ -331,6 +346,7 @@ WatermelonDB not installed. Refresh-on-401 not wired.
 **Effort.** **3–4 weeks**, one mobile dev.
 
 **Acceptance.**
+
 - TestFlight build accepted, no critical Sentry issues for 7 days with 5+
   internal users.
 - WatermelonDB sync running against a real backend in spotty-Wi-Fi mode.
@@ -352,8 +368,9 @@ shipped (#84) — crypto-shred + ledger; sub-processor fan-out + 30-day grace
 workflow not built.
 
 **Integrations needed.**
+
 - **CloudNativePG** (ADR-0005) — already groundwork in `aimvision-infra/`.
-- **Temporal Cloud** *or* self-hosted Temporal cluster (ADR-0007).
+- **Temporal Cloud** _or_ self-hosted Temporal cluster (ADR-0007).
 - **AWS S3** (cloud tier) and **MinIO** (on-prem tier) behind the same
   Storage protocol — recording uploads, audit chain snapshots, DEK
   wrap material.
@@ -361,6 +378,7 @@ workflow not built.
   DEKs that the right-to-erasure layer assumes.
 
 **Sub-tasks**:
+
 - F1: S3Storage impl; SSE-KMS with per-tenant DEK; resumable multipart for
   large recordings.
 - F2: Migrate `data_encryption_kek` out of `config.py` into KMS/Vault.
@@ -373,6 +391,7 @@ workflow not built.
 **Effort.** **5–6 weeks**, one backend dev + one infra collaborator.
 
 **Acceptance.**
+
 - Full app suite passes against managed Postgres in CI + a staging deploy.
 - Recording upload + S3 storage end-to-end with 4 GiB stress-test files.
 - Temporal post-session workflow visible in the Temporal UI with retry
@@ -390,6 +409,7 @@ dashboard (#38), erasure UI (#85), coaching-note rendering (#81),
 tenant switcher, EN/AR + RTL, role-gated nav.
 
 **Sub-tasks**:
+
 - G1: Fix the stale "/v1/federation not yet implemented" comment in
   `services/federation.ts` (the endpoints exist now).
 - G2: Session detail shows raw UUIDs; render athlete display name +
@@ -406,6 +426,7 @@ tenant switcher, EN/AR + RTL, role-gated nav.
 **Effort.** **2–3 weeks**, one frontend dev.
 
 **Acceptance.**
+
 - Lighthouse a11y + performance scores ≥ 90.
 - Coach demo flow on the pilot range works end-to-end with no UX papercuts.
 
@@ -417,13 +438,15 @@ tenant switcher, EN/AR + RTL, role-gated nav.
 analytics, SLOs, and an on-call rotation.
 
 **Integrations needed.**
+
 - **Sentry** (cloud) or **GlitchTip** (self-hosted) — crashes + RUM, with
   symbol upload for the mobile app.
-- **Honeycomb** *or* **Grafana Cloud** — OTel traces + metrics.
+- **Honeycomb** _or_ **Grafana Cloud** — OTel traces + metrics.
 - **Loki** + **Promtail** — logs (matches Helm-chart-friendly stack).
-- **PagerDuty** *or* **Opsgenie** for the on-call rotation.
+- **PagerDuty** _or_ **Opsgenie** for the on-call rotation.
 
 **Sub-tasks**:
+
 - H1: SLOs declared per `docs/observability-plan.md` (P95 capture-to-note
   latency, error budget per endpoint, mobile crash-free rate).
 - H2: End-to-end trace: mobile capture → upload → backend ingest → ML
@@ -436,6 +459,7 @@ analytics, SLOs, and an on-call rotation.
 **Effort.** **2–3 weeks**, one infra dev (overlaps with workstream F).
 
 **Acceptance.**
+
 - A practiced incident response (game-day) resolves a synthetic ML model
   regression in < 30 min.
 - Crash-free rate of mobile builds > 99.5 % over 7 days.
@@ -452,6 +476,7 @@ Mobile CI runs lint / typecheck / jest — **does not prebuild, does not
 xcodebuild** (which is how the 13 walls in #92 got missed).
 
 **Sub-tasks**:
+
 - I1: Mobile CI — add an `expo prebuild --platform ios --no-install` smoke
   step. (Catches plugin / config / asset regressions of the class #91
   documented.)
@@ -472,6 +497,7 @@ xcodebuild** (which is how the 13 walls in #92 got missed).
 **Effort.** **4–5 weeks**, one DevOps lead.
 
 **Acceptance.**
+
 - Helm `install` to a fresh k3s cluster yields a working federation tier in
   ≤ 15 minutes.
 - Mobile CI catches a deliberate `expo prebuild`-breaking change in PR
@@ -485,6 +511,7 @@ xcodebuild** (which is how the 13 walls in #92 got missed).
 real range data.
 
 **Sub-tasks**:
+
 - J1: Purchase order: **6 × GoPro Hero 13** + chest/helmet mounts +
   USB-C tether cables + spare batteries. ~$3,500.
 - J2: Optional: 2 × Sony A7C II as a federation-tier USB-C UVC alternative
@@ -493,7 +520,7 @@ real range data.
   (the design partner per CLAUDE.md; supersedes the earlier
   Cairo-Shooting-Club default). National Team coaching staff are the
   in-region champions + the source-of-truth coaches for D2's card-sort
-  + D4's coaching-note review.
+  - D4's coaching-note review.
 - J4: Range data harvest with consent (workstreams B + C must be live).
 - J5: Field-data feedback loop into workstream D (ML training).
 
@@ -501,6 +528,7 @@ real range data.
 calendar more than dev effort.
 
 **Acceptance.**
+
 - One coach + four athletes run a full session at the pilot range, get
   coaching notes the same day, and rate the notes ≥ 7/10.
 
@@ -512,6 +540,7 @@ calendar more than dev effort.
 public privacy policy + ToS.
 
 **Sub-tasks**:
+
 - K1: Coach onboarding doc (Notion / docs site): "your first session in
   five minutes."
 - K2: Federation-admin operations guide.
@@ -534,6 +563,7 @@ firearms-adjacent-content disclosure for App Store / Play Store reviews.
 counsel-of-record relationship.** Money + calendar.
 
 **Acceptance.**
+
 - Counsel sign-off on: parental-consent flow, age gate, retention policy,
   data-classification per `docs/compliance/data-classification.md`.
 
@@ -550,12 +580,12 @@ work that can run alongside.
 Lock in everything a customer's coach needs on day-one before they ever
 sit on a range.
 
-| Wk | Auth (A) | Compliance (B) | Backend (F) | Web (G) | Obs (H) | Infra (I) |
-|---|---|---|---|---|---|---|
-| 1 | OIDC vendor selected, integration POC | Counsel kickoff, `/auth/parental-consent` API contract | Postgres staging stand-up | (parallel) G1 fed comment | OTel pilot trace | I1 mobile-ci prebuild step |
-| 2 | argon2id migration, refresh-on-401 backend | Stripe Setup Intent POC | S3 storage impl | G2 athlete-name display | Sentry creds + RUM | I3 EAS Build |
-| 3 | TLS pinning iOS + Android | Veriff + DocuSign sandbox | KMS-backed DEK | G5 a11y audit | SLOs declared | I4 Helm chart end-to-end |
-| 4 | Password reset + email verify + rate limits | Temporal consent workflow | Right-to-erasure fan-out | G6 RUM | Incident playbook drill | I5 secret rotation runbook |
+| Wk  | Auth (A)                                    | Compliance (B)                                         | Backend (F)               | Web (G)                   | Obs (H)                 | Infra (I)                  |
+| --- | ------------------------------------------- | ------------------------------------------------------ | ------------------------- | ------------------------- | ----------------------- | -------------------------- |
+| 1   | OIDC vendor selected, integration POC       | Counsel kickoff, `/auth/parental-consent` API contract | Postgres staging stand-up | (parallel) G1 fed comment | OTel pilot trace        | I1 mobile-ci prebuild step |
+| 2   | argon2id migration, refresh-on-401 backend  | Stripe Setup Intent POC                                | S3 storage impl           | G2 athlete-name display   | Sentry creds + RUM      | I3 EAS Build               |
+| 3   | TLS pinning iOS + Android                   | Veriff + DocuSign sandbox                              | KMS-backed DEK            | G5 a11y audit             | SLOs declared           | I4 Helm chart end-to-end   |
+| 4   | Password reset + email verify + rate limits | Temporal consent workflow                              | Right-to-erasure fan-out  | G6 RUM                    | Incident playbook drill | I5 secret rotation runbook |
 
 **Phase 1 gate.** A coach can sign up with email verification, a minor's
 parent can complete verifiable consent through at least Stripe + DocuSign,
@@ -567,14 +597,14 @@ mobile login work end-to-end through the new auth layer.
 
 The camera is in hand and the observation pipeline is real.
 
-| Wk | Camera (C) | ML (D) | Mobile harden (E) | Hardware (J) |
-|---|---|---|---|---|
-| 5 | Hero 13s arrive; Open GoPro POC | (parallel) D1 begin data collection | E1 ConfigCat | J1 HW PO landed |
-| 6 | BLE + Wi-Fi pair-and-stream | D5 promotion-gate harness wired to MLflow | E2 WatermelonDB | J3 pilot scheduling |
-| 7 | USB-C UVC federation rig | First synthetic-trained RTMPose pass | E5 mobile refresh-on-401 | (parallel) J5 feedback loop start |
-| 8 | Multi-camera sync end-to-end | Diagnostic head training on partial data | E4 Sentry symbols | |
-| 9 | Background upload + retry queue | DeepSeek LoRA prep | E7 store metadata | |
-| 10 | Capture + upload + pipeline glue (one trace) | First coaching-notes generated on real footage | E9 EAS → TestFlight + Play internal | |
+| Wk  | Camera (C)                                   | ML (D)                                         | Mobile harden (E)                   | Hardware (J)                      |
+| --- | -------------------------------------------- | ---------------------------------------------- | ----------------------------------- | --------------------------------- |
+| 5   | Hero 13s arrive; Open GoPro POC              | (parallel) D1 begin data collection            | E1 ConfigCat                        | J1 HW PO landed                   |
+| 6   | BLE + Wi-Fi pair-and-stream                  | D5 promotion-gate harness wired to MLflow      | E2 WatermelonDB                     | J3 pilot scheduling               |
+| 7   | USB-C UVC federation rig                     | First synthetic-trained RTMPose pass           | E5 mobile refresh-on-401            | (parallel) J5 feedback loop start |
+| 8   | Multi-camera sync end-to-end                 | Diagnostic head training on partial data       | E4 Sentry symbols                   |                                   |
+| 9   | Background upload + retry queue              | DeepSeek LoRA prep                             | E7 store metadata                   |                                   |
+| 10  | Capture + upload + pipeline glue (one trace) | First coaching-notes generated on real footage | E9 EAS → TestFlight + Play internal |                                   |
 
 **Phase 2 gate.** A Hero 13 + iPhone + backend + web dashboard chain
 produces a coaching note on a real shooter session within 10 minutes of
@@ -582,16 +612,17 @@ the last shot. Crash-free rate > 99 % for the internal cohort.
 
 ### Phase 3 — **Pilot + GA hardening** (weeks 11–16)
 
-| Wk | Pilot (J) | ML (D) | Cross-cutting |
-|---|---|---|---|
-| 11 | First Cairo range session | Eval gates on real data, regressions caught | Tighten anything Phase 2 surfaced |
-| 12 | Daily session loop, real coach feedback | LoRA fine-tune on actual coaching corrections | |
-| 13 | Federation rig (multi-camera) at the range | Per-athlete LoRA proof-of-concept | |
-| 14 | Internal-to-external coach handoff | Promotion-gate the production model | K1 + K2 docs finalized |
-| 15 | Two weeks soak; track Sentry + SLOs | | L final counsel sign-off |
-| 16 | GA flip; first paying club | | Post-mortem + V2 roadmap |
+| Wk  | Pilot (J)                                  | ML (D)                                        | Cross-cutting                     |
+| --- | ------------------------------------------ | --------------------------------------------- | --------------------------------- |
+| 11  | First Cairo range session                  | Eval gates on real data, regressions caught   | Tighten anything Phase 2 surfaced |
+| 12  | Daily session loop, real coach feedback    | LoRA fine-tune on actual coaching corrections |                                   |
+| 13  | Federation rig (multi-camera) at the range | Per-athlete LoRA proof-of-concept             |                                   |
+| 14  | Internal-to-external coach handoff         | Promotion-gate the production model           | K1 + K2 docs finalized            |
+| 15  | Two weeks soak; track Sentry + SLOs        |                                               | L final counsel sign-off          |
+| 16  | GA flip; first paying club                 |                                               | Post-mortem + V2 roadmap          |
 
 **Phase 3 gate (GA).** 30 consecutive days of pilot use with:
+
 - Mobile crash-free > 99.5 %.
 - All P95 latencies inside `docs/performance-budgets.md`.
 - No high-severity security findings open.
@@ -606,17 +637,17 @@ the last shot. Crash-free rate > 99 % for the internal cohort.
 
 Realistic minimum to hit the timeline above:
 
-| Role | Headcount | Phase 1 | Phase 2 | Phase 3 |
-|---|---|---|---|---|
-| Backend (Python/FastAPI/Postgres) | 2 | A, F | F (less) | hardening |
-| Mobile (RN + iOS/Android native) | 2 | A, B (UI) | C, E | pilot fixes |
-| ML engineer | 1 | (idle/data prep) | D | D + LoRA |
-| Camera/native specialist | 1 | (idle/research) | C | pilot support |
-| DevOps / SRE | 1 | F, H, I | I, H | on-call lead |
-| Frontend (web) | 1 | G | G (light) | pilot polish |
-| Design | 0.5 FTE | B (consent UX) | E (mobile polish) | pilot fixes |
-| PM | 1 | All | All | All |
-| Legal (specialist counsel + in-house) | external | B, L | (parallel) | L sign-off |
+| Role                                  | Headcount | Phase 1          | Phase 2           | Phase 3       |
+| ------------------------------------- | --------- | ---------------- | ----------------- | ------------- |
+| Backend (Python/FastAPI/Postgres)     | 2         | A, F             | F (less)          | hardening     |
+| Mobile (RN + iOS/Android native)      | 2         | A, B (UI)        | C, E              | pilot fixes   |
+| ML engineer                           | 1         | (idle/data prep) | D                 | D + LoRA      |
+| Camera/native specialist              | 1         | (idle/research)  | C                 | pilot support |
+| DevOps / SRE                          | 1         | F, H, I          | I, H              | on-call lead  |
+| Frontend (web)                        | 1         | G                | G (light)         | pilot polish  |
+| Design                                | 0.5 FTE   | B (consent UX)   | E (mobile polish) | pilot fixes   |
+| PM                                    | 1         | All              | All               | All           |
+| Legal (specialist counsel + in-house) | external  | B, L             | (parallel)        | L sign-off    |
 
 **~7.5 FTE** for 4 months. If the team is smaller (e.g., 3 FTE), expect
 ~9–10 months elapsed and reorder Phase 2 to start ML data collection in
@@ -633,25 +664,25 @@ All seven §10 decisions resolve; this table reflects the chosen path
 (on-prem-first, Supabase auth, Stripe-only consent, Android-first
 rollout, hosted LLM, full minor support).
 
-| Item | Vendor (chosen / decision) | Approx. cost | Owner |
-|---|---|---|---|
-| Identity (ADR-0010) | **Supabase Auth (GoTrue), self-hosted** | infra only | Backend lead |
-| Email (verify / pw-reset) | Postmark or SES; federation can BYO SMTP | $10/mo + per-email | Backend lead |
-| Card verification, consent (ADR-0011) | **Stripe** (Setup Intent + refund) | ~$0.30 / consent | Compliance lead |
-| ID / video / document-signing | *Deferred to Phase 2 enhancement per ADR-0011* | — | — |
-| Coaching-note LLM (ADR-0014) | Anthropic Claude / OpenAI GPT-4o / Together AI hosted Llama 3.1 70B (pick week-1 of D) | $0.15–$3 / 1M input tokens | ML lead |
-| Crash analytics | **GlitchTip self-hosted** (on-prem default) — Sentry SaaS available as a cloud add-on | infra only | DevOps |
-| Tracing / metrics | **Grafana Cloud free** *or* self-hosted Prometheus + Tempo | $0 – $200/mo | DevOps |
-| Logs | Loki self-hosted | infra cost only | DevOps |
-| On-call | PagerDuty / Opsgenie | $21/user/mo | SRE lead |
-| Feature flags | ConfigCat / Unleash | $0 – $80/mo | Mobile lead |
-| Object storage | **MinIO (on-prem default)** — S3 available as a cloud add-on | infra cost only | Infra lead |
-| KMS / secrets | **HashiCorp Vault (on-prem default)** — AWS KMS as cloud add-on | infra cost only | Security lead |
-| GPU compute (training only) | AWS A10G / L4 *or* on-prem RTX 4090 | $0.50–$1/hr cloud | ML lead |
-| MLflow tracking | Self-host | infra cost only | ML lead |
-| Hardware | 6 × Hero 13 + mounts | ~$3,500 | PM |
-| App stores (Android first per ADR-0013) | **Google Play** ($25 one-time); Apple Dev maintained for builds, not first release | $25 (+ $99/yr iOS later) | PM |
-| **Counsel** *(Phase-1 gate per ADR-0015)* | Specialist (children's data + firearms-adjacent + Egypt PDPL) | Hourly | Founder/CEO |
+| Item                                      | Vendor (chosen / decision)                                                             | Approx. cost               | Owner           |
+| ----------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------- | --------------- |
+| Identity (ADR-0010)                       | **Supabase Auth (GoTrue), self-hosted**                                                | infra only                 | Backend lead    |
+| Email (verify / pw-reset)                 | Postmark or SES; federation can BYO SMTP                                               | $10/mo + per-email         | Backend lead    |
+| Card verification, consent (ADR-0011)     | **Stripe** (Setup Intent + refund)                                                     | ~$0.30 / consent           | Compliance lead |
+| ID / video / document-signing             | _Deferred to Phase 2 enhancement per ADR-0011_                                         | —                          | —               |
+| Coaching-note LLM (ADR-0014)              | Anthropic Claude / OpenAI GPT-4o / Together AI hosted Llama 3.1 70B (pick week-1 of D) | $0.15–$3 / 1M input tokens | ML lead         |
+| Crash analytics                           | **GlitchTip self-hosted** (on-prem default) — Sentry SaaS available as a cloud add-on  | infra only                 | DevOps          |
+| Tracing / metrics                         | **Grafana Cloud free** _or_ self-hosted Prometheus + Tempo                             | $0 – $200/mo               | DevOps          |
+| Logs                                      | Loki self-hosted                                                                       | infra cost only            | DevOps          |
+| On-call                                   | PagerDuty / Opsgenie                                                                   | $21/user/mo                | SRE lead        |
+| Feature flags                             | ConfigCat / Unleash                                                                    | $0 – $80/mo                | Mobile lead     |
+| Object storage                            | **MinIO (on-prem default)** — S3 available as a cloud add-on                           | infra cost only            | Infra lead      |
+| KMS / secrets                             | **HashiCorp Vault (on-prem default)** — AWS KMS as cloud add-on                        | infra cost only            | Security lead   |
+| GPU compute (training only)               | AWS A10G / L4 _or_ on-prem RTX 4090                                                    | $0.50–$1/hr cloud          | ML lead         |
+| MLflow tracking                           | Self-host                                                                              | infra cost only            | ML lead         |
+| Hardware                                  | 6 × Hero 13 + mounts                                                                   | ~$3,500                    | PM              |
+| App stores (Android first per ADR-0013)   | **Google Play** ($25 one-time); Apple Dev maintained for builds, not first release     | $25 (+ $99/yr iOS later)   | PM              |
+| **Counsel** _(Phase-1 gate per ADR-0015)_ | Specialist (children's data + firearms-adjacent + Egypt PDPL)                          | Hourly                     | Founder/CEO     |
 
 Estimated **first-year recurring integration spend (excluding salaries +
 infra + hardware):** **$2k–$8k** (the on-prem-default story drops Sentry
@@ -663,26 +694,26 @@ variable cost (~$0.30 × N athletes onboarded) and per-token LLM cost
 
 ## 7 · Acceptance gates per phase (compact)
 
-| Phase | Gate |
-|---|---|
-| 1 | Production auth working on web + mobile; consent integrations submit-and-verify through Stripe + DocuSign sandbox; Helm chart deploys cleanly; Sentry shows real (non-test) traffic. |
-| 2 | One Hero 13 + one iPhone + backend = a coaching note on a real shooting session. Multi-camera sync ≤ 50 ms. Crash-free > 99 %. |
-| 3 (GA) | 30 days with crash-free > 99.5 %, all SLOs met, federation admin self-deploys Helm chart, two game days passed, counsel sign-off final. |
+| Phase  | Gate                                                                                                                                                                                 |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1      | Production auth working on web + mobile; consent integrations submit-and-verify through Stripe + DocuSign sandbox; Helm chart deploys cleanly; Sentry shows real (non-test) traffic. |
+| 2      | One Hero 13 + one iPhone + backend = a coaching note on a real shooting session. Multi-camera sync ≤ 50 ms. Crash-free > 99 %.                                                       |
+| 3 (GA) | 30 days with crash-free > 99.5 %, all SLOs met, federation admin self-deploys Helm chart, two game days passed, counsel sign-off final.                                              |
 
 ---
 
 ## 8 · Risks & mitigations
 
-| Risk | Probability | Impact | Mitigation |
-|---|---|---|---|
-| **Chicken/egg on ML training data** — can't train without real footage; can't collect footage without consent + camera | High | High | Start workstream J data collection on day-one of Phase 2 with synthetic + Phase-1's working consent flow. Don't gate Phase 1 on having footage. |
-| **App Store review flags firearms-adjacent app** | Medium | High | Apply Apple Game Plan; pre-clear with App Review via Resolution Center. Have counsel-vetted disclosure ready. |
-| **GoPro Open GoPro SDK reality** — known rough edges per `docs/reviews/05-embedded-firmware-engineer.md` | Medium | Medium | Federation tier uses USB-C UVC as the P0 fallback. Don't put all eggs in Open GoPro for the federation rig. |
-| **Egypt PDPL precedent thin** | Medium | Medium | Use the existing `docs/compliance/egypt-pdpl-action-plan.md` as the starting point; budget for one PDPL specialist consult. |
-| **COPPA + minor + firearms interaction** | Medium | High | Specialist counsel review before any < 18 user goes live. Have a "no minors in Phase 1" emergency fallback. |
-| **Sentry / OTel cost blows up at scale** | Low | Medium | Self-host GlitchTip + Grafana stack early as a fallback option. |
-| **WatermelonDB native install fails on RN 0.85 New Arch** | Medium | Medium | The PR #92 modernization has already verified Hermes/Fabric work; if WatermelonDB still resists, fall back to op-log sync over MMKV until the WatermelonDB Fabric work lands upstream. |
-| **Pilot range cancels** | Low | High | Have a US backup range identified by week 8. |
+| Risk                                                                                                                   | Probability | Impact | Mitigation                                                                                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Chicken/egg on ML training data** — can't train without real footage; can't collect footage without consent + camera | High        | High   | Start workstream J data collection on day-one of Phase 2 with synthetic + Phase-1's working consent flow. Don't gate Phase 1 on having footage.                                        |
+| **App Store review flags firearms-adjacent app**                                                                       | Medium      | High   | Apply Apple Game Plan; pre-clear with App Review via Resolution Center. Have counsel-vetted disclosure ready.                                                                          |
+| **GoPro Open GoPro SDK reality** — known rough edges per `docs/reviews/05-embedded-firmware-engineer.md`               | Medium      | Medium | Federation tier uses USB-C UVC as the P0 fallback. Don't put all eggs in Open GoPro for the federation rig.                                                                            |
+| **Egypt PDPL precedent thin**                                                                                          | Medium      | Medium | Use the existing `docs/compliance/egypt-pdpl-action-plan.md` as the starting point; budget for one PDPL specialist consult.                                                            |
+| **COPPA + minor + firearms interaction**                                                                               | Medium      | High   | Specialist counsel review before any < 18 user goes live. Have a "no minors in Phase 1" emergency fallback.                                                                            |
+| **Sentry / OTel cost blows up at scale**                                                                               | Low         | Medium | Self-host GlitchTip + Grafana stack early as a fallback option.                                                                                                                        |
+| **WatermelonDB native install fails on RN 0.85 New Arch**                                                              | Medium      | Medium | The PR #92 modernization has already verified Hermes/Fabric work; if WatermelonDB still resists, fall back to op-log sync over MMKV until the WatermelonDB Fabric work lands upstream. |
+| **Pilot range cancels**                                                                                                | Low         | High   | Have a US backup range identified by week 8.                                                                                                                                           |
 
 ---
 
@@ -690,15 +721,15 @@ variable cost (~$0.30 × N athletes onboarded) and per-token LLM cost
 
 This session moved the project meaningfully forward against this plan:
 
-| Workstream | Phase | Done this session |
-|---|---|---|
-| A (auth) | 1 | Refresh tokens + tenant switching (#89), mobile login fixed (#90) |
-| E (mobile harden) | 1–2 | Modernization to SDK 56 / RN 0.85 / React 19 (#92); local launch repeatability (#91); Statsig stubbed; jest unblocked |
-| C (camera) | 2 | Capture → upload seam wired (#90); Vision Camera API drift fixes (#92) |
-| I (infra) | 1 | The local-launch runbook (#91); identified the mobile-CI gaps for I1 / I2 |
-| F (backend) | 1 | Right-to-erasure foundation (#84, already on main); coaching-note + drills + finalize_session endpoints |
-| D (ML) | 2 | Per-class recall gate (#86); end-to-end ML demo (12 detected shots into a session via the CLI) |
-| G (web) | 1 | Erasure UI (#85), coaching-note rendering (#81), athlete progress (#82), data-fetching bug (#88) |
+| Workstream        | Phase | Done this session                                                                                                     |
+| ----------------- | ----- | --------------------------------------------------------------------------------------------------------------------- |
+| A (auth)          | 1     | Refresh tokens + tenant switching (#89), mobile login fixed (#90)                                                     |
+| E (mobile harden) | 1–2   | Modernization to SDK 56 / RN 0.85 / React 19 (#92); local launch repeatability (#91); Statsig stubbed; jest unblocked |
+| C (camera)        | 2     | Capture → upload seam wired (#90); Vision Camera API drift fixes (#92)                                                |
+| I (infra)         | 1     | The local-launch runbook (#91); identified the mobile-CI gaps for I1 / I2                                             |
+| F (backend)       | 1     | Right-to-erasure foundation (#84, already on main); coaching-note + drills + finalize_session endpoints               |
+| D (ML)            | 2     | Per-class recall gate (#86); end-to-end ML demo (12 detected shots into a session via the CLI)                        |
+| G (web)           | 1     | Erasure UI (#85), coaching-note rendering (#81), athlete progress (#82), data-fetching bug (#88)                      |
 
 **Roughly Phase 1 weeks 1–2 of work is already in or in PR review.** The
 modernization PR alone unlocks the next 8 weeks of mobile work.

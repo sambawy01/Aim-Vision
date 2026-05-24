@@ -58,6 +58,7 @@ Concretely:
 ## Consequences
 
 **Positive.**
+
 - The pilot is run with the design-partner cohort the platform was
   shaped for — feedback loops back to the right product instincts.
 - One country, one timezone, one regulatory regime (PDPL) for the
@@ -69,6 +70,7 @@ Concretely:
   validate ADR-0011 + ADR-0015 with real users.
 
 **Negative.**
+
 - Single-venue pilot does not surface region-specific bugs (lighting,
   ambient audio profile, network conditions of a US/UK range). We
   accept this as a known Phase-2 question: the second pilot venue,

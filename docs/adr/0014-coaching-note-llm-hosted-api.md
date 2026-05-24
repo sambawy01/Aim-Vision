@@ -19,7 +19,7 @@ V2 plan implied. In practice:
   (one node, mid-range GPU at most) cannot host the model and run
   the rest of the stack comfortably.
 - Self-hosting fine-tuning, eval gates, prompt-version rollouts, and
-  hallucination QA *per federation* is operationally far heavier
+  hallucination QA _per federation_ is operationally far heavier
   than centralizing it.
 - The PII strip layer (`aimvision_ml/llm/pii.py`) already redacts
   athlete names, dates of birth, club / federation identifiers, and
@@ -63,6 +63,7 @@ Concretely:
 ## Consequences
 
 **Positive.**
+
 - Sidesteps the GPU-on-appliance hardware bill and the multi-week
   fine-tuning + inference-tuning ops work per federation.
 - Higher-quality coaching notes than DeepSeek 14B Q4 at the same
@@ -72,6 +73,7 @@ Concretely:
   on-prem federation can audit a single egress boundary.
 
 **Negative.**
+
 - Internet egress from the on-prem appliance to a single allow-listed
   hostname is now load-bearing. The Helm chart documents the egress
   rule and the federation procurement pack discloses it.

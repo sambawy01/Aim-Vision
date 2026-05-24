@@ -59,6 +59,7 @@ a brief maintenance window.
 ## Consequences
 
 **Positive.**
+
 - Self-hostable — no vendor lock-in on the on-prem federation deploy.
 - argon2id, email verification, password reset, rate limiting are
   features of GoTrue we get for free.
@@ -71,6 +72,7 @@ a brief maintenance window.
 - Supabase Auth is open-source (MIT); no commercial license required.
 
 **Negative.**
+
 - Two services to operate (GoTrue + AIMVISION backend) instead of one.
 - One more Postgres database (GoTrue's `auth` schema) — the
   CloudNativePG operator handles this fine.
