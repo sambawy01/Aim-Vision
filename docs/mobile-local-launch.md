@@ -154,6 +154,28 @@ can run over it.
 missing files. Replace them with real artwork (typically 1024×1024) before any
 build that leaves this dev environment.
 
+## Known issues on Xcode 26 / iOS 26 SDK
+
+The project's pinned RN-ecosystem deps predate Xcode 26's libc++ and RN 0.76's
+New Architecture. As of this writing the following surface during `xcodebuild`:
+
+- **`react-native-screens@3.31.1`** fails to compile against RN 0.76's
+  `ConcreteViewShadowNode` base class (`RNSScreenShadowNode.h:22` —
+  *"non-virtual member function marked 'override' hides virtual member
+  function"*). Bumping to `react-native-screens@4.x` cascades into requiring
+  `react-native@0.82+` (we ship `0.76.3`), so the real fix is a coordinated
+  RN-ecosystem modernization sprint (RN itself + screens + reanimated +
+  navigation peer deps), not a single dep bump. Tracked as a separate roadmap
+  item; in the meantime `pod install` succeeds and `expo prebuild` runs clean,
+  so plugin / config / asset regressions are caught locally — full `xcodebuild`
+  to the simulator is the gap.
+- Older peer warnings (`statsig-react-native-expo` ↔ `expo-constants@^15`,
+  etc.) are non-blocking and resolved when those packages catch up to Expo
+  SDK 51.
+
+This is exactly the class of regression an `expo prebuild --no-install` smoke
+step in `mobile-ci` would have caught before the team hit it on a fresh Mac.
+
 ## What you cannot test locally
 
 | | |
