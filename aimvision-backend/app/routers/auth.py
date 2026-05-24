@@ -6,10 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import get_settings
 from ..deps import db_session_anon
 from ..models.tenancy import Account, Membership, OrgKind, Role, User
 from ..models.tenancy import Org as OrgModel
 from ..schemas.tenancy import (
+    GoTrueExchangeIn,
     LoginIn,
     LoginOut,
     MembershipOut,
@@ -18,6 +20,7 @@ from ..schemas.tenancy import (
     UserOut,
 )
 from ..services.auth import Principal, hash_password, issue_token, verify_password
+from ..services.auth_gotrue import GoTrueVerificationError, verify_gotrue_jwt
 from ..services.authz import ROLE_RANK
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -71,6 +74,76 @@ async def login(
     # The token is minted for the user's highest-privilege membership; that
     # membership is returned first so the web's `current` tenant matches the
     # token's `tid`.
+    primary = memberships[0]
+    principal = Principal(user_id=user.id, tenant_id=primary.tenant_id, role=primary.role)
+    token, ttl = issue_token(principal)
+    return LoginOut(
+        access_token=token,
+        expires_in=ttl,
+        principal=PrincipalOut(
+            user_id=user.id,
+            tenant_id=primary.tenant_id,
+            role=primary.role,
+            display_name=user.display_name,
+        ),
+        memberships=memberships,
+    )
+
+
+@router.post("/exchange", response_model=LoginOut)
+async def exchange_gotrue_token(
+    payload: GoTrueExchangeIn,
+    session: AsyncSession = Depends(db_session_anon),
+) -> LoginOut:
+    """Exchange a GoTrue-issued JWT for an AIMVISION session (ADR-0010).
+
+    The client authenticates against GoTrue directly (signup, password,
+    MFA all live there) and posts the resulting JWT here. We verify it,
+    look up the AIMVISION ``users`` row mirrored by ``gotrue_sub``, and
+    mint our own session token bound to that user's highest-privilege
+    membership. The response shape matches ``/auth/login`` so the web
+    + mobile clients can swap the entry point without further changes.
+
+    First-login provisioning (creating an AIMVISION ``users`` row from
+    GoTrue claims the first time a user appears) is deliberately *not*
+    in this slice — it lands with the bulk-import migration script
+    described in ADR-0010's Migration section. Until then, a token for
+    an unknown ``sub`` is a 401, not an auto-account-create.
+
+    Returns 401 on any failure path (invalid token, unknown sub, inactive
+    user, no memberships). Failure reasons are not surfaced to the
+    client; the verifier's audit-log captures them server-side.
+    """
+    settings = get_settings()
+    if settings.auth_provider != "gotrue":
+        # The endpoint exists in code but is operationally disabled until
+        # the operator flips AUTH_PROVIDER. Returning 404 (not 403) keeps
+        # the stub-auth deployment from advertising a GoTrue surface.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="not found")
+
+    try:
+        claims = verify_gotrue_jwt(payload.gotrue_jwt, settings=settings)
+    except GoTrueVerificationError as exc:
+        # Single 401 for every failure mode; the verifier exception type
+        # is intentionally opaque to the client. Server logs (audit) carry
+        # the cause for ops + intrusion-detection.
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            detail="invalid identity token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+    user = (
+        (await session.execute(select(User).where(User.gotrue_sub == claims.sub))).scalars().first()
+    )
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            detail="invalid identity token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    memberships = await _resolve_memberships(session, user)
     primary = memberships[0]
     principal = Principal(user_id=user.id, tenant_id=primary.tenant_id, role=primary.role)
     token, ttl = issue_token(principal)

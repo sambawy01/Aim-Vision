@@ -49,6 +49,10 @@ class User(Base, TimestampMixin):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Mirror of the GoTrue user UUID (ADR-0010). Nullable through cutover:
+    # legacy stub-auth users carry NULL until they re-authenticate via GoTrue.
+    # See alembic migration 0015.
+    gotrue_sub: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
 
 
 class Org(Base, TimestampMixin, TenantScopedMixin):
