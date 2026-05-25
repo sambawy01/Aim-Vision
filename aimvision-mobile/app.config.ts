@@ -20,6 +20,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       SENTRY_DSN: process.env.SENTRY_DSN ?? '',
       STATSIG_CLIENT_KEY: process.env.STATSIG_CLIENT_KEY ?? '',
       OTEL_ENDPOINT: process.env.OTEL_ENDPOINT ?? '',
+      APP_ENV: (process.env.APP_ENV ?? 'production') as
+        | 'development'
+        | 'staging'
+        | 'production',
     },
   },
 });

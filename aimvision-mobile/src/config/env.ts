@@ -9,6 +9,8 @@ export interface AppEnv {
   sentryDsn: string;
   statsigClientKey: string;
   otelEndpoint: string;
+  /** `development`, `staging`, or `production`. Drives env-conditional defaults. */
+  appEnv: 'development' | 'staging' | 'production';
 }
 
 interface ExtraConfig {
@@ -18,6 +20,7 @@ interface ExtraConfig {
       SENTRY_DSN: string;
       STATSIG_CLIENT_KEY: string;
       OTEL_ENDPOINT: string;
+      APP_ENV: 'development' | 'staging' | 'production';
     }
   >;
   locale?: {
@@ -36,6 +39,7 @@ export const env: AppEnv = {
   sentryDsn: raw.SENTRY_DSN ?? '',
   statsigClientKey: raw.STATSIG_CLIENT_KEY ?? '',
   otelEndpoint: raw.OTEL_ENDPOINT ?? '',
+  appEnv: raw.APP_ENV ?? (__DEV__ ? 'development' : 'production'),
 };
 
 export const localeConfig = extra.locale ?? {

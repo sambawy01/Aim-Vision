@@ -2,6 +2,13 @@
  * i18next setup with EN + AR + RTL bootstrap.
  * See docs/mobile-architecture.md §15 (i18n / RTL).
  */
+
+// RN's bundled Intl doesn't ship PluralRules; without this polyfill
+// i18next's `init()` await hangs forever on device and `App.tsx`
+// stays at `ready=false` (black screen). Must come BEFORE the i18next
+// import so the polyfill is registered before pluralResolver setup.
+import 'intl-pluralrules';
+
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { I18nManager } from 'react-native';

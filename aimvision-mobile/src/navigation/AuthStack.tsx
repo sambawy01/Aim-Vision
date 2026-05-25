@@ -6,6 +6,7 @@ import { ParentalConsentScreen } from '../screens/onboarding/ParentalConsentScre
 import { ChildSetupScreen } from '../screens/onboarding/ChildSetupScreen';
 import { ConsentMatrixScreen } from '../screens/onboarding/ConsentMatrixScreen';
 import { WelcomeScreen } from '../screens/onboarding/WelcomeScreen';
+import { LoginScreen } from '../screens/onboarding/LoginScreen';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -20,6 +21,7 @@ export function AuthStack(): React.ReactElement {
       <Stack.Screen name="ChildSetup" component={ChildSetupScreen} />
       <Stack.Screen name="ConsentMatrix" component={ConsentMatrixScreen} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
     </Stack.Navigator>
   );
 }
