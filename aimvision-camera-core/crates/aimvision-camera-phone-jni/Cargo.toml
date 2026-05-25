@@ -31,4 +31,4 @@ needless_pass_by_value = "allow"
 aimvision-camera-phone = { workspace = true }
 # `jni` 0.21 is the current stable line; supports cross-compile to all
 # Android targets and compiles on the host without an NDK present.
-jni = "0.21"
+jni = "0.22"
