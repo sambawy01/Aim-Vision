@@ -12,6 +12,7 @@ other tenant tables.
 from __future__ import annotations
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
@@ -26,24 +27,60 @@ def _is_postgres() -> bool:
 
 
 def upgrade() -> None:
-    al_signal = sa.Enum(
-        "low_confidence",
-        "ood_drift",
-        "disagreement_with_classical",
-        "rare_class",
-        "manual_flag",
-        name="al_uncertainty_signal",
-    )
-    al_status = sa.Enum(
-        "pending",
-        "claimed",
-        "labelled",
-        "discarded",
-        name="al_status",
-    )
+    # Idempotent CREATE TYPE; see 0001_federation_first_schema for the
+    # full rationale on this DO $$ EXCEPTION pattern + the matching
+    # `create_type=False` on the column-attached enums below.
     if _is_postgres():
-        al_signal.create(op.get_bind(), checkfirst=True)
-        al_status.create(op.get_bind(), checkfirst=True)
+        op.execute(
+            "DO $$ BEGIN "
+            "CREATE TYPE al_uncertainty_signal AS ENUM "
+            "('low_confidence', 'ood_drift', 'disagreement_with_classical', "
+            "'rare_class', 'manual_flag'); "
+            "EXCEPTION WHEN duplicate_object THEN null; END $$;"
+        )
+        op.execute(
+            "DO $$ BEGIN "
+            "CREATE TYPE al_status AS ENUM "
+            "('pending', 'claimed', 'labelled', 'discarded'); "
+            "EXCEPTION WHEN duplicate_object THEN null; END $$;"
+        )
+
+    if _is_postgres():
+        # Use postgres-dialect ENUM with create_type=False (the generic
+        # sa.Enum doesn't reliably propagate the flag — see 0001).
+        al_signal = postgresql.ENUM(
+            "low_confidence",
+            "ood_drift",
+            "disagreement_with_classical",
+            "rare_class",
+            "manual_flag",
+            name="al_uncertainty_signal",
+            create_type=False,
+        )
+        al_status = postgresql.ENUM(
+            "pending",
+            "claimed",
+            "labelled",
+            "discarded",
+            name="al_status",
+            create_type=False,
+        )
+    else:
+        al_signal = sa.Enum(
+            "low_confidence",
+            "ood_drift",
+            "disagreement_with_classical",
+            "rare_class",
+            "manual_flag",
+            name="al_uncertainty_signal",
+        )
+        al_status = sa.Enum(
+            "pending",
+            "claimed",
+            "labelled",
+            "discarded",
+            name="al_status",
+        )
 
     op.create_table(
         "active_learning_items",

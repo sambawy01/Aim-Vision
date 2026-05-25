@@ -2,7 +2,7 @@
 
 Idempotent: re-running on a database that already has the policies is a no-op.
 
-Revision ID: 0003_rls
+Revision ID: 0003_rls_policies
 Revises: 0002_audit_log
 """
 
@@ -10,7 +10,13 @@ from __future__ import annotations
 
 from alembic import op
 
-revision = "0003_rls"
+# Renamed from "0003_rls" — the rest of the chain references this migration
+# as "0003_rls_policies" (see 0004_federation_schema_v2.py::down_revision),
+# so any deployment running alembic against Postgres crashes with
+# `KeyError: '0003_rls_policies'`. Latent until PR #96's compose-stack
+# work tried to actually run `alembic upgrade head`. No production
+# deployment has applied this migration under either id.
+revision = "0003_rls_policies"
 down_revision = "0002_audit_log"
 branch_labels = None
 depends_on = None

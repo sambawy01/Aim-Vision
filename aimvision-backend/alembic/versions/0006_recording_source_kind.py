@@ -20,6 +20,7 @@ Values:
 from __future__ import annotations
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
@@ -34,9 +35,21 @@ def _is_postgres() -> bool:
 
 
 def upgrade() -> None:
-    source_kind = sa.Enum("hero13", "phone_dev", "mock", name="recording_source_kind")
+    # Idempotent CREATE TYPE; see 0001 for the full rationale.
     if _is_postgres():
-        source_kind.create(op.get_bind(), checkfirst=True)
+        op.execute(
+            "DO $$ BEGIN "
+            "CREATE TYPE recording_source_kind AS ENUM "
+            "('hero13', 'phone_dev', 'mock'); "
+            "EXCEPTION WHEN duplicate_object THEN null; END $$;"
+        )
+
+    if _is_postgres():
+        source_kind = postgresql.ENUM(
+            "hero13", "phone_dev", "mock", name="recording_source_kind", create_type=False
+        )
+    else:
+        source_kind = sa.Enum("hero13", "phone_dev", "mock", name="recording_source_kind")
 
     op.add_column(
         "recordings",

@@ -31,13 +31,18 @@ WORKDIR /app
 COPY --from=builder /build/app ./app
 COPY --from=builder /build/alembic ./alembic
 COPY --from=builder /build/alembic.ini ./alembic.ini
+COPY scripts/boot.sh ./boot.sh
+RUN chmod +x ./boot.sh
 
 USER aimvision
 
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request,sys; \
-sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"
+    CMD python -c "import urllib.request,sys,os; port=os.environ.get('PORT','8000'); \
+sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{port}/health',timeout=3).status==200 else 1)"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# `boot.sh` translates Railway / Heroku / Fly's $DATABASE_URL → asyncpg
+# shape, runs `alembic upgrade head`, then execs uvicorn bound to $PORT.
+# Dev's docker-compose overrides this command with its own.
+CMD ["./boot.sh"]

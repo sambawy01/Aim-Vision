@@ -4,6 +4,7 @@ export type AuthStackParamList = {
   ChildSetup: { parentConsentToken: string };
   ConsentMatrix: { childAccountId?: string };
   Welcome: undefined;
+  Login: undefined;
 };
 
 export type AppStackParamList = {
@@ -11,6 +12,8 @@ export type AppStackParamList = {
   Settings: undefined;
   DataPrivacy: undefined;
   CapturePhone: undefined;
+  NewSession: undefined;
+  SessionDetail: { sessionId: string };
 };
 
 export type RootStackParamList = {

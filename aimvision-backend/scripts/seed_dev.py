@@ -33,8 +33,11 @@ from app.services.auth import hash_password
 
 COACH_EMAIL = "coach@example.com"
 COACH_PASSWORD = "demopassword123"  # local dev credential, not a secret
-CLUB_TENANT = "org:democlub"
+COACH_DISPLAY = "Franco Donato"
+CLUB_TENANT = "org:democlub"  # opaque id — kept stable across renames
 CLUB_ORG_ID = "org-democlub"
+ORG_NAME = "Egyptian Shooting Federation"
+ORG_KIND = OrgKind.federation
 
 # (email, display_name) — athletes the coach can pick in the new-session form.
 DEMO_ATHLETES: list[tuple[str, str]] = [
@@ -45,9 +48,15 @@ DEMO_ATHLETES: list[tuple[str, str]] = [
 
 
 async def _ensure_user(s: AsyncSession, email: str, display_name: str) -> User:
-    """Get-or-create a user (with its account + implicit solo org)."""
+    """Get-or-create a user (with its account + implicit solo org).
+
+    Updates `display_name` on every run so renames in this script propagate
+    without needing a wipe.
+    """
     user = (await s.execute(select(User).where(User.email == email))).scalars().first()
     if user is not None:
+        if user.display_name != display_name:
+            user.display_name = display_name
         return user
     account = Account(name=display_name)
     s.add(account)
@@ -100,14 +109,22 @@ async def _seed() -> None:
 
     sm = async_sessionmaker(engine, expire_on_commit=False)
     async with sm() as s, s.begin():
-        # Demo club.
+        # Org. Updates name + kind on re-run so renames in this script
+        # propagate without a DB wipe.
         club = (await s.execute(select(Org).where(Org.id == CLUB_ORG_ID))).scalars().first()
         if club is None:
-            s.add(Org(id=CLUB_ORG_ID, kind=OrgKind.club, name="Demo Club", tenant_id=CLUB_TENANT))
+            s.add(Org(id=CLUB_ORG_ID, kind=ORG_KIND, name=ORG_NAME, tenant_id=CLUB_TENANT))
+        else:
+            if club.name != ORG_NAME:
+                club.name = ORG_NAME
+            if club.kind != ORG_KIND:
+                club.kind = ORG_KIND
 
-        # Coach (refresh password on re-run so the printed login always works).
-        coach = await _ensure_user(s, COACH_EMAIL, "Demo Coach")
+        # Coach (refresh password + display name on re-run so the printed
+        # login always works and renames in this script take effect).
+        coach = await _ensure_user(s, COACH_EMAIL, COACH_DISPLAY)
         coach.password_hash = hash_password(COACH_PASSWORD)
+        coach.display_name = COACH_DISPLAY
         await _ensure_membership(s, user=coach, org_id=CLUB_ORG_ID, role=Role.coach)
 
         # Athletes the coach can pick for a new session.
@@ -118,7 +135,8 @@ async def _seed() -> None:
     await dispose_engines()
     print("Seeded dev data:")
     print(f"  coach login: {COACH_EMAIL} / {COACH_PASSWORD}")
-    print(f"  tenant:      {CLUB_TENANT} (Demo Club)")
+    print(f"  coach name:  {COACH_DISPLAY}")
+    print(f"  tenant:      {CLUB_TENANT} ({ORG_NAME})")
     print(f"  athletes:    {', '.join(name for _, name in DEMO_ATHLETES)}")
 
 
