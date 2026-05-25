@@ -45,7 +45,7 @@ services:
     # Supabase Auth (formerly GoTrue). Tag pinned so the JWT-payload
     # shape this dev stack produces matches what the verifier was
     # tested against.
-    image: supabase/gotrue:v2.158.1
+    image: supabase/gotrue:v2.151.0
     container_name: aimvision-dev-gotrue
     depends_on:
       postgres:
@@ -54,7 +54,7 @@ services:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: "9999"
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://gotrue:gotrue-dev-only@postgres:5432/gotrue?sslmode=disable
+      GOTRUE_DB_DATABASE_URL: postgres://gotrue:gotrue-dev-only@postgres:5432/gotrue?sslmode=disable&search_path=auth,public
       GOTRUE_SITE_URL: http://localhost:8000
       GOTRUE_URI_ALLOW_LIST: http://localhost:8000,http://localhost:5173
       GOTRUE_DISABLE_SIGNUP: "false"
@@ -92,7 +92,9 @@ services:
       AIMVISION_ENV: development
       AIMVISION_DATABASE_URL: postgresql+asyncpg://aimvision:aimvision-dev-only@postgres:5432/aimvision
       AIMVISION_JWT_SECRET: aimvision-dev-internal-jwt-secret-32bytes-plus
-      AIMVISION_CORS_ORIGINS: http://localhost:5173
+      # pydantic-settings parses list-typed env vars as JSON. Wrap the
+      # one-origin list in `[…]` accordingly.
+      AIMVISION_CORS_ORIGINS: '["http://localhost:5173"]'
       AIMVISION_IP_HASH_SALT: aimvision-dev-ip-hash-salt
       # --- GoTrue verifier wiring (ADR-0010) ---
       AIMVISION_AUTH_PROVIDER: gotrue

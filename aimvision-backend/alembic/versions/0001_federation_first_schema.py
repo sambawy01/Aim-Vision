@@ -9,6 +9,7 @@ Create Date: 2026-05-06
 from __future__ import annotations
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
@@ -23,20 +24,66 @@ def _is_postgres() -> bool:
 
 
 def upgrade() -> None:
-    org_kind = sa.Enum("solo", "club", "federation", name="org_kind")
-    membership_role = sa.Enum("coach", "athlete", "admin", "parent", name="membership_role")
-    annotation_visibility = sa.Enum(
-        "private",
-        "share_with_athlete",
-        "share_with_club",
-        "share_with_federation",
-        name="annotation_visibility",
-    )
-
+    # Postgres enum creation is split out: we issue an idempotent
+    # `CREATE TYPE ... DO $$ EXCEPTION WHEN duplicate_object` block
+    # ourselves, then mark the column-attached enums `create_type=False`
+    # so sqlalchemy doesn't re-emit `CREATE TYPE` during each
+    # `op.create_table` call that references them. SQLite emulates
+    # enums as VARCHAR + CHECK and has no separate type concept.
     if _is_postgres():
-        org_kind.create(op.get_bind(), checkfirst=True)
-        membership_role.create(op.get_bind(), checkfirst=True)
-        annotation_visibility.create(op.get_bind(), checkfirst=True)
+        op.execute(
+            "DO $$ BEGIN "
+            "CREATE TYPE org_kind AS ENUM ('solo', 'club', 'federation'); "
+            "EXCEPTION WHEN duplicate_object THEN null; END $$;"
+        )
+        op.execute(
+            "DO $$ BEGIN "
+            "CREATE TYPE membership_role AS ENUM "
+            "('coach', 'athlete', 'admin', 'parent'); "
+            "EXCEPTION WHEN duplicate_object THEN null; END $$;"
+        )
+        op.execute(
+            "DO $$ BEGIN "
+            "CREATE TYPE annotation_visibility AS ENUM "
+            "('private', 'share_with_athlete', 'share_with_club', "
+            "'share_with_federation'); "
+            "EXCEPTION WHEN duplicate_object THEN null; END $$;"
+        )
+
+    # Use the postgres-dialect ENUM with `create_type=False` so column
+    # references don't re-emit CREATE TYPE during `op.create_table`.
+    # The generic `sa.Enum(..., create_type=False)` doesn't reliably
+    # propagate `create_type` through the dialect-translation layer.
+    if _is_postgres():
+        org_kind = postgresql.ENUM("solo", "club", "federation", name="org_kind", create_type=False)
+        membership_role = postgresql.ENUM(
+            "coach",
+            "athlete",
+            "admin",
+            "parent",
+            name="membership_role",
+            create_type=False,
+        )
+        annotation_visibility = postgresql.ENUM(
+            "private",
+            "share_with_athlete",
+            "share_with_club",
+            "share_with_federation",
+            name="annotation_visibility",
+            create_type=False,
+        )
+    else:
+        # SQLite: generic Enum becomes VARCHAR + CHECK; no separate
+        # type to suppress.
+        org_kind = sa.Enum("solo", "club", "federation", name="org_kind")
+        membership_role = sa.Enum("coach", "athlete", "admin", "parent", name="membership_role")
+        annotation_visibility = sa.Enum(
+            "private",
+            "share_with_athlete",
+            "share_with_club",
+            "share_with_federation",
+            name="annotation_visibility",
+        )
 
     op.create_table(
         "accounts",

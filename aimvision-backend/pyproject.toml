@@ -12,6 +12,13 @@ dependencies = [
     "uvicorn[standard]>=0.32",
     "sqlalchemy[asyncio]>=2.0.36",
     "asyncpg>=0.30",
+    # psycopg v3 binary is the sync driver alembic uses for migrations
+    # (env.py translates asyncpg URLs to psycopg). Production deploys
+    # need it because cold-boot runs `alembic upgrade head` against
+    # Postgres; without it the migration step crashes with
+    # ModuleNotFoundError. CI's pytest path avoids alembic entirely
+    # (uses Base.metadata.create_all on sqlite), so this gap was latent.
+    "psycopg[binary]>=3.2",
     "aiosqlite>=0.20",
     "alembic>=1.14",
     "pydantic[email]>=2.9",

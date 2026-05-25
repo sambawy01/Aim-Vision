@@ -34,7 +34,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "0008_camera_calibrations"
-down_revision = "0007_recording_session_clock_offset"
+down_revision = "0007_recording_clock_offset"
 branch_labels = None
 depends_on = None
 
