@@ -54,10 +54,12 @@ function withIosXcodeRegistration(config) {
       const mainGroup = project.getFirstProject().firstProject.mainGroup;
       project.addToPbxGroup(group.uuid, mainGroup);
     }
+    // Xcode resolves file paths relative to the parent group. Passing the
+    // group path again here would double it (was producing
+    // `…/PhoneFrameSink/AIMVISION/PhoneFrameSink/<file>`).
     for (const file of IOS_SOURCES) {
-      const filePath = path.join(groupPath, file);
       try {
-        project.addSourceFile(filePath, { target: project.getFirstTarget().uuid }, group.uuid);
+        project.addSourceFile(file, { target: project.getFirstTarget().uuid }, group.uuid);
       } catch {
         // Already registered — ignore.
       }
