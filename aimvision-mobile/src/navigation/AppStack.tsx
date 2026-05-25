@@ -22,6 +22,7 @@ import { DataPrivacyScreen } from '../screens/settings/DataPrivacyScreen';
 import { CapturePhoneScreen } from '../screens/capture/CapturePhoneScreen';
 import { NewSessionScreen } from '../screens/sessions/NewSessionScreen';
 import { SessionDetailScreen } from '../screens/sessions/SessionDetailScreen';
+import { RecordingPlayerScreen } from '../screens/sessions/RecordingPlayerScreen';
 import { TabBar } from '../components/TabBar';
 import { colors } from '../theme/tokens';
 
@@ -50,6 +51,11 @@ export function AppStack(): React.ReactElement {
             name="SessionDetail"
             component={SessionDetailScreen}
             options={{ title: 'Session', headerTintColor: colors.textPrimary }}
+          />
+          <Stack.Screen
+            name="RecordingPlayer"
+            component={RecordingPlayerScreen}
+            options={{ title: 'Recording', headerTintColor: colors.textPrimary }}
           />
           <Stack.Screen
             name="Settings"

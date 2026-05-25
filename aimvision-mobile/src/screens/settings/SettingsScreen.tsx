@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -7,6 +7,8 @@ import { AccessibleText } from '../../components/a11y/AccessibleText';
 import { AccessibleTouchable } from '../../components/a11y/AccessibleTouchable';
 import { useRangeMode } from '../../components/RangeMode';
 import type { Theme } from '../../theme/tokens';
+import { useAuthStore } from '../../state/authStore';
+import { logout } from '../../services/auth';
 import type { AppStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<AppStackParamList, 'Settings'>;
@@ -16,14 +18,54 @@ export function SettingsScreen(): React.ReactElement {
   const { t } = useTranslation();
   const { inRangeMode, setManualOverride, theme } = useRangeMode();
   const styles = useMemo(() => makeStyles(theme), [theme]);
+  const session = useAuthStore((s) => s.session);
+  const [signingOut, setSigningOut] = useState(false);
 
   const rangeModeLabel = `${t('settings.rangeMode')} · ${
     inRangeMode ? t('common.on') : t('common.off')
   }`;
 
+  const onSignOut = (): void => {
+    Alert.alert('Sign out?', 'You will need to sign in again to use the app.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: async () => {
+          setSigningOut(true);
+          try {
+            await logout();
+            // RootNavigator subscribes to the auth store; clearing the
+            // token swaps AuthStack back in reactively.
+          } catch {
+            // logout() swallows the backend error and clears local state
+            // anyway, so we always land logged-out.
+          } finally {
+            setSigningOut(false);
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <View style={styles.container}>
       <AccessibleText variant="display">{t('settings.title')}</AccessibleText>
+
+      {session ? (
+        <View style={styles.profile}>
+          <AccessibleText variant="caption" color="textSecondary">
+            Signed in
+          </AccessibleText>
+          <AccessibleText variant="title">
+            {session.email ?? session.athleteIdHash.slice(0, 12)}
+          </AccessibleText>
+          <AccessibleText variant="caption" color="textMuted">
+            {session.ageGroup}
+            {session.parentLinked ? ' · parent linked' : ''}
+          </AccessibleText>
+        </View>
+      ) : null}
 
       <AccessibleTouchable
         accessibilityLabel={t('settings.dataPrivacy')}
@@ -47,6 +89,22 @@ export function SettingsScreen(): React.ReactElement {
           style={styles.indicator}
         >
           {inRangeMode ? t('common.on') : t('common.off')}
+        </AccessibleText>
+      </AccessibleTouchable>
+
+      <AccessibleTouchable
+        accessibilityLabel="Sign out"
+        onPress={onSignOut}
+        style={
+          signingOut
+            ? [styles.row, styles.signOutRow, styles.rowDisabled]
+            : [styles.row, styles.signOutRow]
+        }
+        disabled={signingOut}
+        testID="settings-sign-out"
+      >
+        <AccessibleText variant="body" color="danger">
+          {signingOut ? 'Signing out…' : 'Sign out'}
         </AccessibleText>
       </AccessibleTouchable>
     </View>
@@ -75,6 +133,19 @@ function makeStyles(theme: Theme) {
     },
     indicator: {
       marginLeft: theme.spacing.md,
+    },
+    profile: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radii.md,
+      padding: theme.spacing.md,
+      gap: theme.spacing.xs,
+    },
+    signOutRow: {
+      marginTop: theme.spacing.lg,
+      borderColor: theme.colors.danger,
+    },
+    rowDisabled: {
+      opacity: 0.5,
     },
   });
 }

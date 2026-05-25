@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   Camera,
   useCameraDevice,
@@ -8,6 +8,7 @@ import {
   useMicrophonePermission,
   VisionCameraProxy,
 } from 'react-native-vision-camera';
+import { useRoute, type RouteProp } from '@react-navigation/native';
 import { useTranslation } from '../../hooks/useTranslation';
 import { AccessibleText } from '../../components/a11y/AccessibleText';
 import { AccessibleTouchable } from '../../components/a11y/AccessibleTouchable';
@@ -20,6 +21,15 @@ import {
 } from '../../capture/phoneRecordingState';
 import { formatFps, formatResolution } from '../../capture/frameStats';
 import { useFrameStats } from '../../capture/useFrameStats';
+import { uploadRecording } from '../../services/sessions';
+import type { AppStackParamList } from '../../navigation/types';
+
+type Route = RouteProp<AppStackParamList, 'CapturePhone'>;
+type UploadState =
+  | { kind: 'idle' }
+  | { kind: 'uploading' }
+  | { kind: 'uploaded'; recordingId: string }
+  | { kind: 'failed'; message: string };
 
 /**
  * Sprint 4 dev-mode phone capture screen — ADR-0009 slice 1.
@@ -35,7 +45,15 @@ export function CapturePhoneScreen(): React.ReactElement {
   const { theme } = useRangeMode();
   const styles = useMemo(() => makeStyles(theme), [theme]);
 
+  // Optional sessionId from the route: when the user came from
+  // SessionDetail's "Record video" CTA, finishing a recording auto-
+  // uploads it as part of that session. When the user entered Capture
+  // via the bottom tab without a session, recordings stay local-only.
+  const route = useRoute<Route>();
+  const routeSessionId = route.params?.sessionId;
+
   const [state, dispatch] = useReducer(recordingReducer, INITIAL_RECORDING_STATE);
+  const [upload, setUpload] = useState<UploadState>({ kind: 'idle' });
 
   const device = useCameraDevice('back');
   const cameraPerm = useCameraPermission();
@@ -150,10 +168,47 @@ export function CapturePhoneScreen(): React.ReactElement {
     }
   }, [state.status]);
 
-  const reset = useCallback(() => dispatch({ kind: 'reset' }), []);
+  const reset = useCallback(() => {
+    dispatch({ kind: 'reset' });
+    setUpload({ kind: 'idle' });
+  }, []);
+
+  // Auto-upload when a recording finishes AND we came from a session.
+  // `state.lastRecordingUri` flips from null → URI when vision-camera's
+  // `onRecordingFinished` fires. The dependency on `routeSessionId`
+  // means a recording started without a session won't accidentally
+  // upload when the user navigates here later with one.
+  const lastUri = state.lastRecordingUri;
+  useEffect(() => {
+    if (!routeSessionId || !lastUri) return;
+    if (upload.kind !== 'idle') return;
+    let cancelled = false;
+    setUpload({ kind: 'uploading' });
+    (async () => {
+      try {
+        const rec = await uploadRecording(routeSessionId, {
+          fileUri: lastUri,
+          sourceKind: 'phone_dev',
+        });
+        if (cancelled) return;
+        setUpload({ kind: 'uploaded', recordingId: rec.id });
+      } catch (e) {
+        if (cancelled) return;
+        const message = e instanceof Error ? e.message : String(e);
+        setUpload({ kind: 'failed', message });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lastUri, routeSessionId, upload.kind]);
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <AccessibleText variant="display">{t('capturePhone.title')}</AccessibleText>
       <AccessibleText variant="bodySmall" color="textMuted" style={styles.subtitle}>
         {t('capturePhone.subtitle')}
@@ -178,6 +233,22 @@ export function CapturePhoneScreen(): React.ReactElement {
           {renderStatusLabel(state, t)}
         </AccessibleText>
       </View>
+
+      {routeSessionId ? (
+        <View style={styles.statusRow}>
+          <AccessibleText
+            variant="bodySmall"
+            color={upload.kind === 'failed' ? 'danger' : 'textSecondary'}
+            testID="capture-phone-upload-status"
+          >
+            {upload.kind === 'idle' && 'Will auto-upload to session when recording stops.'}
+            {upload.kind === 'uploading' && 'Uploading to backend…'}
+            {upload.kind === 'uploaded' &&
+              `Uploaded ✓ (recording ${upload.recordingId.slice(0, 8)}…)`}
+            {upload.kind === 'failed' && `Upload failed: ${upload.message}`}
+          </AccessibleText>
+        </View>
+      ) : null}
 
       {state.permissionGranted ? (
         <View style={styles.statsRow} testID="capture-phone-frame-stats">
@@ -251,7 +322,7 @@ export function CapturePhoneScreen(): React.ReactElement {
           </AccessibleTouchable>
         ) : null}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -285,7 +356,12 @@ function makeStyles(theme: Theme) {
     container: {
       flex: 1,
       backgroundColor: theme.colors.bg,
+    },
+    content: {
       padding: theme.spacing.lg,
+      // Bottom space so the record button clears the persistent TabBar
+      // (~80pt including safe-area inset on a notch device).
+      paddingBottom: theme.spacing.xxl * 2,
       gap: theme.spacing.md,
     },
     subtitle: {

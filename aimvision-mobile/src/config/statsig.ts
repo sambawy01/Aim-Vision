@@ -15,12 +15,16 @@ export interface StatsigUser {
   custom?: Record<string, string | number | boolean>;
 }
 
+// Intentionally stays false. `useFlag` short-circuits when not
+// initialized, so every flag falls back to its hard-coded `defaultValue`
+// — which is what we want until a real Statsig SDK is wired back in.
+// Earlier we set this to `true` after `initStatsig()`, which made
+// `checkGate()` (the stubbed-to-`false` impl below) override every
+// caller's default.
 let initialized = false;
 
 export async function initStatsig(_user: StatsigUser = {}): Promise<void> {
-  // No-op stub. Flags fall back to their hard-coded defaults until a real
-  // Statsig SDK is wired back in.
-  initialized = true;
+  // No-op stub.
 }
 
 export function isInitialized(): boolean {

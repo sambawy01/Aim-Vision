@@ -22,8 +22,10 @@ import {
   getCoachingNote,
   getSession,
   getSessionSummary,
+  listRecordings,
   listSessionShots,
   type CoachingNote,
+  type Recording,
   type Session,
   type SessionSummary,
   type Shot,
@@ -38,6 +40,7 @@ interface Bundle {
   session: Session;
   summary: SessionSummary | null;
   shots: Shot[];
+  recordings: Recording[];
   note: CoachingNote | null;
 }
 
@@ -59,12 +62,13 @@ export function SessionDetailScreen(): React.ReactElement {
       const session = await getSession(sessionId);
       // The summary/shots/note endpoints are optional and may 404 before the
       // ML pipeline has run — wrap each so the page still renders.
-      const [summary, shots, note] = await Promise.all([
+      const [summary, shots, recordings, note] = await Promise.all([
         getSessionSummary(sessionId).catch(() => null),
         listSessionShots(sessionId).catch(() => [] as Shot[]),
+        listRecordings(sessionId).catch(() => [] as Recording[]),
         getCoachingNote(sessionId).catch(() => null),
       ]);
-      setBundle({ session, summary, shots, note });
+      setBundle({ session, summary, shots, recordings, note });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -107,7 +111,7 @@ export function SessionDetailScreen(): React.ReactElement {
     );
   }
 
-  const { session, summary, shots, note } = bundle;
+  const { session, summary, shots, recordings, note } = bundle;
   const ended = Boolean(session.ended_at);
 
   return (
@@ -121,12 +125,12 @@ export function SessionDetailScreen(): React.ReactElement {
       {summary ? (
         <View style={styles.kpis}>
           <Kpi label="Shots" value={String(summary.shot_count)} theme={theme} />
+          <Kpi label="Recordings" value={String(summary.recording_count)} theme={theme} />
           <Kpi
-            label="Duration"
-            value={summary.duration_s !== null ? `${Math.round(summary.duration_s)}s` : '—'}
+            label="Calibration"
+            value={summary.calibration_complete ? '✓' : `${summary.calibration_count}`}
             theme={theme}
           />
-          <Kpi label="Chips" value={String(summary.diagnostic_chips.length)} theme={theme} />
         </View>
       ) : null}
 
@@ -135,7 +139,7 @@ export function SessionDetailScreen(): React.ReactElement {
         {phoneCapture && !ended ? (
           <Pressable
             style={styles.btn}
-            onPress={() => navigation.navigate('CapturePhone')}
+            onPress={() => navigation.navigate('CapturePhone', { sessionId })}
             accessibilityRole="button"
             accessibilityLabel="Record video"
           >
@@ -159,6 +163,39 @@ export function SessionDetailScreen(): React.ReactElement {
             Session ended. ML pipeline will populate shots + coaching note
             shortly.
           </AccessibleText>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <AccessibleText variant="title">Recordings</AccessibleText>
+        {recordings.length === 0 ? (
+          <AccessibleText variant="body" color="textSecondary">
+            None yet. Record from the camera to upload one.
+          </AccessibleText>
+        ) : (
+          recordings.map((r) => (
+            <Pressable
+              key={r.id}
+              style={styles.shotRow}
+              onPress={() =>
+                navigation.navigate('RecordingPlayer', {
+                  sessionId,
+                  recordingId: r.id,
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel={`Play recording ${r.id.slice(0, 8)}`}
+            >
+              <AccessibleText variant="body">
+                ▶ {r.source_kind}
+                {r.duration_ms !== null ? ` · ${Math.round(r.duration_ms / 1000)}s` : ''} ·{' '}
+                {r.upload_state}
+              </AccessibleText>
+              <AccessibleText variant="caption" color="textMuted">
+                {r.id}
+              </AccessibleText>
+            </Pressable>
+          ))
         )}
       </View>
 

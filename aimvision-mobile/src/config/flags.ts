@@ -23,5 +23,11 @@ export const FLAG_PHONE_CAPTURE = 'capture.phone_backend_enabled';
  * Cite docs/adr/0009-phone-capture-dev-backend.md.
  */
 export function usePhoneCaptureEnabled(): boolean {
-  return useFlag(FLAG_PHONE_CAPTURE, env.appEnv !== 'production');
+  // Default: always on. The original env-conditional default
+  // (`appEnv !== 'production'`) was off in Release builds because
+  // `app.config.ts` evaluates at xcodebuild time without .env loaded,
+  // baking `appEnv='production'` into the manifest. Once a real
+  // production-grade Statsig gate is wired, restore the env guard.
+  void env;
+  return useFlag(FLAG_PHONE_CAPTURE, true);
 }

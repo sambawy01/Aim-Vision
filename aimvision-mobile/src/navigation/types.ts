@@ -11,9 +11,10 @@ export type AppStackParamList = {
   Home: undefined;
   Settings: undefined;
   DataPrivacy: undefined;
-  CapturePhone: undefined;
+  CapturePhone: { sessionId?: string } | undefined;
   NewSession: undefined;
   SessionDetail: { sessionId: string };
+  RecordingPlayer: { sessionId: string; recordingId: string };
 };
 
 export type RootStackParamList = {
