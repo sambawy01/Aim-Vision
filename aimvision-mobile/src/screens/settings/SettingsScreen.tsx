@@ -76,6 +76,14 @@ export function SettingsScreen(): React.ReactElement {
       </AccessibleTouchable>
 
       <AccessibleTouchable
+        accessibilityLabel="Erase data"
+        onPress={() => navigation.navigate('EraseData')}
+        style={styles.row}
+      >
+        <AccessibleText variant="body">Erase data</AccessibleText>
+      </AccessibleTouchable>
+
+      <AccessibleTouchable
         accessibilityLabel={rangeModeLabel}
         accessibilityState={{ checked: inRangeMode }}
         onPress={() => setManualOverride(inRangeMode ? false : true)}

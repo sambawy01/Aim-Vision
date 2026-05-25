@@ -26,3 +26,29 @@ export async function listDrills(opts: { signal?: AbortSignal } = {}): Promise<D
 export async function listAthletes(opts: { signal?: AbortSignal } = {}): Promise<Athlete[]> {
   return api<Athlete[]>('/athletes', { signal: opts.signal });
 }
+
+export async function getAthlete(
+  athleteId: string,
+  opts: { signal?: AbortSignal } = {},
+): Promise<Athlete> {
+  return api<Athlete>(`/athletes/${athleteId}`, { signal: opts.signal });
+}
+
+export interface AthleteProgress {
+  athlete_id: string;
+  sessions_analyzed: number;
+  sessions: Array<{
+    session_id: string;
+    started_at: string;
+    shot_count: number;
+    diagnostic_chips: string[];
+  }>;
+  deltas: Record<string, number>;
+}
+
+export async function getAthleteProgress(
+  athleteId: string,
+  opts: { signal?: AbortSignal } = {},
+): Promise<AthleteProgress> {
+  return api<AthleteProgress>(`/athletes/${athleteId}/progress`, { signal: opts.signal });
+}

@@ -23,6 +23,9 @@ import { CapturePhoneScreen } from '../screens/capture/CapturePhoneScreen';
 import { NewSessionScreen } from '../screens/sessions/NewSessionScreen';
 import { SessionDetailScreen } from '../screens/sessions/SessionDetailScreen';
 import { RecordingPlayerScreen } from '../screens/sessions/RecordingPlayerScreen';
+import { AthletesScreen } from '../screens/athletes/AthletesScreen';
+import { AthleteDetailScreen } from '../screens/athletes/AthleteDetailScreen';
+import { EraseDataScreen } from '../screens/settings/EraseDataScreen';
 import { TabBar } from '../components/TabBar';
 import { colors } from '../theme/tokens';
 
@@ -66,6 +69,21 @@ export function AppStack(): React.ReactElement {
             name="DataPrivacy"
             component={DataPrivacyScreen}
             options={{ title: 'Data & privacy', headerTintColor: colors.textPrimary }}
+          />
+          <Stack.Screen
+            name="Athletes"
+            component={AthletesScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AthleteDetail"
+            component={AthleteDetailScreen}
+            options={{ title: 'Athlete', headerTintColor: colors.textPrimary }}
+          />
+          <Stack.Screen
+            name="EraseData"
+            component={EraseDataScreen}
+            options={{ title: 'Erase data', headerTintColor: colors.textPrimary }}
           />
           {phoneCaptureEnabled ? (
             <Stack.Screen

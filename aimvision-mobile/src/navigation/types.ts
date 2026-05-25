@@ -15,6 +15,9 @@ export type AppStackParamList = {
   NewSession: undefined;
   SessionDetail: { sessionId: string };
   RecordingPlayer: { sessionId: string; recordingId: string };
+  Athletes: undefined;
+  AthleteDetail: { athleteId: string };
+  EraseData: undefined;
 };
 
 export type RootStackParamList = {

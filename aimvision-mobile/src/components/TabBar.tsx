@@ -28,6 +28,7 @@ interface Tab {
 
 const ALWAYS_TABS: Tab[] = [
   { key: 'Home', label: 'Sessions', glyph: '◐' },
+  { key: 'Athletes', label: 'Athletes', glyph: '☻' },
   { key: 'Settings', label: 'Settings', glyph: '⚙' },
 ];
 
@@ -40,11 +41,13 @@ export function TabBar(): React.ReactElement {
     return s.routes[s.index]?.name;
   });
 
+  // Sessions · Athletes · Capture? · Settings
   const tabs: Tab[] = phoneCaptureEnabled
     ? [
         ALWAYS_TABS[0],
-        { key: 'CapturePhone', label: 'Capture', glyph: '●' },
         ALWAYS_TABS[1],
+        { key: 'CapturePhone', label: 'Capture', glyph: '●' },
+        ALWAYS_TABS[2],
       ]
     : ALWAYS_TABS;
 
