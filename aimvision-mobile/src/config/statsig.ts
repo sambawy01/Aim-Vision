@@ -1,9 +1,13 @@
 /**
- * Statsig client init.
- * See docs/mobile-architecture.md §13 — feature flags + experiments + offline defaults.
+ * Statsig client init — local-dev stub.
+ *
+ * The real `statsig-react-native-expo` SDK peers on React ≤18; once the
+ * mobile RN modernization to React 19 lands (PR #92 follow-up), we
+ * either switch to the rewritten Statsig RN SDK or keep this stub as
+ * the offline default per docs/mobile-architecture.md §13.
+ *
+ * Public API matches the real one so call sites don't change.
  */
-import { Statsig } from 'statsig-react-native-expo';
-import { env } from './env';
 
 export interface StatsigUser {
   userID?: string;
@@ -13,11 +17,9 @@ export interface StatsigUser {
 
 let initialized = false;
 
-export async function initStatsig(user: StatsigUser = {}): Promise<void> {
-  if (!env.statsigClientKey || initialized) return;
-  await Statsig.initialize(env.statsigClientKey, user, {
-    environment: { tier: __DEV__ ? 'development' : 'production' },
-  });
+export async function initStatsig(_user: StatsigUser = {}): Promise<void> {
+  // No-op stub. Flags fall back to their hard-coded defaults until a real
+  // Statsig SDK is wired back in.
   initialized = true;
 }
 
@@ -25,4 +27,17 @@ export function isInitialized(): boolean {
   return initialized;
 }
 
-export { Statsig };
+export const Statsig = {
+  checkGate(_name: string): boolean {
+    return false;
+  },
+  getConfig(_name: string): { get<T>(_key: string, fallback: T): T } {
+    return { get: (_k, fallback) => fallback };
+  },
+  getExperiment(_name: string): { get<T>(_key: string, fallback: T): T } {
+    return { get: (_k, fallback) => fallback };
+  },
+  shutdown(): void {
+    initialized = false;
+  },
+} as const;
